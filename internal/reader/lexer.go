@@ -374,6 +374,29 @@ func (l *Lexer) peekByte() (byte, error) {
 	return b, nil
 }
 
+// ReadBytes は指定されたバイト数を読む
+func (l *Lexer) ReadBytes(n int) ([]byte, error) {
+	result := make([]byte, 0, n)
+
+	// 先読みバッファから読む
+	if len(l.peeked) > 0 {
+		if len(l.peeked) >= n {
+			result = l.peeked[:n]
+			l.peeked = l.peeked[n:]
+			return result, nil
+		}
+		result = l.peeked
+		n -= len(l.peeked)
+		l.peeked = nil
+	}
+
+	// 残りをreaderから読む
+	buf := make([]byte, n)
+	bytesRead, err := io.ReadFull(l.r, buf)
+	result = append(result, buf[:bytesRead]...)
+	return result, err
+}
+
 // isDelimiter はデリミタかどうかを判定
 func isDelimiter(b byte) bool {
 	return b == '(' || b == ')' || b == '<' || b == '>' ||

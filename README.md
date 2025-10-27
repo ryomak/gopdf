@@ -16,9 +16,9 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
 
 ## ステータス
 
-🚧 **開発中** - Phase 6 (PDF解析・読み込み) 完了
+🚧 **開発中** - Phase 7 (テキスト抽出) 完了
 
-現在、基本的なPDF生成、テキスト描画、図形描画、JPEG/PNG画像埋め込み、PDF読み込み機能が実装されています。
+現在、基本的なPDF生成、テキスト描画、図形描画、JPEG/PNG画像埋め込み、PDF読み込み、テキスト抽出機能が実装されています。
 
 ### 実装済み機能
 
@@ -53,13 +53,19 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
   - メタデータ（Info辞書）の取得
   - Catalog, Pages, Pageオブジェクトの解析
   - 基本的なオブジェクト構造の解析
+- ✅ **テキスト抽出**
+  - コンテンツストリームの解析
+  - ページ単位・全ページのテキスト抽出
+  - 標準Type1フォントのテキスト抽出
+  - テキスト位置情報の取得
+  - PDFテキストオペレーター対応（BT, ET, Tj, TJ, Td, Tm, T*, ', "など）
 - ✅ PDF 1.7準拠の出力
 
 ### 今後の実装予定
 
-- [ ] テキスト抽出
 - [ ] TTFフォント対応
 - [ ] 画像抽出
+- [ ] より高度なテキストレイアウト解析
 
 ## インストール
 
@@ -102,6 +108,45 @@ func main() {
 }
 ```
 
+### テキスト抽出
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "github.com/ryomak/gopdf"
+)
+
+func main() {
+    // PDFファイルを開く
+    reader, err := gopdf.Open("document.pdf")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer reader.Close()
+
+    // ページ数を取得
+    pageCount := reader.PageCount()
+    fmt.Printf("Total pages: %d\n", pageCount)
+
+    // 特定のページのテキストを抽出
+    text, err := reader.ExtractPageText(0) // 0-indexed
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("Page 1 text:\n%s\n", text)
+
+    // 全ページのテキストを抽出
+    allText, err := reader.ExtractText()
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("All text:\n%s\n", allText)
+}
+```
+
 ### サンプルコード
 
 詳細なサンプルコードは [`examples/`](examples/) ディレクトリを参照してください。
@@ -111,7 +156,7 @@ func main() {
 - [`03_graphics`](examples/03_graphics): 図形描画（線、矩形、円）と色の設定
 - [`04_images`](examples/04_images): JPEG画像の埋め込みとレイアウト
 - [`05_png_images`](examples/05_png_images): PNG画像の埋め込みと透明度（アルファチャンネル）
-- [`06_read_pdf`](examples/06_read_pdf): PDFファイルの読み込みと情報取得
+- [`06_read_pdf`](examples/06_read_pdf): PDFファイルの読み込み、情報取得、テキスト抽出
 
 ## 開発
 
@@ -160,6 +205,7 @@ gopdfは以下のレイヤー構造で設計されています：
 - [アーキテクチャ設計書](docs/architecture.md)
 - [プロジェクト構造設計書](docs/structure.md)
 - [PDFバイナリ仕様メモ](docs/pdf_spec_notes.md)
+- [テキスト抽出設計書](docs/text_extraction_design.md)
 - [開発進捗](docs/progress.md)
 
 ## ライセンス

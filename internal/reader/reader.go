@@ -3,6 +3,7 @@ package reader
 import (
 	"bufio"
 	"bytes"
+	"compress/zlib"
 	"fmt"
 	"io"
 	"strconv"
@@ -388,4 +389,126 @@ func (r *Reader) GetInfo() (core.Dictionary, error) {
 	}
 
 	return info, nil
+}
+
+// GetPageContents はページのコンテンツストリームを取得してデコードする
+func (r *Reader) GetPageContents(page core.Dictionary) ([]byte, error) {
+	// /Contentsを取得
+	contentsObj, ok := page[core.Name("Contents")]
+	if !ok {
+		// Contentsがない場合は空のバイト列を返す
+		return []byte{}, nil
+	}
+
+	// Referenceの場合は解決
+	if ref, ok := contentsObj.(*core.Reference); ok {
+		obj, err := r.GetObject(ref.ObjectNumber)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get contents object: %w", err)
+		}
+		contentsObj = obj
+	}
+
+	// Streamの場合
+	if stream, ok := contentsObj.(*core.Stream); ok {
+		return r.decodeStream(stream)
+	}
+
+	// Arrayの場合（複数のストリーム）
+	if array, ok := contentsObj.(core.Array); ok {
+		var result []byte
+		for _, item := range array {
+			// 各要素を解決
+			if ref, ok := item.(*core.Reference); ok {
+				obj, err := r.GetObject(ref.ObjectNumber)
+				if err != nil {
+					return nil, fmt.Errorf("failed to get stream from array: %w", err)
+				}
+				item = obj
+			}
+
+			// Streamをデコード
+			if stream, ok := item.(*core.Stream); ok {
+				data, err := r.decodeStream(stream)
+				if err != nil {
+					return nil, err
+				}
+				result = append(result, data...)
+				// ストリーム間に空白を追加
+				result = append(result, ' ')
+			}
+		}
+		return result, nil
+	}
+
+	return nil, fmt.Errorf("contents is neither a stream nor an array")
+}
+
+// decodeStream はストリームをデコードする
+func (r *Reader) decodeStream(stream *core.Stream) ([]byte, error) {
+	data := stream.Data
+
+	// /Filterをチェック
+	filterObj, hasFilter := stream.Dict[core.Name("Filter")]
+	if !hasFilter {
+		// フィルターがない場合はそのまま返す
+		return data, nil
+	}
+
+	// Filterの解決
+	if ref, ok := filterObj.(*core.Reference); ok {
+		obj, err := r.GetObject(ref.ObjectNumber)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve filter: %w", err)
+		}
+		filterObj = obj
+	}
+
+	// Filterが名前の場合
+	if filterName, ok := filterObj.(core.Name); ok {
+		return r.applyFilter(data, string(filterName))
+	}
+
+	// Filterが配列の場合（複数のフィルター）
+	if filterArray, ok := filterObj.(core.Array); ok {
+		for _, f := range filterArray {
+			filterName, ok := f.(core.Name)
+			if !ok {
+				continue
+			}
+			var err error
+			data, err = r.applyFilter(data, string(filterName))
+			if err != nil {
+				return nil, err
+			}
+		}
+		return data, nil
+	}
+
+	return data, nil
+}
+
+// applyFilter はフィルターを適用する
+func (r *Reader) applyFilter(data []byte, filterName string) ([]byte, error) {
+	switch filterName {
+	case "FlateDecode":
+		// zlibで解凍
+		reader, err := zlib.NewReader(bytes.NewReader(data))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create zlib reader: %w", err)
+		}
+		defer reader.Close()
+
+		var buf bytes.Buffer
+		_, err = io.Copy(&buf, reader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decompress stream: %w", err)
+		}
+
+		return buf.Bytes(), nil
+
+	default:
+		// サポートしていないフィルターの場合はそのまま返す
+		return data, nil
+	}
 }

@@ -3,7 +3,9 @@ package gopdf
 import (
 	"io"
 	"os"
+	"strings"
 
+	"github.com/ryomak/gopdf/internal/content"
 	"github.com/ryomak/gopdf/internal/core"
 	"github.com/ryomak/gopdf/internal/reader"
 )
@@ -82,6 +84,59 @@ type Metadata struct {
 	Keywords string
 	Creator  string
 	Producer string
+}
+
+// ExtractPageText は指定されたページのテキストを抽出する（0-indexed）
+func (r *PDFReader) ExtractPageText(pageNum int) (string, error) {
+	// ページを取得
+	page, err := r.r.GetPage(pageNum)
+	if err != nil {
+		return "", err
+	}
+
+	// コンテンツストリームを取得
+	contentsData, err := r.r.GetPageContents(page)
+	if err != nil {
+		return "", err
+	}
+
+	// コンテンツストリームをパース
+	parser := content.NewStreamParser(contentsData)
+	operations, err := parser.ParseOperations()
+	if err != nil {
+		return "", err
+	}
+
+	// テキストを抽出
+	extractor := content.NewTextExtractor(operations)
+	elements, err := extractor.Extract()
+	if err != nil {
+		return "", err
+	}
+
+	// テキスト要素を結合
+	var texts []string
+	for _, elem := range elements {
+		texts = append(texts, elem.Text)
+	}
+
+	return strings.Join(texts, " "), nil
+}
+
+// ExtractText は全ページのテキストを抽出する
+func (r *PDFReader) ExtractText() (string, error) {
+	pageCount := r.PageCount()
+	var allTexts []string
+
+	for i := 0; i < pageCount; i++ {
+		text, err := r.ExtractPageText(i)
+		if err != nil {
+			return "", err
+		}
+		allTexts = append(allTexts, text)
+	}
+
+	return strings.Join(allTexts, "\n\n"), nil
 }
 
 // getString は辞書から文字列値を取得する

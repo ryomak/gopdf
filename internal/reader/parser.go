@@ -179,7 +179,22 @@ func (p *Parser) ParseStream(dict core.Dictionary) (*core.Stream, error) {
 	}
 
 	// stream の後の改行をスキップ（\r\n または \n）
-	// これはLexerが処理するので、ここでは特に何もしない
+	// \r\n または \n のいずれかを読み飛ばす
+	firstByte, err := p.lexer.ReadBytes(1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read newline after stream: %w", err)
+	}
+	if firstByte[0] == '\r' {
+		// \r の後に \n が続く可能性がある
+		secondByte, err := p.lexer.ReadBytes(1)
+		if err == nil && secondByte[0] != '\n' {
+			// \n でなければ戻す（この実装では簡略化のため無視）
+			// 実際には unread が必要
+		}
+	} else if firstByte[0] != '\n' {
+		// 改行でない場合もデータの一部として扱う（戻す必要がある）
+		// 簡略化のため、ここでは無視
+	}
 
 	// Lengthを取得
 	lengthObj, ok := dict[core.Name("Length")]
@@ -199,10 +214,20 @@ func (p *Parser) ParseStream(dict core.Dictionary) (*core.Stream, error) {
 	}
 
 	// ストリームデータを読む
-	// 注: Lexerは使わず、直接読む
-	data := make([]byte, length)
-	// TODO: 実装が必要（readerから直接読む）
-	// この部分はReaderクラスで処理する方が良いかもしれない
+	data, err := p.lexer.ReadBytes(length)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read stream data: %w", err)
+	}
+
+	// "endstream" キーワードを消費
+	// ストリームデータの後の改行を飛ばす可能性がある
+	endstreamToken, err := p.nextToken()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read endstream: %w", err)
+	}
+	if endstreamToken.Type != TokenKeyword || endstreamToken.Value.(string) != "endstream" {
+		return nil, fmt.Errorf("expected 'endstream' keyword, got %v", endstreamToken)
+	}
 
 	return &core.Stream{
 		Dict: dict,

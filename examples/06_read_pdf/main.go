@@ -37,12 +37,28 @@ func main() {
 	fmt.Printf("  Creator: %s\n", info.Creator)
 	fmt.Printf("  Producer: %s\n", info.Producer)
 
-	fmt.Println("\nPDF reading completed successfully!")
-	fmt.Println("\nNote: Text extraction is not yet implemented.")
-	fmt.Println("Future versions will support:")
-	fmt.Println("  - Text extraction from pages")
-	fmt.Println("  - Image extraction")
-	fmt.Println("  - More detailed page information")
+	// 各ページのテキストを抽出
+	fmt.Println("\nExtracting text from each page:")
+	for i := 0; i < pageCount; i++ {
+		text, err := reader.ExtractPageText(i)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error extracting text from page %d: %v\n", i+1, err)
+			continue
+		}
+		fmt.Printf("\n--- Page %d ---\n", i+1)
+		fmt.Printf("%s\n", text)
+	}
+
+	// 全ページのテキストを一度に抽出
+	fmt.Println("\n--- All pages text ---")
+	allText, err := reader.ExtractText()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error extracting all text: %v\n", err)
+	} else {
+		fmt.Printf("%s\n", allText)
+	}
+
+	fmt.Println("\nPDF reading and text extraction completed successfully!")
 }
 
 // createSamplePDF は読み込み用のサンプルPDFを作成する
