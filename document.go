@@ -1,6 +1,7 @@
 package gopdf
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/ryomak/gopdf/internal/core"
@@ -50,10 +51,23 @@ func (d *Document) WriteTo(w io.Writer) error {
 		}
 	}
 
+	// 全ページで使用されている画像を収集
+	// 画像の重複排除のためにマップを使用
+	allImages := make(map[*Image]*core.Reference)
+	imageOrder := make([]*Image, 0) // 順序を保持
+	for _, page := range d.pages {
+		for _, img := range page.images {
+			if _, exists := allImages[img]; !exists {
+				allImages[img] = nil
+				imageOrder = append(imageOrder, img)
+			}
+		}
+	}
+
 	// Pagesオブジェクトの番号を計算
-	// Font(フォント数) + Content(1) + Page(1) のペアが len(d.pages) 個
-	// 次のオブジェクト番号 = 1 + フォント数 + len(d.pages)*2
-	pagesObjNum := 1 + len(allFonts) + len(d.pages)*2
+	// Font(フォント数) + Image(画像数) + Content(1) + Page(1) のペアが len(d.pages) 個
+	// 次のオブジェクト番号 = 1 + フォント数 + 画像数 + len(d.pages)*2
+	pagesObjNum := 1 + len(allFonts) + len(allImages) + len(d.pages)*2
 
 	// フォントオブジェクトを作成
 	for fontKey := range allFonts {
@@ -79,6 +93,35 @@ func (d *Document) WriteTo(w io.Writer) error {
 
 		allFonts[fontKey] = &core.Reference{
 			ObjectNumber:     fontNum,
+			GenerationNumber: 0,
+		}
+	}
+
+	// 画像XObjectを作成
+	for _, img := range imageOrder {
+		imageDict := core.Dictionary{
+			core.Name("Type"):             core.Name("XObject"),
+			core.Name("Subtype"):          core.Name("Image"),
+			core.Name("Width"):            core.Integer(img.Width),
+			core.Name("Height"):           core.Integer(img.Height),
+			core.Name("ColorSpace"):       core.Name(img.ColorSpace),
+			core.Name("BitsPerComponent"): core.Integer(img.BitsPerComponent),
+			core.Name("Filter"):           core.Name("DCTDecode"),
+			core.Name("Length"):           core.Integer(len(img.Data)),
+		}
+
+		imageStream := &core.Stream{
+			Dict: imageDict,
+			Data: img.Data,
+		}
+
+		imgNum, err := pdfWriter.AddObject(imageStream)
+		if err != nil {
+			return err
+		}
+
+		allImages[img] = &core.Reference{
+			ObjectNumber:     imgNum,
 			GenerationNumber: 0,
 		}
 	}
@@ -112,6 +155,16 @@ func (d *Document) WriteTo(w io.Writer) error {
 				fontResources[core.Name(fontKey)] = allFonts[fontKey]
 			}
 			resourcesDict[core.Name("Font")] = fontResources
+		}
+
+		// このページで使用されている画像をResourcesに追加
+		if len(page.images) > 0 {
+			xobjectResources := core.Dictionary{}
+			for i, img := range page.images {
+				imageKey := fmt.Sprintf("Im%d", i+1)
+				xobjectResources[core.Name(imageKey)] = allImages[img]
+			}
+			resourcesDict[core.Name("XObject")] = xobjectResources
 		}
 
 		// Pageオブジェクトを作成（ParentにPagesへの参照を設定）

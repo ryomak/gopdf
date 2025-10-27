@@ -15,6 +15,7 @@ type Page struct {
 	currentFont *font.StandardFont
 	fontSize    float64
 	fonts       map[string]font.StandardFont // fontKey -> font
+	images      []*Image                      // images used in this page
 }
 
 // Width returns the page width in points.
@@ -244,4 +245,30 @@ func (p *Page) FillCircle(centerX, centerY, radius float64) {
 func (p *Page) DrawAndFillCircle(centerX, centerY, radius float64) {
 	p.drawCirclePath(centerX, centerY, radius)
 	fmt.Fprintf(&p.content, "B\n")
+}
+
+// DrawImage draws an image at the specified position with the specified size.
+// The image is transformed using a CTM (Current Transformation Matrix).
+func (p *Page) DrawImage(img *Image, x, y, width, height float64) error {
+	if img == nil {
+		return fmt.Errorf("image cannot be nil")
+	}
+
+	// Add image to the page's image list
+	p.images = append(p.images, img)
+
+	// Get image resource name (Im1, Im2, etc.)
+	imageKey := fmt.Sprintf("Im%d", len(p.images))
+
+	// Write PDF operators to content stream
+	// q: Save graphics state
+	// a b c d e f cm: Transformation matrix
+	// /Name Do: Draw XObject
+	// Q: Restore graphics state
+	fmt.Fprintf(&p.content, "q\n")
+	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f %.2f %.2f cm\n", width, 0.0, 0.0, height, x, y)
+	fmt.Fprintf(&p.content, "/%s Do\n", imageKey)
+	fmt.Fprintf(&p.content, "Q\n")
+
+	return nil
 }
