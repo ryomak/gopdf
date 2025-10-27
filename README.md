@@ -16,9 +16,9 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
 
 ## ステータス
 
-🚧 **開発中** - Phase 7 (テキスト抽出) 完了
+🚧 **開発中** - Phase 9 (画像抽出) 完了
 
-現在、基本的なPDF生成、テキスト描画、図形描画、JPEG/PNG画像埋め込み、PDF読み込み、テキスト抽出機能が実装されています。
+現在、基本的なPDF生成、テキスト描画、図形描画、JPEG/PNG画像埋め込み、PDF読み込み、構造的テキスト抽出、画像抽出機能が実装されています。
 
 ### 実装済み機能
 
@@ -59,13 +59,24 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
   - 標準Type1フォントのテキスト抽出
   - テキスト位置情報の取得
   - PDFテキストオペレーター対応（BT, ET, Tj, TJ, Td, Tm, T*, ', "など）
+- ✅ **構造的テキスト取得**
+  - 位置情報付きテキスト要素の抽出（X, Y座標）
+  - フォント・サイズ情報の取得
+  - テキストの読み順序ソート
+  - テキスト幅・高さの推定
+- ✅ **画像抽出**
+  - ページリソースからの画像抽出
+  - JPEG画像の抽出（DCTDecode）
+  - PNG画像の抽出（FlateDecode）
+  - 画像メタデータ（幅、高さ、色空間）の取得
+  - 画像ファイルへの保存
 - ✅ PDF 1.7準拠の出力
 
 ### 今後の実装予定
 
 - [ ] TTFフォント対応
-- [ ] 画像抽出
 - [ ] より高度なテキストレイアウト解析
+- [ ] より多くの画像フォーマット対応（JPEG2000, JBIG2など）
 
 ## インストール
 
@@ -157,6 +168,8 @@ func main() {
 - [`04_images`](examples/04_images): JPEG画像の埋め込みとレイアウト
 - [`05_png_images`](examples/05_png_images): PNG画像の埋め込みと透明度（アルファチャンネル）
 - [`06_read_pdf`](examples/06_read_pdf): PDFファイルの読み込み、情報取得、テキスト抽出
+- [`07_structured_text`](examples/07_structured_text): 構造的テキスト抽出（位置情報付き）
+- [`08_extract_images`](examples/08_extract_images): 画像抽出とファイル保存
 
 ## 開発
 
@@ -206,6 +219,8 @@ gopdfは以下のレイヤー構造で設計されています：
 - [プロジェクト構造設計書](docs/structure.md)
 - [PDFバイナリ仕様メモ](docs/pdf_spec_notes.md)
 - [テキスト抽出設計書](docs/text_extraction_design.md)
+- [構造的テキスト抽出設計書](docs/structured_text_extraction_design.md)
+- [画像抽出設計書](docs/image_extraction_design.md)
 - [開発進捗](docs/progress.md)
 
 ## ライセンス

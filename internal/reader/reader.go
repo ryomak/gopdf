@@ -391,6 +391,91 @@ func (r *Reader) GetInfo() (core.Dictionary, error) {
 	return info, nil
 }
 
+// GetPageResources はページのResourcesを取得する
+func (r *Reader) GetPageResources(page core.Dictionary) (core.Dictionary, error) {
+	resourcesObj, ok := page[core.Name("Resources")]
+	if !ok {
+		return nil, nil // Resourcesがない場合
+	}
+
+	// Referenceの場合は解決
+	if ref, ok := resourcesObj.(*core.Reference); ok {
+		obj, err := r.GetObject(ref.ObjectNumber)
+		if err != nil {
+			return nil, err
+		}
+		resourcesObj = obj
+	}
+
+	resources, ok := resourcesObj.(core.Dictionary)
+	if !ok {
+		return nil, fmt.Errorf("resources is not a dictionary")
+	}
+
+	return resources, nil
+}
+
+// ImageXObject は画像XObject
+type ImageXObject struct {
+	Stream           *core.Stream
+	Width            int
+	Height           int
+	ColorSpace       string
+	BitsPerComponent int
+	Filter           string
+}
+
+// GetImageXObject は画像XObjectを取得する
+func (r *Reader) GetImageXObject(ref *core.Reference) (*ImageXObject, error) {
+	obj, err := r.GetObject(ref.ObjectNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	stream, ok := obj.(*core.Stream)
+	if !ok {
+		return nil, fmt.Errorf("image xobject is not a stream")
+	}
+
+	// /Subtypeの確認
+	subtype, _ := stream.Dict[core.Name("Subtype")].(core.Name)
+	if subtype != "Image" {
+		return nil, fmt.Errorf("not an image xobject")
+	}
+
+	// 画像情報を抽出
+	img := &ImageXObject{
+		Stream: stream,
+	}
+
+	// Width
+	if w, ok := stream.Dict[core.Name("Width")].(core.Integer); ok {
+		img.Width = int(w)
+	}
+
+	// Height
+	if h, ok := stream.Dict[core.Name("Height")].(core.Integer); ok {
+		img.Height = int(h)
+	}
+
+	// ColorSpace
+	if cs, ok := stream.Dict[core.Name("ColorSpace")].(core.Name); ok {
+		img.ColorSpace = string(cs)
+	}
+
+	// BitsPerComponent
+	if bpc, ok := stream.Dict[core.Name("BitsPerComponent")].(core.Integer); ok {
+		img.BitsPerComponent = int(bpc)
+	}
+
+	// Filter
+	if filter, ok := stream.Dict[core.Name("Filter")].(core.Name); ok {
+		img.Filter = string(filter)
+	}
+
+	return img, nil
+}
+
 // GetPageContents はページのコンテンツストリームを取得してデコードする
 func (r *Reader) GetPageContents(page core.Dictionary) ([]byte, error) {
 	// /Contentsを取得
