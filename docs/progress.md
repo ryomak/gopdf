@@ -14,7 +14,7 @@
 - [x] PDF仕様調査とドキュメント化 (docs/pdf_spec_notes.md)
 - [x] go.mod初期化
 - [x] 基本ディレクトリ構造作成
-  - pkg/gopdf/
+  - Root package (gopdf)
   - internal/core/
   - internal/font/
   - internal/writer/
@@ -41,10 +41,11 @@
   - [x] trailer出力
   - [x] ヘッダー・EOF出力
   - [x] 包括的なユニットテスト（13テスト、すべてパス）
-- [x] pkg/gopdf パッケージ実装
+- [x] Root package (gopdf) 実装
   - [x] document.go: Document型（ドキュメント管理）
   - [x] page.go: Page型（ページ表現）
   - [x] constants.go: ページサイズ（A4, Letter等）と向き定義
+  - [x] graphics.go: Color型、図形スタイル定義
   - [x] 包括的なユニットテスト（5テスト、すべてパス）
 - [x] 統合テスト
   - [x] 最小限のPDF生成（空ページ）
@@ -62,7 +63,7 @@
   - [x] GetStandardFont関数
   - [x] フォントメタデータ（Name, Type, Encoding）
   - [x] 包括的なユニットテスト（5テスト、すべてパス）
-- [x] pkg/gopdf テキスト描画機能
+- [x] Root package (gopdf) テキスト描画機能
   - [x] Page.SetFont: フォント設定
   - [x] Page.DrawText: テキスト描画
   - [x] フォントリソース管理

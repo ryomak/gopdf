@@ -22,16 +22,13 @@ gopdf/
 │   ├── api_design.md             # API設計詳細
 │   └── pdf_spec_notes.md         # PDF仕様のメモ・参考資料
 │
-├── pkg/                          # 公開パッケージ
-│   └── gopdf/                    # メインの公開API
-│       ├── gopdf.go              # パッケージのエントリーポイント
-│       ├── document.go           # Document型の定義
-│       ├── page.go               # Page型の定義
-│       ├── options.go            # オプション型の定義
-│       ├── constants.go          # 定数（ページサイズ、色など）
-│       ├── document_test.go
-│       ├── page_test.go
-│       └── README.md             # パッケージの使い方
+├── document.go                   # Document型の定義
+├── page.go                       # Page型の定義
+├── constants.go                  # 定数（ページサイズ、色など）
+├── graphics.go                   # 色・図形定義
+├── document_test.go              # Documentのテスト
+├── text_test.go                  # テキスト描画のテスト
+├── graphics_test.go              # グラフィックスのテスト
 │
 ├── internal/                     # 内部パッケージ（外部非公開）
 │   │
@@ -142,7 +139,7 @@ gopdf/
 
 ## 3. パッケージ責務詳細
 
-### 3.1. `pkg/gopdf` (公開API)
+### 3.1. Root package `gopdf` (公開API)
 
 **目的:** ユーザーに提供する高レベルAPI
 
@@ -260,13 +257,13 @@ gopdf/
 
 ## 5. import ルール
 
-### 5.1. 公開API (`pkg/gopdf`)
+### 5.1. 公開API (root package `gopdf`)
 - `internal/*` を直接import可能
 - 外部パッケージは最小限に
 
 ### 5.2. `internal` パッケージ
 - 同じ `internal` 配下のパッケージ間でのimport可能
-- `pkg/gopdf` からimportされることを想定
+- root packageからimportされることを想定
 - 循環importを避ける設計
 
 ### 5.3. import順序
@@ -302,7 +299,7 @@ import (
 ### 7.1. 新規機能開発
 1. `docs/` に設計書を作成（または更新）
 2. `internal/` に実装（TDD）
-3. `pkg/gopdf` にAPIを公開
+3. root packageにAPIを公開
 4. `examples/` にサンプルを追加
 5. `docs/progress.md` に進捗を記録
 

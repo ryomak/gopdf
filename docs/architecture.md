@@ -143,7 +143,7 @@ func (r *Reader) GetObject(ref Reference) (Object, error)
 func (r *Reader) GetPageCount() (int, error)
 ```
 
-### 4.5. Document Layer (`pkg/document`)
+### 4.5. Document Layer (root package `gopdf`)
 
 PDFドキュメントとページの管理。
 
@@ -178,7 +178,7 @@ type Metadata struct {
 }
 ```
 
-### 4.6. Content Layer (`pkg/content`)
+### 4.6. Content Layer (root package `gopdf`)
 
 描画・抽出機能。
 
@@ -219,7 +219,7 @@ type ImageExtractor interface {
 }
 ```
 
-### 4.7. API Layer (`pkg/gopdf` or root package)
+### 4.7. API Layer (root package `gopdf`)
 
 ユーザー向けの高レベルAPI。
 
@@ -255,12 +255,10 @@ gopdf/
 │   ├── architecture.md          # 本ドキュメント
 │   ├── structure.md             # プロジェクト構造設計
 │   └── progress.md              # 進捗管理
-├── pkg/
-│   └── gopdf/                   # 公開API
-│       ├── document.go
-│       ├── page.go
-│       ├── options.go
-│       └── api.go
+├── document.go                  # 公開API - Document型
+├── page.go                      # 公開API - Page型
+├── constants.go                 # 公開API - 定数
+├── graphics.go                  # 公開API - 色・図形定義
 ├── internal/
 │   ├── core/                    # PDF基本オブジェクト
 │   │   ├── object.go
