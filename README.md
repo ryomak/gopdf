@@ -16,9 +16,9 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
 
 ## ステータス
 
-🚧 **開発中** - Phase 4 (画像埋め込み) 完了
+🚧 **開発中** - Phase 5 (PNG画像対応) 完了
 
-現在、基本的なPDF生成、テキスト描画、図形描画、画像埋め込み機能が実装されています。
+現在、基本的なPDF生成、テキスト描画、図形描画、JPEG/PNG画像埋め込み機能が実装されています。
 
 ### 実装済み機能
 
@@ -40,16 +40,17 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
   - 線の端スタイル（Butt, Round, Square）
   - 線の結合スタイル（Miter, Round, Bevel）
 - ✅ **画像埋め込み**
-  - JPEG画像の読み込みと埋め込み
-  - RGB/Grayscale/CMYKカラースペース対応
+  - **JPEG画像**: DCTDecodeフィルター、RGB/Grayscale/CMYK対応
+  - **PNG画像**: FlateDecodeフィルター、RGB/Grayscale対応
+  - **透明度サポート**: アルファチャンネル（SMask）対応
   - 画像のサイズ・位置指定
   - 複数画像の配置
+  - JPEG/PNG混在可能
   - 画像の重複排除（同じ画像の再利用）
 - ✅ PDF 1.7準拠の出力
 
 ### 今後の実装予定
 
-- [ ] PNG画像対応
 - [ ] TTFフォント対応
 - [ ] PDF解析・読み込み
 - [ ] テキスト抽出
@@ -103,6 +104,7 @@ func main() {
 - [`02_hello_world`](examples/02_hello_world): テキスト描画と複数フォントの使用
 - [`03_graphics`](examples/03_graphics): 図形描画（線、矩形、円）と色の設定
 - [`04_images`](examples/04_images): JPEG画像の埋め込みとレイアウト
+- [`05_png_images`](examples/05_png_images): PNG画像の埋め込みと透明度（アルファチャンネル）
 
 ## 開発
 

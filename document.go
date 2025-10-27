@@ -99,6 +99,37 @@ func (d *Document) WriteTo(w io.Writer) error {
 
 	// 画像XObjectを作成
 	for _, img := range imageOrder {
+		// SMask（アルファチャンネル）がある場合は先に処理
+		var smaskRef *core.Reference
+		if img.SMask != nil {
+			smaskDict := core.Dictionary{
+				core.Name("Type"):             core.Name("XObject"),
+				core.Name("Subtype"):          core.Name("Image"),
+				core.Name("Width"):            core.Integer(img.SMask.Width),
+				core.Name("Height"):           core.Integer(img.SMask.Height),
+				core.Name("ColorSpace"):       core.Name(img.SMask.ColorSpace),
+				core.Name("BitsPerComponent"): core.Integer(img.SMask.BitsPerComponent),
+				core.Name("Filter"):           core.Name(img.SMask.Filter),
+				core.Name("Length"):           core.Integer(len(img.SMask.Data)),
+			}
+
+			smaskStream := &core.Stream{
+				Dict: smaskDict,
+				Data: img.SMask.Data,
+			}
+
+			smaskNum, err := pdfWriter.AddObject(smaskStream)
+			if err != nil {
+				return err
+			}
+
+			smaskRef = &core.Reference{
+				ObjectNumber:     smaskNum,
+				GenerationNumber: 0,
+			}
+		}
+
+		// メイン画像のDictionary作成
 		imageDict := core.Dictionary{
 			core.Name("Type"):             core.Name("XObject"),
 			core.Name("Subtype"):          core.Name("Image"),
@@ -106,8 +137,13 @@ func (d *Document) WriteTo(w io.Writer) error {
 			core.Name("Height"):           core.Integer(img.Height),
 			core.Name("ColorSpace"):       core.Name(img.ColorSpace),
 			core.Name("BitsPerComponent"): core.Integer(img.BitsPerComponent),
-			core.Name("Filter"):           core.Name("DCTDecode"),
+			core.Name("Filter"):           core.Name(img.Filter),
 			core.Name("Length"):           core.Integer(len(img.Data)),
+		}
+
+		// SMaskがある場合は参照を追加
+		if smaskRef != nil {
+			imageDict[core.Name("SMask")] = smaskRef
 		}
 
 		imageStream := &core.Stream{

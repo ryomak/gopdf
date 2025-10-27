@@ -392,3 +392,106 @@ func TestMultipleImages(t *testing.T) {
 		t.Errorf("Expected at least 2 'Do' operators, found %d", count)
 	}
 }
+
+// TestDocumentWithPNGImage はPNG画像を含むPDFドキュメントをテストする
+func TestDocumentWithPNGImage(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// Create and load a PNG image
+	pngData := createTestPNGImage(100, 100, false)
+	img, err := LoadPNG(bytes.NewReader(pngData))
+	if err != nil {
+		t.Fatalf("Failed to load PNG: %v", err)
+	}
+
+	// Draw the image
+	err = page.DrawImage(img, 100, 600, 100, 100)
+	if err != nil {
+		t.Fatalf("Failed to draw PNG image: %v", err)
+	}
+
+	// Write to buffer
+	var buf bytes.Buffer
+	err = doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatalf("Failed to write PDF: %v", err)
+	}
+
+	// Check that PDF contains expected markers
+	pdfContent := buf.String()
+	if !containsSubstring(pdfContent, "/FlateDecode") {
+		t.Error("PDF should contain FlateDecode filter for PNG")
+	}
+}
+
+// TestDocumentWithTransparentPNG は透明度ありPNG画像を含むPDFドキュメントをテストする
+func TestDocumentWithTransparentPNG(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// Create and load a PNG image with alpha channel
+	pngData := createTestPNGImage(100, 100, true)
+	img, err := LoadPNG(bytes.NewReader(pngData))
+	if err != nil {
+		t.Fatalf("Failed to load PNG: %v", err)
+	}
+
+	// Verify SMask is present
+	if img.SMask == nil {
+		t.Fatal("Expected SMask for transparent PNG")
+	}
+
+	// Draw the image
+	err = page.DrawImage(img, 100, 600, 100, 100)
+	if err != nil {
+		t.Fatalf("Failed to draw PNG image: %v", err)
+	}
+
+	// Write to buffer
+	var buf bytes.Buffer
+	err = doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatalf("Failed to write PDF: %v", err)
+	}
+
+	// Check that PDF contains SMask
+	pdfContent := buf.String()
+	if !containsSubstring(pdfContent, "/SMask") {
+		t.Error("PDF should contain SMask for transparent PNG")
+	}
+}
+
+// TestMixedImageFormats はJPEGとPNG混在をテストする
+func TestMixedImageFormats(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// Load JPEG
+	jpegData := createMinimalJPEG(100, 100, 3)
+	jpegImg, _ := LoadJPEG(bytes.NewReader(jpegData))
+
+	// Load PNG
+	pngData := createTestPNGImage(100, 100, false)
+	pngImg, _ := LoadPNG(bytes.NewReader(pngData))
+
+	// Draw both
+	_ = page.DrawImage(jpegImg, 50, 700, 100, 100)
+	_ = page.DrawImage(pngImg, 200, 700, 100, 100)
+
+	// Write to buffer
+	var buf bytes.Buffer
+	err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatalf("Failed to write PDF: %v", err)
+	}
+
+	// Check both filters are present
+	pdfContent := buf.String()
+	if !containsSubstring(pdfContent, "/DCTDecode") {
+		t.Error("PDF should contain DCTDecode for JPEG")
+	}
+	if !containsSubstring(pdfContent, "/FlateDecode") {
+		t.Error("PDF should contain FlateDecode for PNG")
+	}
+}
