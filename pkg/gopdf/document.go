@@ -39,27 +39,79 @@ func (d *Document) WriteTo(w io.Writer) error {
 		return err
 	}
 
-	// Pagesオブジェクトの番号を事前に計算
-	// Content(1) + Page(1) のペアが len(d.pages) 個あるので、
-	// 次のオブジェクト番号は 1 + len(d.pages)*2
-	pagesObjNum := 1 + len(d.pages)*2
+	// まず、全ページで使用されているフォントを収集
+	allFonts := make(map[string]*core.Reference)
+	for _, page := range d.pages {
+		for fontKey := range page.fonts {
+			if _, exists := allFonts[fontKey]; !exists {
+				// プレースホルダー（後で実際のオブジェクト番号を設定）
+				allFonts[fontKey] = nil
+			}
+		}
+	}
+
+	// Pagesオブジェクトの番号を計算
+	// Font(フォント数) + Content(1) + Page(1) のペアが len(d.pages) 個
+	// 次のオブジェクト番号 = 1 + フォント数 + len(d.pages)*2
+	pagesObjNum := 1 + len(allFonts) + len(d.pages)*2
+
+	// フォントオブジェクトを作成
+	for fontKey := range allFonts {
+		// フォント名を取得
+		var fontName string
+		for _, page := range d.pages {
+			if f, ok := page.fonts[fontKey]; ok {
+				fontName = f.Name()
+				break
+			}
+		}
+
+		fontDict := core.Dictionary{
+			core.Name("Type"):     core.Name("Font"),
+			core.Name("Subtype"):  core.Name("Type1"),
+			core.Name("BaseFont"): core.Name(fontName),
+		}
+
+		fontNum, err := pdfWriter.AddObject(fontDict)
+		if err != nil {
+			return err
+		}
+
+		allFonts[fontKey] = &core.Reference{
+			ObjectNumber:     fontNum,
+			GenerationNumber: 0,
+		}
+	}
 
 	// 各ページのコンテンツストリームとPageオブジェクトを作成
 	pageRefs := make([]*core.Reference, 0, len(d.pages))
 	for _, page := range d.pages {
-		// 空のコンテンツストリーム（現時点では）
+		// コンテンツストリームの作成
+		contentData := page.content.Bytes()
 		contentDict := core.Dictionary{
-			core.Name("Length"): core.Integer(0),
+			core.Name("Length"): core.Integer(len(contentData)),
 		}
 		contentStream := &core.Stream{
 			Dict: contentDict,
-			Data: []byte{},
+			Data: contentData,
 		}
 
 		// コンテンツストリームオブジェクトを追加
 		contentNum, err := pdfWriter.AddObject(contentStream)
 		if err != nil {
 			return err
+		}
+
+		// Resourcesディクショナリを構築
+		resourcesDict := core.Dictionary{}
+
+		// このページで使用されているフォントをResourcesに追加
+		if len(page.fonts) > 0 {
+			fontResources := core.Dictionary{}
+			for fontKey := range page.fonts {
+				fontResources[core.Name(fontKey)] = allFonts[fontKey]
+			}
+			resourcesDict[core.Name("Font")] = fontResources
 		}
 
 		// Pageオブジェクトを作成（ParentにPagesへの参照を設定）
@@ -79,7 +131,7 @@ func (d *Document) WriteTo(w io.Writer) error {
 				ObjectNumber:     contentNum,
 				GenerationNumber: 0,
 			},
-			core.Name("Resources"): core.Dictionary{},
+			core.Name("Resources"): resourcesDict,
 		}
 
 		// Pageオブジェクトを追加

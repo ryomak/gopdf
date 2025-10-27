@@ -9,6 +9,7 @@ gopdfのツールを作成すること
 - Testableなコード意識すること
 - TDDを軸に考えてください
 - 適宜GitHubにcommit/pushしながら進めて
+- 積極的にGenericsを使っていくとよさそう
 
 
 ## 必須

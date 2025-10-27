@@ -16,9 +16,9 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
 
 ## ステータス
 
-🚧 **開発中** - Phase 1 (MVP) 完了
+🚧 **開発中** - Phase 2 (テキスト描画) 完了
 
-現在、基本的なPDF生成機能が実装されています。
+現在、基本的なPDF生成とテキスト描画機能が実装されています。
 
 ### 実装済み機能
 
@@ -26,14 +26,16 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
 - ✅ ページ管理（追加、サイズ指定）
 - ✅ 標準ページサイズ（A4, Letter, Legal, A3, A5）
 - ✅ ページ向き（Portrait, Landscape）
+- ✅ テキスト描画
+- ✅ 標準Type1フォント対応（14種類）
+  - Helvetica系、Times系、Courier系、Symbol、ZapfDingbats
+- ✅ フォントサイズ指定
 - ✅ PDF 1.7準拠の出力
 
 ### 今後の実装予定
 
-- [ ] テキスト描画
-- [ ] 標準フォント対応
+- [ ] 図形描画（線、矩形、円）
 - [ ] 画像埋め込み（JPEG, PNG）
-- [ ] 図形描画
 - [ ] TTFフォント対応
 - [ ] PDF解析・読み込み
 - [ ] テキスト抽出
@@ -54,6 +56,7 @@ package main
 import (
     "os"
     "github.com/ryomak/gopdf/pkg/gopdf"
+    "github.com/ryomak/gopdf/internal/font"
 )
 
 func main() {
@@ -61,10 +64,14 @@ func main() {
     doc := gopdf.New()
 
     // A4サイズの縦向きページを追加
-    doc.AddPage(gopdf.A4, gopdf.Portrait)
+    page := doc.AddPage(gopdf.A4, gopdf.Portrait)
 
-    // Letterサイズの横向きページを追加
-    doc.AddPage(gopdf.Letter, gopdf.Landscape)
+    // フォントを設定してテキストを描画
+    page.SetFont(font.Helvetica, 24)
+    page.DrawText("Hello, World!", 100, 750)
+
+    page.SetFont(font.TimesRoman, 14)
+    page.DrawText("gopdf - Pure Go PDF library", 100, 720)
 
     // ファイルに出力
     file, _ := os.Create("output.pdf")
@@ -79,6 +86,7 @@ func main() {
 詳細なサンプルコードは [`examples/`](examples/) ディレクトリを参照してください。
 
 - [`01_empty_page`](examples/01_empty_page): 空白ページの作成
+- [`02_hello_world`](examples/02_hello_world): テキスト描画と複数フォントの使用
 
 ## 開発
 
