@@ -2,6 +2,9 @@ package gopdf
 
 import (
 	"bytes"
+	"image"
+	"image/color"
+	"image/png"
 	"os"
 	"testing"
 )
@@ -155,6 +158,127 @@ func TestLoadJPEGFile_NotFound(t *testing.T) {
 	_, err := LoadJPEGFile("/nonexistent/file.jpg")
 	if err == nil {
 		t.Error("Expected error for nonexistent file, but got none")
+	}
+}
+
+// createTestPNGImage creates a simple test PNG image
+func createTestPNGImage(width, height int, hasAlpha bool) []byte {
+	var img image.Image
+
+	if hasAlpha {
+		rgba := image.NewRGBA(image.Rect(0, 0, width, height))
+		for y := 0; y < height; y++ {
+			for x := 0; x < width; x++ {
+				alpha := uint8(float64(x) / float64(width) * 255)
+				rgba.SetRGBA(x, y, color.RGBA{R: 255, G: 0, B: 0, A: alpha})
+			}
+		}
+		img = rgba
+	} else {
+		gray := image.NewGray(image.Rect(0, 0, width, height))
+		for y := 0; y < height; y++ {
+			for x := 0; x < width; x++ {
+				g := uint8((x + y) * 255 / (width + height))
+				gray.SetGray(x, y, color.Gray{Y: g})
+			}
+		}
+		img = gray
+	}
+
+	var buf bytes.Buffer
+	png.Encode(&buf, img)
+	return buf.Bytes()
+}
+
+// TestLoadPNG はLoadPNG関数をテストする
+func TestLoadPNG(t *testing.T) {
+	tests := []struct {
+		name           string
+		width          int
+		height         int
+		hasAlpha       bool
+		expectedFilter string
+		expectSMask    bool
+	}{
+		{
+			name:           "Grayscale PNG without alpha",
+			width:          50,
+			height:         50,
+			hasAlpha:       false,
+			expectedFilter: "FlateDecode",
+			expectSMask:    false,
+		},
+		{
+			name:           "RGBA PNG with alpha",
+			width:          100,
+			height:         100,
+			hasAlpha:       true,
+			expectedFilter: "FlateDecode",
+			expectSMask:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pngData := createTestPNGImage(tt.width, tt.height, tt.hasAlpha)
+			reader := bytes.NewReader(pngData)
+
+			img, err := LoadPNG(reader)
+			if err != nil {
+				t.Fatalf("Failed to load PNG: %v", err)
+			}
+
+			if img.Width != tt.width {
+				t.Errorf("Width = %d, want %d", img.Width, tt.width)
+			}
+			if img.Height != tt.height {
+				t.Errorf("Height = %d, want %d", img.Height, tt.height)
+			}
+			if img.Filter != tt.expectedFilter {
+				t.Errorf("Filter = %s, want %s", img.Filter, tt.expectedFilter)
+			}
+			if tt.expectSMask && img.SMask == nil {
+				t.Error("Expected SMask but got nil")
+			}
+			if !tt.expectSMask && img.SMask != nil {
+				t.Error("Expected no SMask but got one")
+			}
+			if len(img.Data) == 0 {
+				t.Error("Image data is empty")
+			}
+		})
+	}
+}
+
+// TestLoadPNGFile はLoadPNGFile関数をテストする
+func TestLoadPNGFile(t *testing.T) {
+	// Create a temporary PNG file
+	tmpfile, err := os.CreateTemp("", "test*.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+
+	// Write PNG data
+	pngData := createTestPNGImage(64, 64, false)
+	if _, err := tmpfile.Write(pngData); err != nil {
+		t.Fatal(err)
+	}
+	if err := tmpfile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Test loading the file
+	img, err := LoadPNGFile(tmpfile.Name())
+	if err != nil {
+		t.Fatalf("Failed to load PNG file: %v", err)
+	}
+
+	if img.Width != 64 {
+		t.Errorf("Width = %d, want 64", img.Width)
+	}
+	if img.Height != 64 {
+		t.Errorf("Height = %d, want 64", img.Height)
 	}
 }
 
