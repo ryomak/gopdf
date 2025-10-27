@@ -55,7 +55,7 @@ package main
 
 import (
     "os"
-    "github.com/ryomak/gopdf/pkg/gopdf"
+    "github.com/ryomak/gopdf"
     "github.com/ryomak/gopdf/internal/font"
 )
 

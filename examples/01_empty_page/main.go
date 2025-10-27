@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ryomak/gopdf/pkg/gopdf"
+	"github.com/ryomak/gopdf"
 )
 
 func main() {

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ryomak/gopdf"
 	"github.com/ryomak/gopdf/internal/font"
-	"github.com/ryomak/gopdf/pkg/gopdf"
 )
 
 func main() {
@@ -36,7 +36,7 @@ func main() {
 	// コード風のテキストを描画
 	page.DrawText("package main", 100, 660)
 	page.DrawText("", 100, 645)
-	page.DrawText("import \"github.com/ryomak/gopdf/pkg/gopdf\"", 100, 630)
+	page.DrawText("import \"github.com/ryomak/gopdf\"", 100, 630)
 
 	// 異なるフォントで複数行を描画
 	page.SetFont(font.HelveticaBold, 16)
