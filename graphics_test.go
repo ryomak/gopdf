@@ -107,3 +107,320 @@ func abs(x float64) float64 {
 	}
 	return x
 }
+
+// TestPageSetLineWidth はSetLineWidthメソッドをテストする
+func TestPageSetLineWidth(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// 線の太さを設定
+	page.SetLineWidth(2.5)
+
+	// コンテンツストリームに正しいオペレーターが含まれることを確認
+	content := page.content.String()
+	expected := "2.50 w\n"
+	if content != expected {
+		t.Errorf("SetLineWidth() content = %q, want %q", content, expected)
+	}
+}
+
+// TestPageSetStrokeColor はSetStrokeColorメソッドをテストする
+func TestPageSetStrokeColor(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// ストローク色を赤に設定
+	page.SetStrokeColor(Red)
+
+	// コンテンツストリームに正しいオペレーターが含まれることを確認
+	content := page.content.String()
+	expected := "1.00 0.00 0.00 RG\n"
+	if content != expected {
+		t.Errorf("SetStrokeColor() content = %q, want %q", content, expected)
+	}
+}
+
+// TestPageSetFillColor はSetFillColorメソッドをテストする
+func TestPageSetFillColor(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// 塗りつぶし色を緑に設定
+	page.SetFillColor(Green)
+
+	// コンテンツストリームに正しいオペレーターが含まれることを確認
+	content := page.content.String()
+	expected := "0.00 1.00 0.00 rg\n"
+	if content != expected {
+		t.Errorf("SetFillColor() content = %q, want %q", content, expected)
+	}
+}
+
+// TestPageSetLineCap はSetLineCapメソッドをテストする
+func TestPageSetLineCap(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// 線の端スタイルを丸めるに設定
+	page.SetLineCap(RoundCap)
+
+	// コンテンツストリームに正しいオペレーターが含まれることを確認
+	content := page.content.String()
+	expected := "1 J\n"
+	if content != expected {
+		t.Errorf("SetLineCap() content = %q, want %q", content, expected)
+	}
+}
+
+// TestPageSetLineJoin はSetLineJoinメソッドをテストする
+func TestPageSetLineJoin(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// 線の結合スタイルを丸めるに設定
+	page.SetLineJoin(RoundJoin)
+
+	// コンテンツストリームに正しいオペレーターが含まれることを確認
+	content := page.content.String()
+	expected := "1 j\n"
+	if content != expected {
+		t.Errorf("SetLineJoin() content = %q, want %q", content, expected)
+	}
+}
+
+// TestPageDrawLine はDrawLineメソッドをテストする
+func TestPageDrawLine(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// (100, 100) から (300, 200) まで線を描画
+	page.DrawLine(100, 100, 300, 200)
+
+	// コンテンツストリームに正しいオペレーターが含まれることを確認
+	content := page.content.String()
+	expected := "100.00 100.00 m\n300.00 200.00 l\nS\n"
+	if content != expected {
+		t.Errorf("DrawLine() content = %q, want %q", content, expected)
+	}
+}
+
+// TestPageDrawLineWithStyle は線のスタイルを設定してから線を描画するテスト
+func TestPageDrawLineWithStyle(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// スタイルを設定
+	page.SetLineWidth(2.0)
+	page.SetStrokeColor(Red)
+	page.DrawLine(100, 100, 300, 200)
+
+	// コンテンツストリームに正しいオペレーターが含まれることを確認
+	content := page.content.String()
+	expected := "2.00 w\n1.00 0.00 0.00 RG\n100.00 100.00 m\n300.00 200.00 l\nS\n"
+	if content != expected {
+		t.Errorf("DrawLine() with style content = %q, want %q", content, expected)
+	}
+}
+
+// TestPageDrawRectangle はDrawRectangleメソッドをテストする
+func TestPageDrawRectangle(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// (100, 200) から幅150, 高さ100の矩形を描画（枠線のみ）
+	page.DrawRectangle(100, 200, 150, 100)
+
+	// コンテンツストリームに正しいオペレーターが含まれることを確認
+	content := page.content.String()
+	expected := "100.00 200.00 150.00 100.00 re\nS\n"
+	if content != expected {
+		t.Errorf("DrawRectangle() content = %q, want %q", content, expected)
+	}
+}
+
+// TestPageFillRectangle はFillRectangleメソッドをテストする
+func TestPageFillRectangle(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// (100, 200) から幅150, 高さ100の矩形を塗りつぶし
+	page.FillRectangle(100, 200, 150, 100)
+
+	// コンテンツストリームに正しいオペレーターが含まれることを確認
+	content := page.content.String()
+	expected := "100.00 200.00 150.00 100.00 re\nf\n"
+	if content != expected {
+		t.Errorf("FillRectangle() content = %q, want %q", content, expected)
+	}
+}
+
+// TestPageDrawAndFillRectangle はDrawAndFillRectangleメソッドをテストする
+func TestPageDrawAndFillRectangle(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// (100, 200) から幅150, 高さ100の矩形を枠線＋塗りつぶし
+	page.DrawAndFillRectangle(100, 200, 150, 100)
+
+	// コンテンツストリームに正しいオペレーターが含まれることを確認
+	content := page.content.String()
+	expected := "100.00 200.00 150.00 100.00 re\nB\n"
+	if content != expected {
+		t.Errorf("DrawAndFillRectangle() content = %q, want %q", content, expected)
+	}
+}
+
+// TestPageRectangleWithStyle は矩形描画のスタイル設定をテストする
+func TestPageRectangleWithStyle(t *testing.T) {
+	tests := []struct {
+		name     string
+		setup    func(*Page)
+		method   func(*Page)
+		expected string
+	}{
+		{
+			name: "DrawRectangle with stroke color",
+			setup: func(p *Page) {
+				p.SetStrokeColor(Blue)
+				p.SetLineWidth(1.5)
+			},
+			method: func(p *Page) {
+				p.DrawRectangle(100, 200, 150, 100)
+			},
+			expected: "0.00 0.00 1.00 RG\n1.50 w\n100.00 200.00 150.00 100.00 re\nS\n",
+		},
+		{
+			name: "FillRectangle with fill color",
+			setup: func(p *Page) {
+				p.SetFillColor(Color{R: 1.0, G: 1.0, B: 0.0})
+			},
+			method: func(p *Page) {
+				p.FillRectangle(300, 200, 150, 100)
+			},
+			expected: "1.00 1.00 0.00 rg\n300.00 200.00 150.00 100.00 re\nf\n",
+		},
+		{
+			name: "DrawAndFillRectangle with both colors",
+			setup: func(p *Page) {
+				p.SetStrokeColor(Black)
+				p.SetFillColor(Color{R: 0.8, G: 0.8, B: 0.8})
+			},
+			method: func(p *Page) {
+				p.DrawAndFillRectangle(500, 200, 150, 100)
+			},
+			expected: "0.00 0.00 0.00 RG\n0.80 0.80 0.80 rg\n500.00 200.00 150.00 100.00 re\nB\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doc := New()
+			page := doc.AddPage(A4, Portrait)
+			tt.setup(page)
+			tt.method(page)
+
+			content := page.content.String()
+			if content != tt.expected {
+				t.Errorf("content = %q, want %q", content, tt.expected)
+			}
+		})
+	}
+}
+
+// TestPageDrawCircle はDrawCircleメソッドをテストする
+func TestPageDrawCircle(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// 中心(300, 400)、半径50の円を描画（枠線のみ）
+	page.DrawCircle(300, 400, 50)
+
+	// コンテンツストリームに円を近似するベジェ曲線のオペレーターが含まれることを確認
+	// 円は4つのベジェ曲線で近似される
+	content := page.content.String()
+
+	// κ = 4 * (√2 - 1) / 3 ≈ 0.5522847498
+	// 50 * κ ≈ 27.614237
+
+	// 正確な値を確認するのではなく、必要なオペレーターが含まれることを確認
+	if !containsSubstring(content, "m\n") { // moveto
+		t.Error("DrawCircle() should contain moveto operator")
+	}
+	if !containsSubstring(content, "c\n") { // curveto (4回)
+		t.Error("DrawCircle() should contain curveto operators")
+	}
+	if !containsSubstring(content, "S\n") { // stroke
+		t.Error("DrawCircle() should contain stroke operator")
+	}
+}
+
+// TestPageFillCircle はFillCircleメソッドをテストする
+func TestPageFillCircle(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// 中心(300, 400)、半径50の円を塗りつぶし
+	page.FillCircle(300, 400, 50)
+
+	content := page.content.String()
+
+	// 塗りつぶしオペレーターを確認
+	if !containsSubstring(content, "f\n") {
+		t.Error("FillCircle() should contain fill operator")
+	}
+}
+
+// TestPageDrawAndFillCircle はDrawAndFillCircleメソッドをテストする
+func TestPageDrawAndFillCircle(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// 中心(300, 400)、半径50の円を枠線＋塗りつぶし
+	page.DrawAndFillCircle(300, 400, 50)
+
+	content := page.content.String()
+
+	// 枠線＋塗りつぶしオペレーターを確認
+	if !containsSubstring(content, "B\n") {
+		t.Error("DrawAndFillCircle() should contain fill and stroke operator")
+	}
+}
+
+// TestCircleWithStyle は円描画のスタイル設定をテストする
+func TestCircleWithStyle(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4, Portrait)
+
+	// スタイルを設定
+	page.SetStrokeColor(Red)
+	page.SetFillColor(Color{R: 1.0, G: 0.8, B: 0.8})
+	page.DrawAndFillCircle(300, 400, 50)
+
+	content := page.content.String()
+
+	// 色設定とオペレーターが含まれることを確認
+	if !containsSubstring(content, "1.00 0.00 0.00 RG\n") {
+		t.Error("Circle with style should contain stroke color setting")
+	}
+	if !containsSubstring(content, "1.00 0.80 0.80 rg\n") {
+		t.Error("Circle with style should contain fill color setting")
+	}
+	if !containsSubstring(content, "B\n") {
+		t.Error("Circle with style should contain fill and stroke operator")
+	}
+}
+
+// containsSubstring は文字列が部分文字列を含むかチェックする
+func containsSubstring(s, substr string) bool {
+	return len(s) >= len(substr) && indexOfSubstring(s, substr) >= 0
+}
+
+// indexOfSubstring は部分文字列のインデックスを返す
+func indexOfSubstring(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
+}

@@ -129,3 +129,119 @@ func replaceAll(s, old, new string) string {
 	}
 	return result
 }
+
+// SetLineWidth sets the line width for subsequent drawing operations.
+func (p *Page) SetLineWidth(width float64) {
+	fmt.Fprintf(&p.content, "%.2f w\n", width)
+}
+
+// SetStrokeColor sets the stroke color for subsequent drawing operations.
+func (p *Page) SetStrokeColor(c Color) {
+	fmt.Fprintf(&p.content, "%.2f %.2f %.2f RG\n", c.R, c.G, c.B)
+}
+
+// SetFillColor sets the fill color for subsequent drawing operations.
+func (p *Page) SetFillColor(c Color) {
+	fmt.Fprintf(&p.content, "%.2f %.2f %.2f rg\n", c.R, c.G, c.B)
+}
+
+// SetLineCap sets the line cap style for subsequent drawing operations.
+func (p *Page) SetLineCap(cap LineCapStyle) {
+	fmt.Fprintf(&p.content, "%d J\n", cap)
+}
+
+// SetLineJoin sets the line join style for subsequent drawing operations.
+func (p *Page) SetLineJoin(join LineJoinStyle) {
+	fmt.Fprintf(&p.content, "%d j\n", join)
+}
+
+// DrawLine draws a line from (x1, y1) to (x2, y2).
+func (p *Page) DrawLine(x1, y1, x2, y2 float64) {
+	fmt.Fprintf(&p.content, "%.2f %.2f m\n", x1, y1)
+	fmt.Fprintf(&p.content, "%.2f %.2f l\n", x2, y2)
+	fmt.Fprintf(&p.content, "S\n")
+}
+
+// DrawRectangle draws a rectangle outline at (x, y) with the specified width and height.
+func (p *Page) DrawRectangle(x, y, width, height float64) {
+	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f re\n", x, y, width, height)
+	fmt.Fprintf(&p.content, "S\n")
+}
+
+// FillRectangle draws a filled rectangle at (x, y) with the specified width and height.
+func (p *Page) FillRectangle(x, y, width, height float64) {
+	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f re\n", x, y, width, height)
+	fmt.Fprintf(&p.content, "f\n")
+}
+
+// DrawAndFillRectangle draws a filled rectangle with an outline at (x, y) with the specified width and height.
+func (p *Page) DrawAndFillRectangle(x, y, width, height float64) {
+	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f re\n", x, y, width, height)
+	fmt.Fprintf(&p.content, "B\n")
+}
+
+// drawCirclePath draws a circle path using 4 Bézier curves.
+// κ = 4 * (√2 - 1) / 3 ≈ 0.5522847498
+func (p *Page) drawCirclePath(centerX, centerY, radius float64) {
+	// Magic constant for circle approximation using Bézier curves
+	const kappa = 0.5522847498
+
+	// Calculate control point offset
+	offset := radius * kappa
+
+	// Calculate key points on the circle
+	x0 := centerX + radius // Right
+	y0 := centerY
+	x1 := centerX          // Left
+	y1 := centerY
+	x2 := centerX          // Center X
+	y2 := centerY + radius // Top
+	x3 := centerX          // Center X
+	y3 := centerY - radius // Bottom
+
+	// Start at the right point (3 o'clock position)
+	fmt.Fprintf(&p.content, "%.2f %.2f m\n", x0, y0)
+
+	// Draw 4 Bézier curves to approximate a circle
+	// Curve 1: Right to Top (3 o'clock to 12 o'clock)
+	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f %.2f %.2f c\n",
+		x0, y0+offset,        // Control point 1
+		x2+offset, y2,        // Control point 2
+		x2, y2)               // End point
+
+	// Curve 2: Top to Left (12 o'clock to 9 o'clock)
+	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f %.2f %.2f c\n",
+		x2-offset, y2,        // Control point 1
+		x1, y1+offset,        // Control point 2
+		x1, y1)               // End point
+
+	// Curve 3: Left to Bottom (9 o'clock to 6 o'clock)
+	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f %.2f %.2f c\n",
+		x1, y1-offset,        // Control point 1
+		x3-offset, y3,        // Control point 2
+		x3, y3)               // End point
+
+	// Curve 4: Bottom to Right (6 o'clock to 3 o'clock)
+	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f %.2f %.2f c\n",
+		x3+offset, y3,        // Control point 1
+		x0, y0-offset,        // Control point 2
+		x0, y0)               // End point
+}
+
+// DrawCircle draws a circle outline with the specified center and radius.
+func (p *Page) DrawCircle(centerX, centerY, radius float64) {
+	p.drawCirclePath(centerX, centerY, radius)
+	fmt.Fprintf(&p.content, "S\n")
+}
+
+// FillCircle draws a filled circle with the specified center and radius.
+func (p *Page) FillCircle(centerX, centerY, radius float64) {
+	p.drawCirclePath(centerX, centerY, radius)
+	fmt.Fprintf(&p.content, "f\n")
+}
+
+// DrawAndFillCircle draws a filled circle with an outline with the specified center and radius.
+func (p *Page) DrawAndFillCircle(centerX, centerY, radius float64) {
+	p.drawCirclePath(centerX, centerY, radius)
+	fmt.Fprintf(&p.content, "B\n")
+}
