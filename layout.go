@@ -7,6 +7,7 @@ import (
 
 	"github.com/ryomak/gopdf/internal/content"
 	"github.com/ryomak/gopdf/internal/core"
+	"github.com/ryomak/gopdf/internal/utils"
 )
 
 // PageLayout はページの完全なレイアウト情報
@@ -141,9 +142,8 @@ func (r *PDFReader) getPageSize(page core.Dictionary) (width, height float64) {
 
 // convertTextElements は内部型から公開型に変換
 func convertTextElements(internalElements []content.TextElement) []TextElement {
-	elements := make([]TextElement, len(internalElements))
-	for i, elem := range internalElements {
-		elements[i] = TextElement{
+	return utils.Map(internalElements, func(elem content.TextElement) TextElement {
+		return TextElement{
 			Text:   elem.Text,
 			X:      elem.X,
 			Y:      elem.Y,
@@ -152,15 +152,13 @@ func convertTextElements(internalElements []content.TextElement) []TextElement {
 			Font:   elem.Font,
 			Size:   elem.Size,
 		}
-	}
-	return elements
+	})
 }
 
 // convertImageBlocks は内部型から公開型に変換
 func convertImageBlocks(internalBlocks []content.ImageBlock) []ImageBlock {
-	blocks := make([]ImageBlock, len(internalBlocks))
-	for i, block := range internalBlocks {
-		blocks[i] = ImageBlock{
+	return utils.Map(internalBlocks, func(block content.ImageBlock) ImageBlock {
+		return ImageBlock{
 			ImageInfo: ImageInfo{
 				Name:        block.Name,
 				Width:       block.Width,
@@ -176,8 +174,7 @@ func convertImageBlocks(internalBlocks []content.ImageBlock) []ImageBlock {
 			PlacedWidth:  block.PlacedWidth,
 			PlacedHeight: block.PlacedHeight,
 		}
-	}
-	return blocks
+	})
 }
 
 // groupTextElements はTextElementsをTextBlocksにグループ化
