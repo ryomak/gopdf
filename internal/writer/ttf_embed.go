@@ -147,8 +147,8 @@ func (e *TTFFontEmbedder) createCIDFont(ttfFont *font.TTFFont, fontDescriptorRef
 
 // createToUnicodeCMap creates a ToUnicode CMap stream
 func (e *TTFFontEmbedder) createToUnicodeCMap(ttfFont *font.TTFFont) (*core.Reference, error) {
-	// Create a basic ToUnicode CMap
-	// This is a simplified version that maps CID to Unicode
+	// Create a ToUnicode CMap with identity mapping
+	// This maps character codes directly to Unicode code points
 	var buf bytes.Buffer
 
 	buf.WriteString(`/CIDInit /ProcSet findresource begin
@@ -164,7 +164,23 @@ begincmap
 1 begincodespacerange
 <0000> <FFFF>
 endcodespacerange
-endcmap
+`)
+
+	// Add identity mapping for the entire BMP (Basic Multilingual Plane)
+	// This maps character code X to Unicode U+X
+	buf.WriteString(`100 beginbfrange
+`)
+	for start := 0x0000; start < 0x10000; start += 0x0100 {
+		end := start + 0x00FF
+		if end > 0xFFFF {
+			end = 0xFFFF
+		}
+		fmt.Fprintf(&buf, "<%04X> <%04X> <%04X>\n", start, end, start)
+	}
+	buf.WriteString(`endbfrange
+`)
+
+	buf.WriteString(`endcmap
 CMapName currentdict /CMap defineresource pop
 end
 end
