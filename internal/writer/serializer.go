@@ -67,9 +67,59 @@ func (s *Serializer) serializeReal(v float64) error {
 }
 
 func (s *Serializer) serializeString(v string) error {
-	// TODO: エスケープ処理の実装
-	// 現在は単純に括弧で囲むのみ
-	return s.writeString("(" + v + ")")
+	// バイナリデータまたは特殊文字が含まれている場合は16進文字列として出力
+	if s.needsHexEncoding(v) {
+		return s.writeString(s.toHexString(v))
+	}
+
+	// 通常の文字列はリテラル文字列として出力（エスケープ処理あり）
+	escaped := s.escapeString(v)
+	return s.writeString("(" + escaped + ")")
+}
+
+// needsHexEncoding checks if string contains binary data or special characters
+func (s *Serializer) needsHexEncoding(str string) bool {
+	for _, b := range []byte(str) {
+		// 制御文字やバイナリデータをチェック
+		if b < 32 || b > 126 || b == '(' || b == ')' || b == '\\' {
+			return true
+		}
+	}
+	return false
+}
+
+// toHexString converts string to hex string format <AABBCC...>
+func (s *Serializer) toHexString(str string) string {
+	result := "<"
+	for _, b := range []byte(str) {
+		result += fmt.Sprintf("%02X", b)
+	}
+	result += ">"
+	return result
+}
+
+// escapeString escapes special characters in PDF literal strings
+func (s *Serializer) escapeString(str string) string {
+	result := ""
+	for _, b := range []byte(str) {
+		switch b {
+		case '\\':
+			result += "\\\\"
+		case '(':
+			result += "\\("
+		case ')':
+			result += "\\)"
+		case '\n':
+			result += "\\n"
+		case '\r':
+			result += "\\r"
+		case '\t':
+			result += "\\t"
+		default:
+			result += string(b)
+		}
+	}
+	return result
 }
 
 func (s *Serializer) serializeName(v string) error {
