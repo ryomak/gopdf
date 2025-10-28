@@ -71,15 +71,27 @@ func (p *Page) drawTextInternal(
 // DrawText draws text at the specified position.
 // The position (x, y) is in PDF units (points), where (0, 0) is the bottom-left corner.
 func (p *Page) DrawText(text string, x, y float64) error {
-	if p.currentFont == nil {
-		return fmt.Errorf("no font set; call SetFont before DrawText")
+	// Support both standard fonts and TTF fonts
+	if p.currentTTFFont != nil {
+		// Use TTF font (supports Unicode)
+		fontKey := p.getTTFFontKey(p.currentTTFFont)
+		encodedText, err := p.textToGlyphIndices(text, p.currentTTFFont)
+		if err != nil {
+			return fmt.Errorf("failed to convert text to glyph indices: %w", err)
+		}
+		p.drawTextInternal(x, y, fontKey, encodedText, false)
+		return nil
 	}
 
-	fontKey := p.getFontKey(*p.currentFont)
-	encodedText := p.escapeString(text)
-	p.drawTextInternal(x, y, fontKey, encodedText, true)
+	if p.currentFont != nil {
+		// Use standard font (ASCII/Latin-1 only)
+		fontKey := p.getFontKey(*p.currentFont)
+		encodedText := p.escapeString(text)
+		p.drawTextInternal(x, y, fontKey, encodedText, true)
+		return nil
+	}
 
-	return nil
+	return fmt.Errorf("no font set; call SetFont or SetTTFFont before DrawText")
 }
 
 // getFontKey returns the font resource name (e.g., "F1", "F2") for a given font.
@@ -319,16 +331,10 @@ func (p *Page) SetTTFFont(f *TTFFont, size float64) error {
 
 // DrawTextUTF8 draws UTF-8 encoded text at the specified position using the current TTF font.
 // This method supports Unicode characters including Japanese, Chinese, Korean, etc.
+//
+// Deprecated: Use DrawText instead. DrawText now automatically handles both standard and TTF fonts.
 func (p *Page) DrawTextUTF8(text string, x, y float64) error {
-	if p.currentTTFFont == nil {
-		return fmt.Errorf("no TTF font set; call SetTTFFont before DrawTextUTF8")
-	}
-
-	fontKey := p.getTTFFontKey(p.currentTTFFont)
-	encodedText := p.textToHexString(text)
-	p.drawTextInternal(x, y, fontKey, encodedText, false)
-
-	return nil
+	return p.DrawText(text, x, y)
 }
 
 // getTTFFontKey returns the font resource name for a TTF font.
@@ -367,6 +373,25 @@ func (p *Page) textToHexString(text string) string {
 	}
 
 	return result
+}
+
+// textToGlyphIndices converts UTF-8 text to glyph indices for TTF fonts
+// This ensures proper rendering by using actual glyph IDs from the font
+func (p *Page) textToGlyphIndices(text string, ttfFont *TTFFont) (string, error) {
+	var result string
+
+	for _, r := range text {
+		// Get the glyph index for this character
+		glyphIndex, err := ttfFont.internal.GetGlyphIndex(r)
+		if err != nil {
+			return "", fmt.Errorf("failed to get glyph index for character %c (U+%04X): %w", r, r, err)
+		}
+
+		// Convert glyph index to 4-digit hex string
+		result += fmt.Sprintf("%04X", glyphIndex)
+	}
+
+	return result, nil
 }
 
 // DrawRuby draws ruby (furigana) text above base text

@@ -99,9 +99,9 @@ func (p *Page) Height() float64
 
 // テキスト描画
 func (p *Page) SetFont(f font.StandardFont, size float64) error
-func (p *Page) DrawText(text string, x, y float64) error
+func (p *Page) DrawText(text string, x, y float64) error  // 標準フォントとTTFフォントの両方に対応
 func (p *Page) SetTTFFont(font *TTFFont, size float64) error
-func (p *Page) DrawTextUTF8(text string, x, y float64) error
+func (p *Page) DrawTextUTF8(text string, x, y float64) error  // Deprecated: DrawTextを使用してください
 
 // 図形描画
 func (p *Page) DrawLine(x1, y1, x2, y2 float64)
@@ -256,9 +256,9 @@ func main() {
     // TTFフォントを設定
     page.SetTTFFont(font, 24)
 
-    // 日本語テキストを描画
-    page.DrawTextUTF8("こんにちは、世界！", 100, 750)
-    page.DrawTextUTF8("gopdf supports Japanese text!", 100, 720)
+    // 日本語テキストを描画（DrawTextは自動的にTTFフォントを使用）
+    page.DrawText("こんにちは、世界！", 100, 750)
+    page.DrawText("gopdf supports Japanese text!", 100, 720)
 
     // ファイルに出力
     file, _ := os.Create("japanese.pdf")

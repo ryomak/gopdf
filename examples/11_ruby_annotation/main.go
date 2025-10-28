@@ -75,7 +75,7 @@ func createBasicRubyExample(jpFont *gopdf.TTFFont, filename string) error {
 	page.SetTTFFont(jpFont, 20)
 
 	// Title
-	page.DrawTextUTF8("ルビ（ふりがな）の基本例", 50, 800)
+	page.DrawText("ルビ（ふりがな）の基本例", 50, 800)
 
 	// Basic ruby examples with default style
 	style := gopdf.DefaultRubyStyle()
@@ -120,7 +120,7 @@ func createAlignmentExample(jpFont *gopdf.TTFFont, filename string) error {
 
 	// Set Japanese font
 	page.SetTTFFont(jpFont, 20)
-	page.DrawTextUTF8("ルビの配置オプション", 50, 800)
+	page.DrawText("ルビの配置オプション", 50, 800)
 
 	// Create styles with different alignments
 	page.SetTTFFont(jpFont, 16)
@@ -129,43 +129,43 @@ func createAlignmentExample(jpFont *gopdf.TTFFont, filename string) error {
 	// Center alignment (default)
 	style := gopdf.DefaultRubyStyle()
 	style.Alignment = gopdf.RubyAlignCenter
-	page.DrawTextUTF8("中央揃え:", 50, y)
+	page.DrawText("中央揃え:", 50, y)
 	page.DrawRuby(gopdf.NewRubyText("東京", "とうきょう"), 200, y, style)
 	y -= 50
 
 	// Left alignment
 	style.Alignment = gopdf.RubyAlignLeft
-	page.DrawTextUTF8("左揃え:", 50, y)
+	page.DrawText("左揃え:", 50, y)
 	page.DrawRuby(gopdf.NewRubyText("東京", "とうきょう"), 200, y, style)
 	y -= 50
 
 	// Right alignment
 	style.Alignment = gopdf.RubyAlignRight
-	page.DrawTextUTF8("右揃え:", 50, y)
+	page.DrawText("右揃え:", 50, y)
 	page.DrawRuby(gopdf.NewRubyText("東京", "とうきょう"), 200, y, style)
 	y -= 50
 
 	// Different size ratios
 	y -= 20
-	page.DrawTextUTF8("サイズ比率:", 50, y)
+	page.DrawText("サイズ比率:", 50, y)
 	y -= 40
 
 	// 30% size
 	style = gopdf.DefaultRubyStyle()
 	style.SizeRatio = 0.3
-	page.DrawTextUTF8("30%:", 50, y)
+	page.DrawText("30%:", 50, y)
 	page.DrawRuby(gopdf.NewRubyText("漢字", "かんじ"), 200, y, style)
 	y -= 50
 
 	// 50% size (default)
 	style.SizeRatio = 0.5
-	page.DrawTextUTF8("50%:", 50, y)
+	page.DrawText("50%:", 50, y)
 	page.DrawRuby(gopdf.NewRubyText("漢字", "かんじ"), 200, y, style)
 	y -= 50
 
 	// 70% size
 	style.SizeRatio = 0.7
-	page.DrawTextUTF8("70%:", 50, y)
+	page.DrawText("70%:", 50, y)
 	page.DrawRuby(gopdf.NewRubyText("漢字", "かんじ"), 200, y, style)
 
 	// Save file
@@ -190,10 +190,10 @@ func createActualTextExample(jpFont *gopdf.TTFFont, filename string) error {
 
 	// Set Japanese font
 	page.SetTTFFont(jpFont, 20)
-	page.DrawTextUTF8("ActualTextコピーモード", 50, 800)
+	page.DrawText("ActualTextコピーモード", 50, 800)
 
 	page.SetTTFFont(jpFont, 12)
-	page.DrawTextUTF8("※PDFからテキストをコピーすると動作が確認できます", 50, 780)
+	page.DrawText("※PDFからテキストをコピーすると動作が確認できます", 50, 780)
 
 	page.SetTTFFont(jpFont, 16)
 	y := 730.0
@@ -202,28 +202,28 @@ func createActualTextExample(jpFont *gopdf.TTFFont, filename string) error {
 	// Copy base only (default)
 	style := gopdf.DefaultRubyStyle()
 	style.CopyMode = gopdf.RubyCopyBase
-	page.DrawTextUTF8("親文字のみコピー:", 50, y)
+	page.DrawText("親文字のみコピー:", 50, y)
 	page.DrawRubyWithActualText(rubyText, 300, y, style)
 	page.SetTTFFont(jpFont, 12)
-	page.DrawTextUTF8("→ コピー: 東京", 450, y)
+	page.DrawText("→ コピー: 東京", 450, y)
 	y -= 50
 
 	// Copy ruby only
 	page.SetTTFFont(jpFont, 16)
 	style.CopyMode = gopdf.RubyCopyRuby
-	page.DrawTextUTF8("ルビのみコピー:", 50, y)
+	page.DrawText("ルビのみコピー:", 50, y)
 	page.DrawRubyWithActualText(rubyText, 300, y, style)
 	page.SetTTFFont(jpFont, 12)
-	page.DrawTextUTF8("→ コピー: とうきょう", 450, y)
+	page.DrawText("→ コピー: とうきょう", 450, y)
 	y -= 50
 
 	// Copy both
 	page.SetTTFFont(jpFont, 16)
 	style.CopyMode = gopdf.RubyCopyBoth
-	page.DrawTextUTF8("両方コピー:", 50, y)
+	page.DrawText("両方コピー:", 50, y)
 	page.DrawRubyWithActualText(rubyText, 300, y, style)
 	page.SetTTFFont(jpFont, 12)
-	page.DrawTextUTF8("→ コピー: 東京(とうきょう)", 450, y)
+	page.DrawText("→ コピー: 東京(とうきょう)", 450, y)
 
 	// Save file
 	file, err := os.Create(filename)
@@ -248,7 +248,7 @@ func createMultipleRubyExample(jpFont *gopdf.TTFFont, filename string) error {
 
 	// Set Japanese font
 	page.SetTTFFont(jpFont, 20)
-	page.DrawTextUTF8("複数のルビテキスト", 50, 800)
+	page.DrawText("複数のルビテキスト", 50, 800)
 
 	page.SetTTFFont(jpFont, 16)
 	y := 750.0
@@ -263,14 +263,14 @@ func createMultipleRubyExample(jpFont *gopdf.TTFFont, filename string) error {
 	style := gopdf.DefaultRubyStyle()
 
 	// Draw with ActualText support
-	page.DrawTextUTF8("文章例:", 50, y)
+	page.DrawText("文章例:", 50, y)
 	totalWidth, err := page.DrawRubyTexts(texts, 150, y, style, true)
 	if err != nil {
 		return err
 	}
 
 	// Continue with non-ruby text
-	page.DrawTextUTF8("んでいます。", 150+totalWidth, y)
+	page.DrawText("んでいます。", 150+totalWidth, y)
 	fmt.Printf("  Drew multiple ruby texts, total width: %.1f\n", totalWidth)
 
 	y -= 50
@@ -282,12 +282,12 @@ func createMultipleRubyExample(jpFont *gopdf.TTFFont, filename string) error {
 		"良", "よ",
 	)
 
-	page.DrawTextUTF8("文章例:", 50, y)
+	page.DrawText("文章例:", 50, y)
 	totalWidth2, err := page.DrawRubyTexts(texts2, 150, y, style, true)
 	if err != nil {
 		return err
 	}
-	page.DrawTextUTF8("いです。", 150+totalWidth2, y)
+	page.DrawText("いです。", 150+totalWidth2, y)
 
 	// Save file
 	file, err := os.Create(filename)

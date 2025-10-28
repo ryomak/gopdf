@@ -217,13 +217,9 @@ func setPageFont(page *Page, fontInterface interface{}, size float64) error {
 	return fmt.Errorf("unsupported font type")
 }
 
-// drawPageText はフォントタイプに応じて適切な描画メソッドを呼び出す
+// drawPageText はページにテキストを描画する
+// DrawTextが自動的にフォントタイプを判定するため、常にDrawTextを使用
 func drawPageText(page *Page, fontInterface interface{}, text string, x, y float64) error {
-	// *TTFFontの場合
-	if _, ok := fontInterface.(*TTFFont); ok {
-		return page.DrawTextUTF8(text, x, y)
-	}
-	// font.StandardFontの場合
 	return page.DrawText(text, x, y)
 }
 

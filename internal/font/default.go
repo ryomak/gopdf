@@ -28,7 +28,7 @@ var (
 //	    log.Fatal(err)
 //	}
 //	page.SetTTFFont(jpFont, 16)
-//	page.DrawTextUTF8("こんにちは、世界！", 50, 800)
+//	page.DrawText("こんにちは、世界！", 50, 800)
 func DefaultJapaneseFont() (*TTFFont, error) {
 	defaultJPFontOnce.Do(func() {
 		defaultJPFont, defaultJPFontErr = LoadTTFFromBytes(embedded.KoruriRegular)

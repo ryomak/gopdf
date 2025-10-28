@@ -47,10 +47,10 @@ func main() {
 	}
 
 	// Draw English text with TTF font
-	page.DrawTextUTF8("Hello, World!", 50, 750)
+	page.DrawText("Hello, World!", 50, 750)
 
 	// Draw text with special characters
-	page.DrawTextUTF8("Unicode: € £ ¥ © ® ™", 50, 720)
+	page.DrawText("Unicode: € £ ¥ © ® ™", 50, 720)
 
 	// Try to draw Japanese text if a suitable font is available
 	japaneseFont, err := loadJapaneseFont()
@@ -61,8 +61,8 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error setting Japanese font: %v\n", err)
 		} else {
 			// Draw Japanese text
-			page.DrawTextUTF8("こんにちは、世界！", 50, 680)
-			page.DrawTextUTF8("日本語のテキストです。", 50, 650)
+			page.DrawText("こんにちは、世界！", 50, 680)
+			page.DrawText("日本語のテキストです。", 50, 650)
 		}
 	} else {
 		fmt.Println("Japanese font not found (this is optional)")
@@ -73,13 +73,13 @@ func main() {
 
 	// Add more text at different sizes
 	page.SetTTFFont(ttfFont, 12)
-	page.DrawTextUTF8("TTF fonts support Unicode characters", 50, 600)
+	page.DrawText("TTF fonts support Unicode characters", 50, 600)
 
 	page.SetTTFFont(ttfFont, 16)
-	page.DrawTextUTF8("Different sizes are supported", 50, 570)
+	page.DrawText("Different sizes are supported", 50, 570)
 
 	page.SetTTFFont(ttfFont, 24)
-	page.DrawTextUTF8("Larger text", 50, 530)
+	page.DrawText("Larger text", 50, 530)
 
 	// Text width calculation
 	width, err := ttfFont.TextWidth("Hello, World!", 18)

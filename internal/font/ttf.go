@@ -168,3 +168,23 @@ func (f *TTFFont) TextWidth(text string, fontSize float64) (float64, error) {
 	}
 	return totalWidth, nil
 }
+
+// GetGlyphIndex returns the glyph index for a rune
+// This is used to map Unicode characters to actual glyph indices in the font
+func (f *TTFFont) GetGlyphIndex(r rune) (uint16, error) {
+	// Check cache first
+	if glyphIndex, ok := f.glyphMap[r]; ok {
+		return uint16(glyphIndex), nil
+	}
+
+	// Look up glyph index for this rune
+	buf := &sfnt.Buffer{}
+	idx, err := f.font.GlyphIndex(buf, r)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get glyph index for rune %c (U+%04X): %w", r, r, err)
+	}
+
+	// Cache it
+	f.glyphMap[r] = idx
+	return uint16(idx), nil
+}
