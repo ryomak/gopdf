@@ -26,19 +26,26 @@ go run main.go
 
 #### 1. Noto Sans JPフォントをダウンロード
 
-```bash
-# Google Fontsから直接ダウンロード
-# https://fonts.google.com/noto/specimen/Noto+Sans+JP
+**重要**: 可変フォント（Variable Font）ではなく、**静的フォント（Static Font）**を使用してください。
 
-# またはwgetを使用（Linuxの場合）
-wget https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf -O NotoSansJP-Regular.ttf
+**方法A: スクリプトでダウンロード（推奨・最も簡単）**
+
+```bash
+cd examples/10_pdf_translation
+./download_font.sh
 ```
 
-または手動でダウンロード：
+このスクリプトは自動的に正しい静的フォントをダウンロードします。
+
+**方法B: Google Fontsから手動ダウンロード**
+
 1. https://fonts.google.com/noto/specimen/Noto+Sans+JP にアクセス
-2. "Download family" をクリック
+2. 右上の "Get font" → "Download all" をクリック
 3. ZIPファイルを解凍
-4. `NotoSansJP-Regular.ttf` を `examples/10_pdf_translation/` ディレクトリにコピー
+4. `static/NotoSansJP-Regular.ttf` を探す（**注意**: `static/` フォルダ内のファイルを使用）
+5. `examples/10_pdf_translation/` ディレクトリに `NotoSansJP-Regular.ttf` としてコピー
+
+**注意**: ルートフォルダの `NotoSansJP[wght].ttf`（可変フォント）は使用**しないでください**。
 
 #### 2. サンプルを実行
 
