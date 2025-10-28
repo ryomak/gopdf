@@ -201,6 +201,7 @@ func TestPage_drawTextInternal(t *testing.T) {
 			fontSize:    12.0,
 			expectedParts: []string{
 				"BT\n",
+				"0 0 0 rg\n",
 				"/F1 12.00 Tf\n",
 				"100.00 200.00 Td\n",
 				"(Hello) Tj\n",
@@ -217,6 +218,7 @@ func TestPage_drawTextInternal(t *testing.T) {
 			fontSize:    14.0,
 			expectedParts: []string{
 				"BT\n",
+				"0 0 0 rg\n",
 				"/F15 14.00 Tf\n",
 				"50.00 300.00 Td\n",
 				"<3053308230930306306F> Tj\n",
@@ -233,6 +235,7 @@ func TestPage_drawTextInternal(t *testing.T) {
 			fontSize:    10.0,
 			expectedParts: []string{
 				"BT\n",
+				"0 0 0 rg\n",
 				"/F2 10.00 Tf\n",
 				"10.00 20.00 Td\n",
 				"(Hello \\(World\\)) Tj\n",
