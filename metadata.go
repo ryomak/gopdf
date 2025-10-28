@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/ryomak/gopdf/internal/core"
 )
@@ -208,12 +207,6 @@ func createInfoDict(metadata *Metadata) core.Dictionary {
 	return dict
 }
 
-// needsUTF16 checks if a string contains non-ASCII characters
-// that require UTF-16 encoding
-func needsUTF16(s string) bool {
-	return !utf8.ValidString(s) || !isASCII(s)
-}
-
 // parsePDFDate parses a PDF date string to time.Time
 // Format: D:YYYYMMDDHHmmSSOHH'mm'
 // Example: D:20250129123045+09'00'
@@ -223,9 +216,7 @@ func parsePDFDate(s string) (time.Time, error) {
 	}
 
 	// Remove "D:" prefix if present
-	if strings.HasPrefix(s, "D:") {
-		s = s[2:]
-	}
+	s = strings.TrimPrefix(s, "D:")
 
 	// Minimum length check (at least YYYY)
 	if len(s) < 4 {
@@ -243,31 +234,31 @@ func parsePDFDate(s string) (time.Time, error) {
 	offsetMinutes := 0
 
 	// Year (required)
-	fmt.Sscanf(s[0:4], "%d", &year)
+	_, _ = fmt.Sscanf(s[0:4], "%d", &year)
 
 	// Month (optional)
 	if len(s) >= 6 {
-		fmt.Sscanf(s[4:6], "%d", &month)
+		_, _ = fmt.Sscanf(s[4:6], "%d", &month)
 	}
 
 	// Day (optional)
 	if len(s) >= 8 {
-		fmt.Sscanf(s[6:8], "%d", &day)
+		_, _ = fmt.Sscanf(s[6:8], "%d", &day)
 	}
 
 	// Hour (optional)
 	if len(s) >= 10 {
-		fmt.Sscanf(s[8:10], "%d", &hour)
+		_, _ = fmt.Sscanf(s[8:10], "%d", &hour)
 	}
 
 	// Minute (optional)
 	if len(s) >= 12 {
-		fmt.Sscanf(s[10:12], "%d", &minute)
+		_, _ = fmt.Sscanf(s[10:12], "%d", &minute)
 	}
 
 	// Second (optional)
 	if len(s) >= 14 {
-		fmt.Sscanf(s[12:14], "%d", &second)
+		_, _ = fmt.Sscanf(s[12:14], "%d", &second)
 	}
 
 	// Timezone offset (optional)
@@ -281,16 +272,11 @@ func parsePDFDate(s string) (time.Time, error) {
 			// Remove apostrophes from offset
 			tzPart = strings.ReplaceAll(tzPart[1:], "'", "")
 
-			parts := strings.Split(tzPart, "+")
-			if len(parts) < 2 {
-				parts = strings.Split(tzPart, "-")
-			}
-
 			if len(tzPart) >= 2 {
-				fmt.Sscanf(tzPart[0:2], "%d", &offsetHours)
+				_, _ = fmt.Sscanf(tzPart[0:2], "%d", &offsetHours)
 			}
 			if len(tzPart) >= 4 {
-				fmt.Sscanf(tzPart[2:4], "%d", &offsetMinutes)
+				_, _ = fmt.Sscanf(tzPart[2:4], "%d", &offsetMinutes)
 			}
 
 			offsetSeconds := offsetHours*3600 + offsetMinutes*60
@@ -360,7 +346,7 @@ func decodeHexString(hexStr string) string {
 	bytes := make([]byte, len(hexStr)/2)
 	for i := 0; i < len(hexStr); i += 2 {
 		var b byte
-		fmt.Sscanf(hexStr[i:i+2], "%02x", &b)
+		_, _ = fmt.Sscanf(hexStr[i:i+2], "%02x", &b)
 		bytes[i/2] = b
 	}
 
@@ -380,14 +366,14 @@ func decodeUTF16BE(hexStr string) string {
 
 	for i := 0; i < len(hexStr); i += 4 {
 		var code uint16
-		fmt.Sscanf(hexStr[i:i+4], "%04x", &code)
+		_, _ = fmt.Sscanf(hexStr[i:i+4], "%04x", &code)
 
 		// Check for surrogate pair
 		if code >= 0xD800 && code <= 0xDBFF {
 			// High surrogate
 			if i+8 <= len(hexStr) {
 				var low uint16
-				fmt.Sscanf(hexStr[i+4:i+8], "%04x", &low)
+				_, _ = fmt.Sscanf(hexStr[i+4:i+8], "%04x", &low)
 				if low >= 0xDC00 && low <= 0xDFFF {
 					// Valid surrogate pair
 					r := 0x10000 + (rune(code&0x3FF)<<10) + rune(low&0x3FF)

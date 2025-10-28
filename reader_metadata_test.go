@@ -227,7 +227,7 @@ func TestPDFReader_Info_NoMetadata(t *testing.T) {
 		t.Errorf("CreationDate should be zero, got %v", metadata.CreationDate)
 	}
 
-	if metadata.Custom != nil && len(metadata.Custom) > 0 {
+	if len(metadata.Custom) > 0 {
 		t.Errorf("Custom fields should be empty, got %v", metadata.Custom)
 	}
 }

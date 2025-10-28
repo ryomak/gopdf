@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/ryomak/gopdf/internal/content"
-	"github.com/ryomak/gopdf/internal/core"
 	"github.com/ryomak/gopdf/internal/reader"
 )
 
@@ -272,19 +271,4 @@ func (r *PDFReader) ExtractAllImages() (map[int][]ImageInfo, error) {
 	}
 
 	return result, nil
-}
-
-// getString は辞書から文字列値を取得する
-func getString(dict core.Dictionary, key string) string {
-	obj, ok := dict[core.Name(key)]
-	if !ok {
-		return ""
-	}
-
-	switch v := obj.(type) {
-	case core.String:
-		return string(v)
-	default:
-		return ""
-	}
 }

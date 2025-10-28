@@ -52,7 +52,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("=== PDF created successfully: metadata_example.pdf ===\n")
+	fmt.Println("=== PDF created successfully: metadata_example.pdf ===")
 
 	// Now read the metadata back
 	fmt.Println("=== Reading metadata back ===")
