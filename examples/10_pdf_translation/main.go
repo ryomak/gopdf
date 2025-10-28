@@ -162,36 +162,25 @@ func demonstrateLayoutExtraction(filename string) error {
 func demonstrateTranslation(inputPath string, outputPath string) error {
 	fmt.Println("Translating PDF...")
 
-	// 日本語フォントの有無を確認
-	// 注意: 日本語を表示するにはTTFフォントが必要です
-	// 例: https://fonts.google.com/noto/specimen/Noto+Sans+JP からダウンロード
-	ttfFontPath := "NotoSansJP-Regular.ttf"
+	// デフォルト日本語フォント（Koruri）を使用
+	// gopdf v2では日本語フォントが埋め込まれているため、手動でフォントをダウンロードする必要はありません
+	jpFont, err := font.DefaultJapaneseFont()
 	useJapanese := false
 
 	var targetFont interface{}
 	var targetFontName string
 
-	// TTFフォントが存在するか確認
-	if _, err := os.Stat(ttfFontPath); err == nil {
-		// TTFフォントを読み込み
-		jpFont, err := gopdf.LoadTTF(ttfFontPath)
-		if err == nil {
-			targetFont = jpFont
-			targetFontName = "NotoSansJP"
-			useJapanese = true
-			fmt.Println("  Using TTF font for Japanese text")
-		} else {
-			fmt.Printf("  Warning: Failed to load TTF font: %v\n", err)
-		}
-	}
-
-	// TTFフォントがない場合は標準フォントを使用（英語のみ）
-	if !useJapanese {
+	if err == nil {
+		targetFont = jpFont
+		targetFontName = "Koruri"
+		useJapanese = true
+		fmt.Println("  Using embedded Koruri font for Japanese text")
+	} else {
+		// フォント読み込みに失敗した場合は標準フォントを使用（英語のみ）
 		targetFont = font.Helvetica
 		targetFontName = "Helvetica"
-		fmt.Println("  Warning: TTF font not found. Using Helvetica (English only)")
-		fmt.Println("  To display Japanese, download NotoSansJP-Regular.ttf from:")
-		fmt.Println("  https://fonts.google.com/noto/specimen/Noto+Sans+JP")
+		fmt.Printf("  Warning: Failed to load Japanese font: %v\n", err)
+		fmt.Println("  Using Helvetica (English only)")
 	}
 
 	// 翻訳辞書（useJapaneseがtrueの場合のみ日本語に翻訳）
@@ -277,7 +266,7 @@ func demonstrateTranslation(inputPath string, outputPath string) error {
 	}
 
 	// PDF翻訳を実行
-	err := gopdf.TranslatePDF(inputPath, outputPath, opts)
+	err = gopdf.TranslatePDF(inputPath, outputPath, opts)
 	if err != nil {
 		return fmt.Errorf("translation failed: %w", err)
 	}

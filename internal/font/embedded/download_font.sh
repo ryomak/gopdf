@@ -1,69 +1,59 @@
 #!/bin/bash
-# Noto Sans CJK JPフォントをダウンロードするスクリプト
+# Koruriフォントをダウンロードするスクリプト
 
 set -e
 
-# Google Fontsから直接ダウンロード
-# 注意: Google FontsのAPIを使用するため、静的TTFファイルのURLが変更される可能性があります
-# その場合は手動でダウンロードしてください
-
 echo "==================================="
-echo "Noto Sans JP Font Download Script"
+echo "Koruri Font Download Script"
 echo "==================================="
 echo ""
-echo "このスクリプトはNoto Sans JP Regularフォントをダウンロードします。"
+echo "このスクリプトはKoruri Regularフォントをダウンロードします。"
 echo ""
-echo "手動でダウンロードする場合:"
-echo "1. https://fonts.google.com/noto/specimen/Noto+Sans+JP にアクセス"
-echo "2. 'Get font' → 'Download all' をクリック"
-echo "3. ZIPを解凍して static/NotoSansJP-Regular.ttf を取得"
-echo "4. このディレクトリに NotoSansJP-Regular.ttf として配置"
+echo "Koruriについて:"
+echo "- M+ FONTS と Open Sans を合成した日本語フォント"
+echo "- 英数字部分が美しい Open Sans ベース"
+echo "- 軽量で読みやすい"
 echo ""
-echo "フォントサイズ: 約1.5-4MB"
-echo "ライセンス: SIL Open Font License 1.1 (商用利用可)"
+echo "ライセンス: Apache License 2.0 (商用利用可)"
 echo ""
 
-# GitHub releases から最新のフォントをダウンロード
-# Noto Sans CJK JP は大きいので、Noto Sans JP（日本語専用版）を使用
-FONT_URL="https://github.com/notofonts/noto-cjk/raw/main/Sans/SubsetOTF/JP/NotoSansCJKjp-Regular.otf"
-FONT_FILE="NotoSansJP-Regular.otf"
-LICENSE_URL="https://raw.githubusercontent.com/notofonts/noto-cjk/main/LICENSE"
+# GitHub から最新のフォントをダウンロード
+FONT_URL="https://github.com/Koruri/Koruri/raw/master/Koruri-Regular.ttf"
+FONT_FILE="Koruri-Regular.ttf"
+LICENSE_URL="https://raw.githubusercontent.com/Koruri/Koruri/master/LICENSE"
 LICENSE_FILE="LICENSE.txt"
 
-echo "Attempting to download from GitHub..."
+echo "Downloading from GitHub..."
 echo "URL: $FONT_URL"
 echo ""
 
-if curl -L -f -o "$FONT_FILE" "$FONT_URL" 2>/dev/null; then
+if curl -L -f -o "$FONT_FILE" "$FONT_URL"; then
     echo "✓ Font downloaded: $FONT_FILE"
     ls -lh "$FONT_FILE"
 
-    # OTFをTTFに変換する必要がある場合の注意
-    echo ""
-    echo "⚠️  注意: ダウンロードしたフォントはOTF形式です。"
-    echo "    gopdfではTTF形式が必要です。"
-    echo "    fonttools等でTTFに変換してください:"
-    echo "    $ pip install fonttools"
-    echo "    $ ttx -f $FONT_FILE"
-    echo ""
+    # ファイル形式の確認
+    if command -v file &> /dev/null; then
+        echo ""
+        echo "File type:"
+        file "$FONT_FILE"
+    fi
 else
     echo "✗ 自動ダウンロードに失敗しました"
     echo ""
     echo "手動でダウンロードしてください:"
-    echo "1. https://fonts.google.com/noto/specimen/Noto+Sans+JP"
-    echo "2. ZIPをダウンロードして解凍"
-    echo "3. static/NotoSansJP-Regular.ttf をこのディレクトリに配置"
+    echo "1. https://github.com/Koruri/Koruri にアクセス"
+    echo "2. Koruri-Regular.ttf をダウンロード"
+    echo "3. このディレクトリに配置"
     echo ""
     exit 1
 fi
 
+echo ""
 echo "Downloading license file..."
-curl -L -o "$LICENSE_FILE" "$LICENSE_URL"
-
-if [ -f "$LICENSE_FILE" ]; then
+if curl -L -f -o "$LICENSE_FILE" "$LICENSE_URL"; then
     echo "✓ License downloaded: $LICENSE_FILE"
 else
-    echo "✗ Failed to download license"
+    echo "⚠️  License download failed (non-fatal)"
 fi
 
 echo ""
@@ -71,7 +61,11 @@ echo "==================================="
 echo "Download complete!"
 echo "==================================="
 echo ""
-echo "ライセンス: SIL Open Font License 1.1"
+echo "フォント: Koruri Regular"
+echo "ライセンス: Apache License 2.0"
 echo "商用利用: 可能"
-echo "再配布: 可能（ライセンス表示が必要）"
+echo "再配布: 可能（ライセンス文書の添付が必要）"
+echo "埋め込み: 可能"
+echo ""
+echo "Next: go build でビルド時にフォントが埋め込まれます"
 echo ""

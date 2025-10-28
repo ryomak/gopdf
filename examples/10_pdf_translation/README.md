@@ -11,55 +11,16 @@
 
 ## 実行方法
 
-### 英語のみの場合（標準フォント）
+### 日本語翻訳（デフォルト）
 
 ```bash
 cd examples/10_pdf_translation
 go run main.go
 ```
 
-この場合、レイアウトは保持されますが、テキストは英語のままです。
+**gopdf v2では日本語フォント（Koruri）が埋め込まれているため、フォントファイルのダウンロードは不要です。**
 
-### 日本語翻訳の場合（TTFフォント必要）
-
-日本語を表示するには、日本語対応のTTFフォントが必要です。
-
-#### 1. Noto Sans JPフォントをダウンロード
-
-**重要要件**:
-- ✅ **TTF（TrueType Font）形式**のファイルが必要
-- ✅ **静的フォント（Static Font）**を使用（可変フォントは不可）
-- ❌ OTF（OpenType Font）は**対応していません**
-- ❌ 可変フォント（Variable Font `.ttf[wght]`）は**対応していません**
-
-**推奨方法: Google Fontsから手動ダウンロード**
-
-1. https://fonts.google.com/noto/specimen/Noto+Sans+JP にアクセス
-2. 右上の **"Get font"** → **"Download all"** をクリック
-3. ダウンロードしたZIPファイルを解凍
-4. **`static/NotoSansJP-Regular.ttf`** を探す
-   - ⚠️ **必ず `static/` フォルダ内のファイル**を使用してください
-   - ⚠️ ルートフォルダの `NotoSansJP[wght].ttf`（可変フォント）は使用しないでください
-5. `examples/10_pdf_translation/` ディレクトリに `NotoSansJP-Regular.ttf` としてコピー
-
-**ファイルサイズの確認**:
-- ✅ 正しいファイル: 約 1.5MB ~ 4MB
-- ❌ 間違ったファイル: 9MB以上（可変フォントまたはOTF）
-
-確認コマンド:
-```bash
-ls -lh NotoSansJP-Regular.ttf
-file NotoSansJP-Regular.ttf  # "TrueType Font data" と表示されるべき
-```
-
-#### 2. サンプルを実行
-
-```bash
-cd examples/10_pdf_translation
-go run main.go
-```
-
-`NotoSansJP-Regular.ttf` が存在する場合、自動的に日本語翻訳が実行されます。
+実行すると、自動的に日本語翻訳されたPDFが生成されます。
 
 ## 出力ファイル
 
@@ -137,10 +98,28 @@ opts.FittingOptions = gopdf.FitTextOptions{
 }
 ```
 
-### 他のTTFフォント
+### デフォルトフォントの使用
 
 ```go
-// 他のフォントを使用する場合
+// gopdf v2では埋め込みフォント（Koruri）を使用
+jpFont, err := font.DefaultJapaneseFont()
+if err != nil {
+    log.Fatal(err)
+}
+
+opts := gopdf.PDFTranslatorOptions{
+    TargetFont:     jpFont,
+    TargetFontName: "Koruri",
+    // ...
+}
+```
+
+### カスタムTTFフォントの使用
+
+独自のフォントを使用したい場合：
+
+```go
+// カスタムフォントを読み込み
 jpFont, err := gopdf.LoadTTF("path/to/your/font.ttf")
 if err != nil {
     log.Fatal(err)
@@ -162,23 +141,27 @@ opts := gopdf.PDFTranslatorOptions{
 
 ## トラブルシューティング
 
-### 文字化けする
+### 日本語が表示されない
 
-→ TTFフォントが読み込まれていません。`NotoSansJP-Regular.ttf` が正しい場所にあるか確認してください。
+gopdf v2では日本語フォント（Koruri）が自動的に埋め込まれているため、通常この問題は発生しません。
 
-### フォントが見つからない
-
+もし問題が発生した場合：
+```bash
+# gopdfを最新版に更新
+go get -u github.com/ryomak/gopdf
+go mod tidy
 ```
-Warning: TTF font not found. Using Helvetica (English only)
-```
-
-→ `NotoSansJP-Regular.ttf` をダウンロードして、`examples/10_pdf_translation/` ディレクトリに配置してください。
 
 ### テキストが切れる
 
 → `FittingOptions` の `MinFontSize` を小さくするか、`AllowShrink` を `true` にしてください。
 
+### カスタムフォントを使いたい
+
+→ 「カスタムTTFフォントの使用」セクションを参照してください。
+
 ## 参考
 
 - 設計書: [docs/pdf_translation_design.md](../../docs/pdf_translation_design.md)
-- Noto Sans JP: https://fonts.google.com/noto/specimen/Noto+Sans+JP
+- デフォルトフォント: Koruri (https://koruri.github.io/)
+- Koruriライセンス: Apache License 2.0
