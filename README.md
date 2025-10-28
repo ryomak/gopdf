@@ -2,6 +2,12 @@
 
 Pure GoでPDF生成・解析を行う高機能ライブラリ
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/ryomak/gopdf.svg)](https://pkg.go.dev/github.com/ryomak/gopdf)
+[![Test](https://github.com/ryomak/gopdf/actions/workflows/test.yml/badge.svg)](https://github.com/ryomak/gopdf/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/ryomak/gopdf/branch/main/graph/badge.svg)](https://codecov.io/gh/ryomak/gopdf)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/ryomak/gopdf)](https://github.com/ryomak/gopdf)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 ## 概要
 
 `gopdf` は、CGOを使用せず、Go標準ライブラリのみで動作するPDFライブラリです。PDF 1.7（ISO 32000-1:2008）仕様に準拠し、PDFの生成と解析を行います。
@@ -56,6 +62,140 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
 ```bash
 go get github.com/ryomak/gopdf
 ```
+
+## API
+
+### 主要な型とインターフェース
+
+#### PDF生成
+
+**Document**
+```go
+type Document struct { ... }
+
+// 新規PDFドキュメントを作成
+func New() *Document
+
+// ページを追加
+func (d *Document) AddPage(size PageSize, orientation Orientation) *Page
+
+// PDFを出力
+func (d *Document) WriteTo(w io.Writer) error
+
+// 暗号化を設定
+func (d *Document) SetEncryption(opts *EncryptionOptions)
+
+// メタデータを設定
+func (d *Document) SetMetadata(metadata *Metadata)
+```
+
+**Page**
+```go
+type Page struct { ... }
+
+// ページサイズを取得
+func (p *Page) Width() float64
+func (p *Page) Height() float64
+
+// テキスト描画
+func (p *Page) SetFont(f font.StandardFont, size float64) error
+func (p *Page) DrawText(text string, x, y float64) error
+func (p *Page) SetTTFFont(font *TTFFont, size float64) error
+func (p *Page) DrawTextUTF8(text string, x, y float64) error
+
+// 図形描画
+func (p *Page) DrawLine(x1, y1, x2, y2 float64)
+func (p *Page) DrawRect(x, y, width, height float64)
+func (p *Page) FillRect(x, y, width, height float64)
+func (p *Page) DrawCircle(x, y, r float64)
+func (p *Page) FillCircle(x, y, r float64)
+
+// 色設定
+func (p *Page) SetStrokeColor(r, g, b float64)
+func (p *Page) SetFillColor(r, g, b float64)
+func (p *Page) SetLineWidth(width float64)
+
+// 画像描画
+func (p *Page) DrawImage(img *Image, x, y, width, height float64) error
+func (p *Page) DrawJPEG(jpegData []byte, x, y, width, height float64) error
+func (p *Page) DrawPNG(pngData []byte, x, y, width, height float64) error
+```
+
+#### PDF解析
+
+**PDFReader**
+```go
+type PDFReader struct { ... }
+
+// PDFファイルを開く
+func Open(path string) (*PDFReader, error)
+func OpenReader(r io.ReadSeeker) (*PDFReader, error)
+
+// 基本情報を取得
+func (r *PDFReader) PageCount() int
+func (r *PDFReader) Info() Metadata
+
+// テキスト抽出
+func (r *PDFReader) ExtractText() (string, error)
+func (r *PDFReader) ExtractPageText(pageIndex int) (string, error)
+func (r *PDFReader) ExtractStructuredText(pageIndex int) ([]TextElement, error)
+
+// 画像抽出
+func (r *PDFReader) ExtractImages(pageIndex int) ([]ImageInfo, error)
+
+// リソース解放
+func (r *PDFReader) Close() error
+```
+
+**TextElement**（構造化テキスト抽出）
+```go
+type TextElement struct {
+    Text   string  // テキスト内容
+    X      float64 // X座標（左下原点）
+    Y      float64 // Y座標（左下原点）
+    Width  float64 // テキストの幅（概算）
+    Height float64 // テキストの高さ（フォントサイズ）
+    Font   string  // フォント名
+    Size   float64 // フォントサイズ
+}
+```
+
+**ImageInfo**（画像情報）
+```go
+type ImageInfo struct {
+    Name        string      // リソース名（例: "Im1"）
+    Width       int         // 画像の幅
+    Height      int         // 画像の高さ
+    ColorSpace  string      // 色空間（DeviceRGB, DeviceGray, DeviceCMYK）
+    BitsPerComp int         // ビット深度
+    Filter      string      // 圧縮フィルター
+    Data        []byte      // 画像データ
+    Format      ImageFormat // 画像フォーマット
+}
+```
+
+#### 共通型
+
+**PageSize**（ページサイズ）
+```go
+var (
+    A4     PageSize  // 210 x 297 mm
+    Letter PageSize  // 8.5 x 11 inch
+    Legal  PageSize  // 8.5 x 14 inch
+    A3     PageSize  // 297 x 420 mm
+    A5     PageSize  // 148 x 210 mm
+)
+```
+
+**Orientation**（ページ向き）
+```go
+const (
+    Portrait  Orientation  // 縦向き
+    Landscape Orientation  // 横向き
+)
+```
+
+詳細なAPIドキュメントは [pkg.go.dev](https://pkg.go.dev/github.com/ryomak/gopdf) を参照してください。
 
 ## 使い方
 
