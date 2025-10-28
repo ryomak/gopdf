@@ -1,10 +1,9 @@
 package content
 
 import (
-	"fmt"
-
 	"github.com/ryomak/gopdf/internal/core"
 	"github.com/ryomak/gopdf/internal/reader"
+	"github.com/ryomak/gopdf/internal/utils"
 )
 
 // ImageFormat は画像フォーマット
@@ -62,16 +61,16 @@ func (e *ImageExtractor) ExtractImages(page core.Dictionary) ([]ImageInfo, error
 		return nil, nil // XObjectがない
 	}
 
-	xobjects, ok := xobjectsObj.(core.Dictionary)
-	if !ok {
-		return nil, fmt.Errorf("xobjects is not a dictionary")
+	xobjects, err := utils.MustExtractAs[core.Dictionary](xobjectsObj, "xobjects")
+	if err != nil {
+		return nil, err
 	}
 
 	var images []ImageInfo
 
 	// 各XObjectを処理
 	for name, obj := range xobjects {
-		ref, ok := obj.(*core.Reference)
+		ref, ok := utils.ExtractAs[*core.Reference](obj)
 		if !ok {
 			continue
 		}
@@ -129,9 +128,9 @@ func (e *ImageExtractor) ExtractImagesWithPosition(page core.Dictionary, operati
 		return nil, nil // XObjectがない
 	}
 
-	xobjects, ok := xobjectsObj.(core.Dictionary)
-	if !ok {
-		return nil, fmt.Errorf("xobjects is not a dictionary")
+	xobjects, err := utils.MustExtractAs[core.Dictionary](xobjectsObj, "xobjects")
+	if err != nil {
+		return nil, err
 	}
 
 	// グラフィックス状態スタック
@@ -158,13 +157,13 @@ func (e *ImageExtractor) ExtractImagesWithPosition(page core.Dictionary, operati
 
 		case "Do": // XObjectの描画
 			if len(op.Operands) == 1 {
-				name, ok := op.Operands[0].(core.Name)
+				name, ok := utils.ExtractAs[core.Name](op.Operands[0])
 				if !ok {
 					continue
 				}
 
 				// 画像XObjectを取得
-				xobjRef, ok := xobjects[name].(*core.Reference)
+				xobjRef, ok := utils.ExtractAs[*core.Reference](xobjects[name])
 				if !ok {
 					continue
 				}

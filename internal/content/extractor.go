@@ -2,6 +2,7 @@ package content
 
 import (
 	"github.com/ryomak/gopdf/internal/core"
+	"github.com/ryomak/gopdf/internal/utils"
 )
 
 // TextElement はテキスト要素
@@ -87,9 +88,9 @@ func (e *TextExtractor) Extract() ([]TextElement, error) {
 
 		case "TJ": // Show text with positioning
 			if len(op.Operands) >= 1 {
-				if array, ok := op.Operands[0].(core.Array); ok {
+				if array, ok := utils.ExtractAs[core.Array](op.Operands[0]); ok {
 					for _, item := range array {
-						if str, ok := item.(core.String); ok {
+						if str, ok := utils.ExtractAs[core.String](item); ok {
 							elem := e.createTextElement(string(str))
 							elements = append(elements, elem)
 						}

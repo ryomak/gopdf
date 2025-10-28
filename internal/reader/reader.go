@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/ryomak/gopdf/internal/core"
+	"github.com/ryomak/gopdf/internal/utils"
 )
 
 // xrefEntry はクロスリファレンステーブルのエントリ
@@ -200,9 +201,9 @@ func (r *Reader) parseXrefAndTrailer(offset int64) error {
 		return fmt.Errorf("failed to parse trailer: %w", err)
 	}
 
-	trailer, ok := trailerObj.(core.Dictionary)
-	if !ok {
-		return fmt.Errorf("trailer should be dictionary, got %T", trailerObj)
+	trailer, err := utils.MustExtractAs[core.Dictionary](trailerObj, "trailer")
+	if err != nil {
+		return err
 	}
 
 	r.trailer = trailer
@@ -261,9 +262,9 @@ func (r *Reader) ResolveReference(ref *core.Reference) (core.Object, error) {
 // GetCatalog はCatalogオブジェクトを返す
 func (r *Reader) GetCatalog() (core.Dictionary, error) {
 	// trailerから/Rootを取得
-	rootRef, ok := r.trailer[core.Name("Root")].(*core.Reference)
-	if !ok {
-		return nil, fmt.Errorf("trailer /Root is not a reference")
+	rootRef, err := utils.MustExtractAs[*core.Reference](r.trailer[core.Name("Root")], "trailer /Root")
+	if err != nil {
+		return nil, err
 	}
 
 	// Catalogオブジェクトを取得
@@ -272,9 +273,9 @@ func (r *Reader) GetCatalog() (core.Dictionary, error) {
 		return nil, fmt.Errorf("failed to get catalog: %w", err)
 	}
 
-	catalog, ok := catalogObj.(core.Dictionary)
-	if !ok {
-		return nil, fmt.Errorf("catalog is not a dictionary")
+	catalog, err := utils.MustExtractAs[core.Dictionary](catalogObj, "catalog")
+	if err != nil {
+		return nil, err
 	}
 
 	return catalog, nil
@@ -289,9 +290,9 @@ func (r *Reader) GetPageCount() (int, error) {
 	}
 
 	// /Pagesを取得
-	pagesRef, ok := catalog[core.Name("Pages")].(*core.Reference)
-	if !ok {
-		return 0, fmt.Errorf("catalog /Pages is not a reference")
+	pagesRef, err := utils.MustExtractAs[*core.Reference](catalog[core.Name("Pages")], "catalog /Pages")
+	if err != nil {
+		return 0, err
 	}
 
 	pagesObj, err := r.GetObject(pagesRef.ObjectNumber)
@@ -299,9 +300,9 @@ func (r *Reader) GetPageCount() (int, error) {
 		return 0, fmt.Errorf("failed to get pages: %w", err)
 	}
 
-	pages, ok := pagesObj.(core.Dictionary)
-	if !ok {
-		return 0, fmt.Errorf("pages is not a dictionary")
+	pages, err := utils.MustExtractAs[core.Dictionary](pagesObj, "pages")
+	if err != nil {
+		return 0, err
 	}
 
 	// /Countを取得
@@ -310,9 +311,9 @@ func (r *Reader) GetPageCount() (int, error) {
 		return 0, fmt.Errorf("pages dictionary has no /Count")
 	}
 
-	count, ok := countObj.(core.Integer)
-	if !ok {
-		return 0, fmt.Errorf("pages /Count is not an integer")
+	count, err := utils.MustExtractAs[core.Integer](countObj, "pages /Count")
+	if err != nil {
+		return 0, err
 	}
 
 	return int(count), nil
@@ -327,9 +328,9 @@ func (r *Reader) GetPage(pageNum int) (core.Dictionary, error) {
 	}
 
 	// /Pagesを取得
-	pagesRef, ok := catalog[core.Name("Pages")].(*core.Reference)
-	if !ok {
-		return nil, fmt.Errorf("catalog /Pages is not a reference")
+	pagesRef, err := utils.MustExtractAs[*core.Reference](catalog[core.Name("Pages")], "catalog /Pages")
+	if err != nil {
+		return nil, err
 	}
 
 	pagesObj, err := r.GetObject(pagesRef.ObjectNumber)
@@ -337,9 +338,9 @@ func (r *Reader) GetPage(pageNum int) (core.Dictionary, error) {
 		return nil, fmt.Errorf("failed to get pages: %w", err)
 	}
 
-	pages, ok := pagesObj.(core.Dictionary)
-	if !ok {
-		return nil, fmt.Errorf("pages is not a dictionary")
+	pages, err := utils.MustExtractAs[core.Dictionary](pagesObj, "pages")
+	if err != nil {
+		return nil, err
 	}
 
 	// /Kidsから指定されたページを取得
@@ -348,9 +349,9 @@ func (r *Reader) GetPage(pageNum int) (core.Dictionary, error) {
 		return nil, fmt.Errorf("pages dictionary has no /Kids")
 	}
 
-	kids, ok := kidsObj.(core.Array)
-	if !ok {
-		return nil, fmt.Errorf("pages /Kids is not an array")
+	kids, err := utils.MustExtractAs[core.Array](kidsObj, "pages /Kids")
+	if err != nil {
+		return nil, err
 	}
 
 	if pageNum < 0 || pageNum >= len(kids) {
@@ -358,9 +359,9 @@ func (r *Reader) GetPage(pageNum int) (core.Dictionary, error) {
 	}
 
 	// ページ参照を取得
-	pageRef, ok := kids[pageNum].(*core.Reference)
-	if !ok {
-		return nil, fmt.Errorf("page reference is not a reference")
+	pageRef, err := utils.MustExtractAs[*core.Reference](kids[pageNum], "page reference")
+	if err != nil {
+		return nil, err
 	}
 
 	pageObj, err := r.GetObject(pageRef.ObjectNumber)
@@ -368,9 +369,9 @@ func (r *Reader) GetPage(pageNum int) (core.Dictionary, error) {
 		return nil, fmt.Errorf("failed to get page %d: %w", pageNum, err)
 	}
 
-	page, ok := pageObj.(core.Dictionary)
-	if !ok {
-		return nil, fmt.Errorf("page is not a dictionary")
+	page, err := utils.MustExtractAs[core.Dictionary](pageObj, "page")
+	if err != nil {
+		return nil, err
 	}
 
 	return page, nil
@@ -379,7 +380,7 @@ func (r *Reader) GetPage(pageNum int) (core.Dictionary, error) {
 // GetInfo はInfo辞書（メタデータ）を返す
 func (r *Reader) GetInfo() (core.Dictionary, error) {
 	// trailerから/Infoを取得
-	infoRef, ok := r.trailer[core.Name("Info")].(*core.Reference)
+	infoRef, ok := utils.ExtractAs[*core.Reference](r.trailer[core.Name("Info")])
 	if !ok {
 		// /Infoがない場合は空の辞書を返す
 		return make(core.Dictionary), nil
@@ -391,9 +392,9 @@ func (r *Reader) GetInfo() (core.Dictionary, error) {
 		return nil, fmt.Errorf("failed to get info: %w", err)
 	}
 
-	info, ok := infoObj.(core.Dictionary)
-	if !ok {
-		return nil, fmt.Errorf("info is not a dictionary")
+	info, err := utils.MustExtractAs[core.Dictionary](infoObj, "info")
+	if err != nil {
+		return nil, err
 	}
 
 	return info, nil
@@ -407,7 +408,7 @@ func (r *Reader) GetPageResources(page core.Dictionary) (core.Dictionary, error)
 	}
 
 	// Referenceの場合は解決
-	if ref, ok := resourcesObj.(*core.Reference); ok {
+	if ref, ok := utils.ExtractAs[*core.Reference](resourcesObj); ok {
 		obj, err := r.GetObject(ref.ObjectNumber)
 		if err != nil {
 			return nil, err
@@ -415,9 +416,9 @@ func (r *Reader) GetPageResources(page core.Dictionary) (core.Dictionary, error)
 		resourcesObj = obj
 	}
 
-	resources, ok := resourcesObj.(core.Dictionary)
-	if !ok {
-		return nil, fmt.Errorf("resources is not a dictionary")
+	resources, err := utils.MustExtractAs[core.Dictionary](resourcesObj, "resources")
+	if err != nil {
+		return nil, err
 	}
 
 	return resources, nil
@@ -440,13 +441,13 @@ func (r *Reader) GetImageXObject(ref *core.Reference) (*ImageXObject, error) {
 		return nil, err
 	}
 
-	stream, ok := obj.(*core.Stream)
-	if !ok {
-		return nil, fmt.Errorf("image xobject is not a stream")
+	stream, err := utils.MustExtractAs[*core.Stream](obj, "image xobject")
+	if err != nil {
+		return nil, err
 	}
 
 	// /Subtypeの確認
-	subtype, _ := stream.Dict[core.Name("Subtype")].(core.Name)
+	subtype, _ := utils.ExtractAs[core.Name](stream.Dict[core.Name("Subtype")])
 	if subtype != "Image" {
 		return nil, fmt.Errorf("not an image xobject")
 	}
@@ -457,27 +458,27 @@ func (r *Reader) GetImageXObject(ref *core.Reference) (*ImageXObject, error) {
 	}
 
 	// Width
-	if w, ok := stream.Dict[core.Name("Width")].(core.Integer); ok {
+	if w, ok := utils.ExtractAs[core.Integer](stream.Dict[core.Name("Width")]); ok {
 		img.Width = int(w)
 	}
 
 	// Height
-	if h, ok := stream.Dict[core.Name("Height")].(core.Integer); ok {
+	if h, ok := utils.ExtractAs[core.Integer](stream.Dict[core.Name("Height")]); ok {
 		img.Height = int(h)
 	}
 
 	// ColorSpace
-	if cs, ok := stream.Dict[core.Name("ColorSpace")].(core.Name); ok {
+	if cs, ok := utils.ExtractAs[core.Name](stream.Dict[core.Name("ColorSpace")]); ok {
 		img.ColorSpace = string(cs)
 	}
 
 	// BitsPerComponent
-	if bpc, ok := stream.Dict[core.Name("BitsPerComponent")].(core.Integer); ok {
+	if bpc, ok := utils.ExtractAs[core.Integer](stream.Dict[core.Name("BitsPerComponent")]); ok {
 		img.BitsPerComponent = int(bpc)
 	}
 
 	// Filter
-	if filter, ok := stream.Dict[core.Name("Filter")].(core.Name); ok {
+	if filter, ok := utils.ExtractAs[core.Name](stream.Dict[core.Name("Filter")]); ok {
 		img.Filter = string(filter)
 	}
 
@@ -494,7 +495,7 @@ func (r *Reader) GetPageContents(page core.Dictionary) ([]byte, error) {
 	}
 
 	// Referenceの場合は解決
-	if ref, ok := contentsObj.(*core.Reference); ok {
+	if ref, ok := utils.ExtractAs[*core.Reference](contentsObj); ok {
 		obj, err := r.GetObject(ref.ObjectNumber)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get contents object: %w", err)
@@ -503,16 +504,16 @@ func (r *Reader) GetPageContents(page core.Dictionary) ([]byte, error) {
 	}
 
 	// Streamの場合
-	if stream, ok := contentsObj.(*core.Stream); ok {
+	if stream, ok := utils.ExtractAs[*core.Stream](contentsObj); ok {
 		return r.decodeStream(stream)
 	}
 
 	// Arrayの場合（複数のストリーム）
-	if array, ok := contentsObj.(core.Array); ok {
+	if array, ok := utils.ExtractAs[core.Array](contentsObj); ok {
 		var result []byte
 		for _, item := range array {
 			// 各要素を解決
-			if ref, ok := item.(*core.Reference); ok {
+			if ref, ok := utils.ExtractAs[*core.Reference](item); ok {
 				obj, err := r.GetObject(ref.ObjectNumber)
 				if err != nil {
 					return nil, fmt.Errorf("failed to get stream from array: %w", err)
@@ -521,7 +522,7 @@ func (r *Reader) GetPageContents(page core.Dictionary) ([]byte, error) {
 			}
 
 			// Streamをデコード
-			if stream, ok := item.(*core.Stream); ok {
+			if stream, ok := utils.ExtractAs[*core.Stream](item); ok {
 				data, err := r.decodeStream(stream)
 				if err != nil {
 					return nil, err
@@ -549,7 +550,7 @@ func (r *Reader) decodeStream(stream *core.Stream) ([]byte, error) {
 	}
 
 	// Filterの解決
-	if ref, ok := filterObj.(*core.Reference); ok {
+	if ref, ok := utils.ExtractAs[*core.Reference](filterObj); ok {
 		obj, err := r.GetObject(ref.ObjectNumber)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve filter: %w", err)
@@ -558,14 +559,14 @@ func (r *Reader) decodeStream(stream *core.Stream) ([]byte, error) {
 	}
 
 	// Filterが名前の場合
-	if filterName, ok := filterObj.(core.Name); ok {
+	if filterName, ok := utils.ExtractAs[core.Name](filterObj); ok {
 		return r.applyFilter(data, string(filterName))
 	}
 
 	// Filterが配列の場合（複数のフィルター）
-	if filterArray, ok := filterObj.(core.Array); ok {
+	if filterArray, ok := utils.ExtractAs[core.Array](filterObj); ok {
 		for _, f := range filterArray {
-			filterName, ok := f.(core.Name)
+			filterName, ok := utils.ExtractAs[core.Name](f)
 			if !ok {
 				continue
 			}
