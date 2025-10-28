@@ -10,7 +10,8 @@ import (
 
 // Document represents a PDF document.
 type Document struct {
-	pages []*Page
+	pages      []*Page
+	encryption *EncryptionOptions
 }
 
 // New creates a new PDF document.
@@ -34,6 +35,20 @@ func (d *Document) AddPage(size PageSize, orientation Orientation) *Page {
 // WriteTo writes the PDF document to the given writer.
 func (d *Document) WriteTo(w io.Writer) error {
 	pdfWriter := writer.NewWriter(w)
+
+	// 暗号化が設定されている場合、暗号化情報をセットアップ
+	if d.encryption != nil {
+		encryptionInfo, err := writer.SetupEncryption(
+			d.encryption.UserPassword,
+			d.encryption.OwnerPassword,
+			d.encryption.Permissions.toInternal(),
+			d.encryption.KeyLength,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to setup encryption: %w", err)
+		}
+		pdfWriter.SetEncryption(encryptionInfo)
+	}
 
 	// ヘッダーを書く
 	if err := pdfWriter.WriteHeader(); err != nil {
@@ -311,4 +326,21 @@ func (d *Document) WriteTo(w io.Writer) error {
 // PageCount returns the number of pages in the document.
 func (d *Document) PageCount() int {
 	return len(d.pages)
+}
+
+// SetEncryption sets encryption options for the PDF
+// Must be called before WriteTo()
+func (d *Document) SetEncryption(opts EncryptionOptions) error {
+	// Validate options
+	if err := opts.Validate(); err != nil {
+		return fmt.Errorf("invalid encryption options: %w", err)
+	}
+
+	d.encryption = &opts
+	return nil
+}
+
+// HasEncryption returns true if encryption is enabled
+func (d *Document) HasEncryption() bool {
+	return d.encryption != nil
 }

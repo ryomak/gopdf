@@ -5,26 +5,34 @@ import (
 	"io"
 
 	"github.com/ryomak/gopdf/internal/core"
+	"github.com/ryomak/gopdf/internal/security"
 )
 
 // Writer handles PDF document writing and output.
 type Writer struct {
-	w          io.Writer
-	serializer *Serializer
-	offsets    map[int]int64 // オブジェクト番号 -> ファイル内オフセット
-	nextObjNum int           // 次のオブジェクト番号
-	bytesWritten int64       // 書き込まれた総バイト数
+	w            io.Writer
+	serializer   *Serializer
+	offsets      map[int]int64 // オブジェクト番号 -> ファイル内オフセット
+	nextObjNum   int           // 次のオブジェクト番号
+	bytesWritten int64         // 書き込まれた総バイト数
+	encryption   *EncryptionInfo // 暗号化情報（nil = 暗号化なし）
 }
 
 // NewWriter creates a new PDF Writer.
 func NewWriter(w io.Writer) *Writer {
 	return &Writer{
-		w:          w,
-		serializer: NewSerializer(w),
-		offsets:    make(map[int]int64),
-		nextObjNum: 1,
+		w:            w,
+		serializer:   NewSerializer(w),
+		offsets:      make(map[int]int64),
+		nextObjNum:   1,
 		bytesWritten: 0,
+		encryption:   nil,
 	}
+}
+
+// SetEncryption sets up encryption for the PDF
+func (w *Writer) SetEncryption(encryptionInfo *EncryptionInfo) {
+	w.encryption = encryptionInfo
 }
 
 // WriteHeader writes the PDF header (%PDF-1.7).
@@ -39,6 +47,13 @@ func (w *Writer) WriteHeader() error {
 func (w *Writer) AddObject(obj core.Object) (int, error) {
 	objNum := w.nextObjNum
 	w.nextObjNum++
+
+	// 暗号化が有効な場合、ストリームオブジェクトを暗号化
+	if w.encryption != nil {
+		if stream, ok := obj.(*core.Stream); ok {
+			obj = w.encryptStream(stream, objNum, 0)
+		}
+	}
 
 	// 現在のオフセットを記録
 	w.offsets[objNum] = w.bytesWritten
@@ -63,8 +78,56 @@ func (w *Writer) AddObject(obj core.Object) (int, error) {
 	return objNum, nil
 }
 
+// encryptStream encrypts a stream object and returns a new stream with encrypted data
+func (w *Writer) encryptStream(stream *core.Stream, objectNumber, generationNumber int) *core.Stream {
+	// Get key length in bytes
+	keyLengthBytes := w.encryption.KeyLength / 8
+
+	// Encrypt the stream data
+	encryptedData := security.EncryptStream(
+		stream.Data,
+		w.encryption.EncryptionKey,
+		objectNumber,
+		generationNumber,
+		keyLengthBytes,
+	)
+
+	// Create a new stream with encrypted data
+	newDict := make(core.Dictionary)
+	for k, v := range stream.Dict {
+		newDict[k] = v
+	}
+
+	// Update the Length to match encrypted data length
+	newDict[core.Name("Length")] = core.Integer(len(encryptedData))
+
+	return &core.Stream{
+		Dict: newDict,
+		Data: encryptedData,
+	}
+}
+
 // WriteTrailer writes the xref table and trailer.
 func (w *Writer) WriteTrailer(trailer core.Dictionary) error {
+	// 暗号化が有効な場合、Encrypt辞書を追加
+	if w.encryption != nil {
+		// Encrypt辞書をオブジェクトとして追加
+		encryptDict := w.encryption.CreateEncryptDictionary()
+		encryptNum, err := w.AddObject(encryptDict)
+		if err != nil {
+			return fmt.Errorf("failed to add Encrypt dictionary: %w", err)
+		}
+
+		// TrailerにEncrypt参照を追加
+		trailer[core.Name("Encrypt")] = &core.Reference{
+			ObjectNumber:     encryptNum,
+			GenerationNumber: 0,
+		}
+
+		// TrailerにFileID配列を追加
+		trailer[core.Name("ID")] = w.encryption.CreateFileIDArray()
+	}
+
 	// xrefテーブルの開始位置を記録
 	xrefOffset := w.bytesWritten
 
