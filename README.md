@@ -16,9 +16,9 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
 
 ## ステータス
 
-🚧 **開発中** - Phase 9 (画像抽出) 完了
+🚧 **開発中** - Phase 10 (TTFフォント対応) 完了
 
-現在、基本的なPDF生成、テキスト描画、図形描画、JPEG/PNG画像埋め込み、PDF読み込み、構造的テキスト抽出、画像抽出機能が実装されています。
+現在、基本的なPDF生成、テキスト描画、図形描画、JPEG/PNG画像埋め込み、PDF読み込み、構造的テキスト抽出、画像抽出、TTF/OTFフォント埋め込み、Unicode/日本語テキスト描画機能が実装されています。
 
 ### 実装済み機能
 
@@ -27,9 +27,11 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
 - ✅ 標準ページサイズ（A4, Letter, Legal, A3, A5）
 - ✅ ページ向き（Portrait, Landscape）
 - ✅ テキスト描画
-- ✅ 標準Type1フォント対応（14種類）
-  - Helvetica系、Times系、Courier系、Symbol、ZapfDingbats
-- ✅ フォントサイズ指定
+- ✅ **フォント対応**
+  - 標準Type1フォント対応（14種類）: Helvetica系、Times系、Courier系、Symbol、ZapfDingbats
+  - **TTF/OTFフォント対応**: TrueType/OpenTypeフォントの埋め込み
+  - **Unicode対応**: 日本語・中国語・韓国語などの多言語テキスト描画
+  - フォントサイズ指定
 - ✅ **図形描画**
   - 線の描画
   - 矩形の描画（枠線のみ/塗りつぶしのみ/両方）
@@ -74,7 +76,8 @@ Pure GoでPDF生成・解析を行う高機能ライブラリ
 
 ### 今後の実装予定
 
-- [ ] TTFフォント対応
+- [ ] フォントサブセット化（ファイルサイズ削減）
+- [ ] 縦書き対応
 - [ ] より高度なテキストレイアウト解析
 - [ ] より多くの画像フォーマット対応（JPEG2000, JBIG2など）
 
@@ -115,6 +118,41 @@ func main() {
     file, _ := os.Create("output.pdf")
     defer file.Close()
 
+    doc.WriteTo(file)
+}
+```
+
+### TTFフォント（日本語テキスト）
+
+```go
+package main
+
+import (
+    "os"
+    "github.com/ryomak/gopdf"
+)
+
+func main() {
+    // 新規PDFドキュメントを作成
+    doc := gopdf.New()
+    page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+
+    // TTFフォントを読み込み
+    font, err := gopdf.LoadTTF("/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc")
+    if err != nil {
+        panic(err)
+    }
+
+    // TTFフォントを設定
+    page.SetTTFFont(font, 24)
+
+    // 日本語テキストを描画
+    page.DrawTextUTF8("こんにちは、世界！", 100, 750)
+    page.DrawTextUTF8("gopdf supports Japanese text!", 100, 720)
+
+    // ファイルに出力
+    file, _ := os.Create("japanese.pdf")
+    defer file.Close()
     doc.WriteTo(file)
 }
 ```
@@ -170,6 +208,7 @@ func main() {
 - [`06_read_pdf`](examples/06_read_pdf): PDFファイルの読み込み、情報取得、テキスト抽出
 - [`07_structured_text`](examples/07_structured_text): 構造的テキスト抽出（位置情報付き）
 - [`08_extract_images`](examples/08_extract_images): 画像抽出とファイル保存
+- [`09_ttf_fonts`](examples/09_ttf_fonts): TTF/OTFフォント使用、Unicode/日本語テキスト描画
 
 ## 開発
 
@@ -221,6 +260,7 @@ gopdfは以下のレイヤー構造で設計されています：
 - [テキスト抽出設計書](docs/text_extraction_design.md)
 - [構造的テキスト抽出設計書](docs/structured_text_extraction_design.md)
 - [画像抽出設計書](docs/image_extraction_design.md)
+- [TTFフォント対応設計書](docs/ttf_font_support_design.md)
 - [開発進捗](docs/progress.md)
 
 ## ライセンス

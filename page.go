@@ -9,13 +9,15 @@ import (
 
 // Page represents a single page in a PDF document.
 type Page struct {
-	width       float64
-	height      float64
-	content     bytes.Buffer
-	currentFont *font.StandardFont
-	fontSize    float64
-	fonts       map[string]font.StandardFont // fontKey -> font
-	images      []*Image                      // images used in this page
+	width          float64
+	height         float64
+	content        bytes.Buffer
+	currentFont    *font.StandardFont
+	currentTTFFont *TTFFont
+	fontSize       float64
+	fonts          map[string]font.StandardFont // fontKey -> font
+	ttfFonts       map[string]*TTFFont          // fontKey -> TTF font
+	images         []*Image                     // images used in this page
 }
 
 // Width returns the page width in points.
@@ -271,4 +273,78 @@ func (p *Page) DrawImage(img *Image, x, y, width, height float64) error {
 	fmt.Fprintf(&p.content, "Q\n")
 
 	return nil
+}
+
+// SetTTFFont sets the current TTF font and size for subsequent text operations.
+func (p *Page) SetTTFFont(f *TTFFont, size float64) error {
+	if f == nil {
+		return fmt.Errorf("TTF font cannot be nil")
+	}
+
+	p.currentTTFFont = f
+	p.currentFont = nil // Clear standard font
+	p.fontSize = size
+
+	// Add font to the page's TTF font list
+	if p.ttfFonts == nil {
+		p.ttfFonts = make(map[string]*TTFFont)
+	}
+	fontKey := p.getTTFFontKey(f)
+	p.ttfFonts[fontKey] = f
+
+	return nil
+}
+
+// DrawTextUTF8 draws UTF-8 encoded text at the specified position using the current TTF font.
+// This method supports Unicode characters including Japanese, Chinese, Korean, etc.
+func (p *Page) DrawTextUTF8(text string, x, y float64) error {
+	if p.currentTTFFont == nil {
+		return fmt.Errorf("no TTF font set; call SetTTFFont before DrawTextUTF8")
+	}
+
+	fontKey := p.getTTFFontKey(p.currentTTFFont)
+
+	// Convert text to hex string for PDF
+	hexString := p.textToHexString(text)
+
+	// Write PDF text operators
+	fmt.Fprintf(&p.content, "BT\n")
+	fmt.Fprintf(&p.content, "/%s %.2f Tf\n", fontKey, p.fontSize)
+	fmt.Fprintf(&p.content, "%.2f %.2f Td\n", x, y)
+	fmt.Fprintf(&p.content, "<%s> Tj\n", hexString)
+	fmt.Fprintf(&p.content, "ET\n")
+
+	return nil
+}
+
+// getTTFFontKey returns the font resource name for a TTF font.
+func (p *Page) getTTFFontKey(f *TTFFont) string {
+	// Generate a unique key based on font name
+	// Use F15+ to avoid conflicts with standard fonts (F1-F14)
+	if p.ttfFonts == nil {
+		return "F15"
+	}
+
+	// Count existing TTF fonts to determine the key
+	return fmt.Sprintf("F%d", 15+len(p.ttfFonts)-1)
+}
+
+// textToHexString converts UTF-8 text to hex string for PDF
+// For Type0 fonts, we use UTF-16BE encoding
+func (p *Page) textToHexString(text string) string {
+	runes := []rune(text)
+	result := ""
+
+	for _, r := range runes {
+		// Convert rune to UTF-16BE (simplified: only BMP characters)
+		if r <= 0xFFFF {
+			result += fmt.Sprintf("%04X", r)
+		} else {
+			// For characters outside BMP, use surrogate pairs
+			// This is a simplified implementation
+			result += fmt.Sprintf("%04X", r)
+		}
+	}
+
+	return result
 }

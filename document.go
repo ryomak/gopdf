@@ -40,13 +40,25 @@ func (d *Document) WriteTo(w io.Writer) error {
 		return err
 	}
 
-	// まず、全ページで使用されているフォントを収集
+	// まず、全ページで使用されているフォント（StandardFont）を収集
 	allFonts := make(map[string]*core.Reference)
 	for _, page := range d.pages {
 		for fontKey := range page.fonts {
 			if _, exists := allFonts[fontKey]; !exists {
 				// プレースホルダー（後で実際のオブジェクト番号を設定）
 				allFonts[fontKey] = nil
+			}
+		}
+	}
+
+	// 全ページで使用されているTTFフォントを収集
+	allTTFFonts := make(map[string]*TTFFont)
+	ttfFontRefs := make(map[string]*core.Reference)
+	for _, page := range d.pages {
+		for fontKey, ttfFont := range page.ttfFonts {
+			if _, exists := allTTFFonts[fontKey]; !exists {
+				allTTFFonts[fontKey] = ttfFont
+				ttfFontRefs[fontKey] = nil
 			}
 		}
 	}
@@ -64,12 +76,22 @@ func (d *Document) WriteTo(w io.Writer) error {
 		}
 	}
 
-	// Pagesオブジェクトの番号を計算
-	// Font(フォント数) + Image(画像数) + Content(1) + Page(1) のペアが len(d.pages) 個
-	// 次のオブジェクト番号 = 1 + フォント数 + 画像数 + len(d.pages)*2
-	pagesObjNum := 1 + len(allFonts) + len(allImages) + len(d.pages)*2
+	// TTFフォントを埋め込み（Type0 + CIDFont + FontDescriptor + FontFile2 + ToUnicode = 5オブジェクト/フォント）
+	ttfEmbedder := writer.NewTTFFontEmbedder(pdfWriter)
+	for fontKey, ttfFont := range allTTFFonts {
+		fontRef, err := ttfEmbedder.EmbedTTFFont(ttfFont.internal)
+		if err != nil {
+			return fmt.Errorf("failed to embed TTF font %s: %w", fontKey, err)
+		}
+		ttfFontRefs[fontKey] = fontRef
+	}
 
-	// フォントオブジェクトを作成
+	// Pagesオブジェクトの番号を計算
+	// Font(フォント数) + TTFFont(TTFフォント数*5) + Image(画像数) + Content(1) + Page(1) のペアが len(d.pages) 個
+	// 次のオブジェクト番号 = 1 + フォント数 + TTFフォント数*5 + 画像数 + len(d.pages)*2
+	pagesObjNum := 1 + len(allFonts) + len(allTTFFonts)*5 + len(allImages) + len(d.pages)*2
+
+	// 標準フォントオブジェクトを作成
 	for fontKey := range allFonts {
 		// フォント名を取得
 		var fontName string
@@ -184,11 +206,16 @@ func (d *Document) WriteTo(w io.Writer) error {
 		// Resourcesディクショナリを構築
 		resourcesDict := core.Dictionary{}
 
-		// このページで使用されているフォントをResourcesに追加
-		if len(page.fonts) > 0 {
+		// このページで使用されているフォント（StandardFont + TTFFont）をResourcesに追加
+		if len(page.fonts) > 0 || len(page.ttfFonts) > 0 {
 			fontResources := core.Dictionary{}
+			// 標準フォントを追加
 			for fontKey := range page.fonts {
 				fontResources[core.Name(fontKey)] = allFonts[fontKey]
+			}
+			// TTFフォントを追加
+			for fontKey := range page.ttfFonts {
+				fontResources[core.Name(fontKey)] = ttfFontRefs[fontKey]
 			}
 			resourcesDict[core.Name("Font")] = fontResources
 		}
