@@ -348,3 +348,152 @@ func (p *Page) textToHexString(text string) string {
 
 	return result
 }
+
+// DrawRuby draws ruby (furigana) text above base text
+// Returns the width of the drawn text (maximum of base and ruby width)
+func (p *Page) DrawRuby(rubyText RubyText, x, y float64, style RubyStyle) (float64, error) {
+	// 現在のフォントとサイズを取得
+	if p.currentFont == nil && p.currentTTFFont == nil {
+		return 0, fmt.Errorf("no font set; call SetFont or SetTTFFont before DrawRuby")
+	}
+
+	baseFontSize := p.fontSize
+	rubyFontSize := baseFontSize * style.SizeRatio
+
+	// フォント名を取得（幅計算用）
+	fontName := p.getCurrentFontName()
+
+	// 親文字とルビの幅を計算
+	baseWidth := estimateTextWidth(rubyText.Base, baseFontSize, fontName)
+	rubyWidth := estimateTextWidth(rubyText.Ruby, rubyFontSize, fontName)
+
+	// 最大幅を取得
+	maxWidth := baseWidth
+	if rubyWidth > maxWidth {
+		maxWidth = rubyWidth
+	}
+
+	// ルビのX座標を計算（アラインメントに応じて）
+	var rubyX float64
+	switch style.Alignment {
+	case RubyAlignCenter:
+		rubyX = x + (baseWidth-rubyWidth)/2
+	case RubyAlignLeft:
+		rubyX = x
+	case RubyAlignRight:
+		rubyX = x + baseWidth - rubyWidth
+	default:
+		rubyX = x + (baseWidth-rubyWidth)/2 // デフォルトは中央揃え
+	}
+
+	// ルビのY座標を計算（親文字の上に配置）
+	rubyY := y + baseFontSize + style.Offset
+
+	// ルビテキストを描画
+	originalFontSize := p.fontSize
+	if p.currentTTFFont != nil {
+		p.SetTTFFont(p.currentTTFFont, rubyFontSize)
+		if err := p.DrawTextUTF8(rubyText.Ruby, rubyX, rubyY); err != nil {
+			return 0, err
+		}
+	} else {
+		p.SetFont(*p.currentFont, rubyFontSize)
+		if err := p.DrawText(rubyText.Ruby, rubyX, rubyY); err != nil {
+			return 0, err
+		}
+	}
+
+	// フォントサイズを元に戻す
+	if p.currentTTFFont != nil {
+		p.SetTTFFont(p.currentTTFFont, originalFontSize)
+	} else {
+		p.SetFont(*p.currentFont, originalFontSize)
+	}
+
+	// 親文字を描画
+	if p.currentTTFFont != nil {
+		if err := p.DrawTextUTF8(rubyText.Base, x, y); err != nil {
+			return 0, err
+		}
+	} else {
+		if err := p.DrawText(rubyText.Base, x, y); err != nil {
+			return 0, err
+		}
+	}
+
+	return maxWidth, nil
+}
+
+// DrawRubyWithActualText draws ruby text with ActualText support for proper copy behavior
+// ActualText allows controlling what text is copied when users copy the PDF content
+func (p *Page) DrawRubyWithActualText(rubyText RubyText, x, y float64, style RubyStyle) (float64, error) {
+	// 現在のフォントとサイズを取得
+	if p.currentFont == nil && p.currentTTFFont == nil {
+		return 0, fmt.Errorf("no font set; call SetFont or SetTTFFont before DrawRubyWithActualText")
+	}
+
+	// ActualTextの内容を決定
+	var actualText string
+	switch style.CopyMode {
+	case RubyCopyBase:
+		actualText = rubyText.Base
+	case RubyCopyRuby:
+		actualText = rubyText.Ruby
+	case RubyCopyBoth:
+		actualText = fmt.Sprintf("%s(%s)", rubyText.Base, rubyText.Ruby)
+	default:
+		actualText = rubyText.Base
+	}
+
+	// Begin marked content with ActualText
+	fmt.Fprintf(&p.content, "/Span <</ActualText (%s)>> BDC\n", p.escapeString(actualText))
+
+	// ルビを描画
+	width, err := p.DrawRuby(rubyText, x, y, style)
+	if err != nil {
+		return 0, err
+	}
+
+	// End marked content
+	fmt.Fprintf(&p.content, "EMC\n")
+
+	return width, nil
+}
+
+// DrawRubyTexts draws multiple ruby texts in sequence
+// Returns the total width of all drawn texts
+func (p *Page) DrawRubyTexts(texts []RubyText, x, y float64, style RubyStyle, useActualText bool) (float64, error) {
+	currentX := x
+	totalWidth := 0.0
+
+	for _, text := range texts {
+		var width float64
+		var err error
+
+		if useActualText {
+			width, err = p.DrawRubyWithActualText(text, currentX, y, style)
+		} else {
+			width, err = p.DrawRuby(text, currentX, y, style)
+		}
+
+		if err != nil {
+			return totalWidth, err
+		}
+
+		currentX += width
+		totalWidth += width
+	}
+
+	return totalWidth, nil
+}
+
+// getCurrentFontName returns the current font name for width estimation
+func (p *Page) getCurrentFontName() string {
+	if p.currentTTFFont != nil {
+		return p.getTTFFontKey(p.currentTTFFont)
+	}
+	if p.currentFont != nil {
+		return p.getFontKey(*p.currentFont)
+	}
+	return "F1" // デフォルト
+}
