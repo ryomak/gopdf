@@ -1,0 +1,9 @@
+# フォントファイルはダウンロードスクリプトで取得
+*.ttf
+*.otf
+*.ttc
+*.woff
+*.woff2
+
+# LICENSE.txtは除外しない（バージョン管理に含める）
+!LICENSE.txt
