@@ -8,6 +8,7 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"image/png"
 	"os"
 
 	"github.com/ryomak/gopdf"
@@ -50,18 +51,49 @@ func main() {
 			fmt.Printf("    Filter: %s\n", img.Filter)
 			fmt.Printf("    Data size: %d bytes\n", len(img.Data))
 
-			// 画像を保存
+			// 画像をバイトデータとして保存
 			filename := fmt.Sprintf("extracted_page%d_img%d.%s", pageNum+1, i+1, img.Format)
 			if err := img.SaveImage(filename); err != nil {
 				fmt.Fprintf(os.Stderr, "    Error saving image: %v\n", err)
 				continue
 			}
-			fmt.Printf("    Saved: %s\n", filename)
+			fmt.Printf("    Saved (raw): %s\n", filename)
+
+			// image.Image型に変換して保存
+			stdImg, err := img.ToImage()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "    Error converting to image.Image: %v\n", err)
+				continue
+			}
+
+			// image.Image型として処理（例: PNGとして再保存）
+			pngFilename := fmt.Sprintf("extracted_page%d_img%d_converted.png", pageNum+1, i+1)
+			if err := saveAsPNG(stdImg, pngFilename); err != nil {
+				fmt.Fprintf(os.Stderr, "    Error saving as PNG: %v\n", err)
+				continue
+			}
+			fmt.Printf("    Saved (as PNG): %s\n", pngFilename)
+			fmt.Printf("    Image bounds: %v\n", stdImg.Bounds())
 		}
 	}
 
 	fmt.Printf("\nTotal images extracted: %d\n", totalImages)
 	fmt.Println("\nImage extraction completed successfully!")
+}
+
+// saveAsPNG はimage.Image型の画像をPNGファイルとして保存する
+func saveAsPNG(img image.Image, filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	if err := png.Encode(file, img); err != nil {
+		return fmt.Errorf("failed to encode PNG: %w", err)
+	}
+
+	return nil
 }
 
 // createSamplePDF は画像入りPDFを作成する
