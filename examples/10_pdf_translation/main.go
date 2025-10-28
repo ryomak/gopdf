@@ -164,7 +164,7 @@ func demonstrateTranslation(inputPath string, outputPath string) error {
 
 	// デフォルト日本語フォント（Koruri）を使用
 	// gopdf v2では日本語フォントが埋め込まれているため、手動でフォントをダウンロードする必要はありません
-	jpFont, err := font.DefaultJapaneseFont()
+	jpFont, err := gopdf.DefaultJapaneseFont()
 	useJapanese := false
 
 	var targetFont interface{}

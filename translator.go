@@ -171,7 +171,8 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 				if err := setPageFont(page, opts.TargetFont, block.FontSize); err != nil {
 					continue
 				}
-				_ = page.DrawText(block.Text, block.Bounds.X, block.Bounds.Y)
+				// 適切な描画メソッドを使用
+				_ = drawPageText(page, opts.TargetFont, block.Text, block.Bounds.X, block.Bounds.Y)
 				continue
 			}
 
@@ -192,7 +193,8 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 						lineWidth := estimateTextWidth(line, fitted.FontSize, opts.TargetFontName)
 						x = block.Bounds.X + block.Bounds.Width - lineWidth
 					}
-					_ = page.DrawText(line, x, y) // エラー無視（レイアウト変換の続行を優先）
+					// 適切な描画メソッドを使用
+					_ = drawPageText(page, opts.TargetFont, line, x, y)
 				}
 				y -= fitted.LineHeight
 			}
@@ -213,6 +215,16 @@ func setPageFont(page *Page, fontInterface interface{}, size float64) error {
 		return page.SetTTFFont(ttfFont, size)
 	}
 	return fmt.Errorf("unsupported font type")
+}
+
+// drawPageText はフォントタイプに応じて適切な描画メソッドを呼び出す
+func drawPageText(page *Page, fontInterface interface{}, text string, x, y float64) error {
+	// *TTFFontの場合
+	if _, ok := fontInterface.(*TTFFont); ok {
+		return page.DrawTextUTF8(text, x, y)
+	}
+	// font.StandardFontの場合
+	return page.DrawText(text, x, y)
 }
 
 // loadImageFromImageInfo はImageInfoからImageを作成
