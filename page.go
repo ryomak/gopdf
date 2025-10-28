@@ -299,6 +299,16 @@ func (p *Page) SetTTFFont(f *TTFFont, size float64) error {
 	if p.ttfFonts == nil {
 		p.ttfFonts = make(map[string]*TTFFont)
 	}
+
+	// Check if this font is already registered
+	for _, existingFont := range p.ttfFonts {
+		if existingFont == f {
+			// Font already registered, no need to add again
+			return nil
+		}
+	}
+
+	// Generate new key for this font
 	fontKey := p.getTTFFontKey(f)
 	p.ttfFonts[fontKey] = f
 
@@ -321,14 +331,21 @@ func (p *Page) DrawTextUTF8(text string, x, y float64) error {
 
 // getTTFFontKey returns the font resource name for a TTF font.
 func (p *Page) getTTFFontKey(f *TTFFont) string {
-	// Generate a unique key based on font name
+	// Check if this font is already registered and return its key
+	for key, existingFont := range p.ttfFonts {
+		if existingFont == f {
+			return key
+		}
+	}
+
+	// Generate a unique key based on current font count
 	// Use F15+ to avoid conflicts with standard fonts (F1-F14)
 	if p.ttfFonts == nil {
 		return "F15"
 	}
 
 	// Count existing TTF fonts to determine the key
-	return fmt.Sprintf("F%d", 15+len(p.ttfFonts)-1)
+	return fmt.Sprintf("F%d", 15+len(p.ttfFonts))
 }
 
 // textToHexString converts UTF-8 text to hex string for PDF

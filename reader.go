@@ -76,16 +76,6 @@ func (r *PDFReader) Info() Metadata {
 	}
 }
 
-// Metadata はPDFメタデータ
-type Metadata struct {
-	Title    string
-	Author   string
-	Subject  string
-	Keywords string
-	Creator  string
-	Producer string
-}
-
 // TextElement はテキスト要素の位置とスタイル情報
 type TextElement struct {
 	Text   string  // テキスト内容

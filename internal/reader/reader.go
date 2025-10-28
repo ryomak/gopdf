@@ -22,10 +22,11 @@ type xrefEntry struct {
 
 // Reader はPDFファイルを読み込み、解析する
 type Reader struct {
-	r        io.ReadSeeker       // ファイルのシーク可能なリーダー
-	xref     map[int]xrefEntry   // オブジェクト番号 -> xrefエントリ
-	trailer  core.Dictionary     // Trailer辞書
-	objCache map[int]core.Object // オブジェクトキャッシュ
+	r          io.ReadSeeker       // ファイルのシーク可能なリーダー
+	xref       map[int]xrefEntry   // オブジェクト番号 -> xrefエントリ
+	trailer    core.Dictionary     // Trailer辞書
+	objCache   map[int]core.Object // オブジェクトキャッシュ
+	encryption *EncryptionInfo     // 暗号化情報（nil = 暗号化なし）
 }
 
 // NewReader は新しいReaderを作成する
@@ -57,6 +58,61 @@ func (r *Reader) parse() error {
 		return fmt.Errorf("failed to parse xref and trailer: %w", err)
 	}
 
+	// 暗号化情報を検出
+	if err := r.detectEncryption(); err != nil {
+		return fmt.Errorf("failed to detect encryption: %w", err)
+	}
+
+	return nil
+}
+
+// detectEncryption はPDFの暗号化情報を検出する
+func (r *Reader) detectEncryption() error {
+	// Encrypt エントリをチェック
+	encryptRef, hasEncrypt := r.trailer[core.Name("Encrypt")]
+	if !hasEncrypt {
+		// 暗号化されていない
+		return nil
+	}
+
+	// Encrypt辞書を取得
+	var encryptDict core.Dictionary
+	if ref, ok := encryptRef.(*core.Reference); ok {
+		// 参照の場合はオブジェクトを解決
+		obj, err := r.ResolveReference(ref)
+		if err != nil {
+			return fmt.Errorf("failed to resolve Encrypt reference: %w", err)
+		}
+		var ok bool
+		encryptDict, ok = obj.(core.Dictionary)
+		if !ok {
+			return fmt.Errorf("Encrypt is not a dictionary")
+		}
+	} else if dict, ok := encryptRef.(core.Dictionary); ok {
+		// 直接辞書の場合
+		encryptDict = dict
+	} else {
+		return fmt.Errorf("invalid Encrypt entry type: %T", encryptRef)
+	}
+
+	// File ID を取得
+	var fileID []byte
+	if idArray, ok := r.trailer[core.Name("ID")].(core.Array); ok && len(idArray) > 0 {
+		if idStr, ok := idArray[0].(core.String); ok {
+			fileID = []byte(idStr)
+		}
+	}
+	if len(fileID) == 0 {
+		return fmt.Errorf("missing or invalid File ID for encrypted PDF")
+	}
+
+	// 暗号化情報を解析
+	encryptionInfo, err := parseEncryptDict(encryptDict, fileID)
+	if err != nil {
+		return fmt.Errorf("failed to parse Encrypt dictionary: %w", err)
+	}
+
+	r.encryption = encryptionInfo
 	return nil
 }
 
@@ -246,6 +302,11 @@ func (r *Reader) GetObject(objNum int) (core.Object, error) {
 	}
 	if gen != entry.generation {
 		return nil, fmt.Errorf("generation number mismatch for object %d: expected %d, got %d", objNum, entry.generation, gen)
+	}
+
+	// 暗号化されている場合は復号化
+	if r.encryption != nil && r.encryption.Authenticated {
+		obj = r.decryptObject(obj, objNum, gen)
 	}
 
 	// キャッシュに保存
@@ -604,5 +665,83 @@ func (r *Reader) applyFilter(data []byte, filterName string) ([]byte, error) {
 	default:
 		// サポートしていないフィルターの場合はそのまま返す
 		return data, nil
+	}
+}
+
+// IsEncrypted returns true if the PDF is encrypted
+func (r *Reader) IsEncrypted() bool {
+	return r.encryption != nil
+}
+
+// IsAuthenticated returns true if the PDF has been successfully authenticated with a password
+func (r *Reader) IsAuthenticated() bool {
+	return r.encryption != nil && r.encryption.Authenticated
+}
+
+// AuthenticateWithPassword attempts to authenticate the PDF with the given password
+// Returns an error if the PDF is not encrypted or if authentication fails
+func (r *Reader) AuthenticateWithPassword(password string) error {
+	if r.encryption == nil {
+		return fmt.Errorf("PDF is not encrypted")
+	}
+
+	return r.encryption.Authenticate(password)
+}
+
+// GetEncryptionInfo returns the encryption information (for debugging/info purposes)
+func (r *Reader) GetEncryptionInfo() *EncryptionInfo {
+	return r.encryption
+}
+
+// decryptObject decrypts an object if necessary
+func (r *Reader) decryptObject(obj core.Object, objectNumber, generationNumber int) core.Object {
+	switch v := obj.(type) {
+	case *core.Stream:
+		// Decrypt stream data
+		decryptedData := r.encryption.DecryptStream(v.Data, objectNumber, generationNumber)
+
+		// Create new stream with decrypted data
+		newDict := make(core.Dictionary)
+		for k, val := range v.Dict {
+			// Recursively decrypt dictionary values (except certain keys)
+			if k != core.Name("Length") && k != core.Name("Filter") && k != core.Name("DecodeParms") {
+				newDict[k] = r.decryptObject(val, objectNumber, generationNumber)
+			} else {
+				newDict[k] = val
+			}
+		}
+
+		// Update Length to reflect decrypted data
+		newDict[core.Name("Length")] = core.Integer(len(decryptedData))
+
+		return &core.Stream{
+			Dict: newDict,
+			Data: decryptedData,
+		}
+
+	case core.String:
+		// Decrypt string
+		decrypted := r.encryption.DecryptString([]byte(v), objectNumber, generationNumber)
+		return core.String(decrypted)
+
+	case core.Dictionary:
+		// Recursively decrypt dictionary values
+		newDict := make(core.Dictionary)
+		for k, val := range v {
+			newDict[k] = r.decryptObject(val, objectNumber, generationNumber)
+		}
+		return newDict
+
+	case core.Array:
+		// Recursively decrypt array elements
+		newArray := make(core.Array, len(v))
+		for i, val := range v {
+			newArray[i] = r.decryptObject(val, objectNumber, generationNumber)
+		}
+		return newArray
+
+	default:
+		// Other types don't need decryption
+		return obj
 	}
 }
