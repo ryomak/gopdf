@@ -130,6 +130,8 @@ func (e *TTFFontEmbedder) createCIDFont(ttfFont *font.TTFFont, fontDescriptorRef
 		core.Name("FontDescriptor"): fontDescriptorRef,
 		// DW (default width) - using 1000 as default
 		core.Name("DW"): core.Integer(1000),
+		// CIDToGIDMap is Identity (CID = GID for TrueType-based fonts)
+		core.Name("CIDToGIDMap"): core.Name("Identity"),
 		// W array for character widths - simplified for now
 		// In production, this should contain actual glyph widths
 	}
