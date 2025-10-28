@@ -5,5 +5,8 @@
 *.woff
 *.woff2
 
+# ただし、埋め込みフォントはリポジトリに含める（ライブラリとして使用されるため）
+!Koruri-Regular.ttf
+
 # LICENSE.txtは除外しない（バージョン管理に含める）
 !LICENSE.txt
