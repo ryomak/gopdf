@@ -162,30 +162,90 @@ func demonstrateLayoutExtraction(filename string) error {
 func demonstrateTranslation(inputPath string, outputPath string) error {
 	fmt.Println("Translating PDF...")
 
-	// 簡易的な辞書翻訳（実際のアプリケーションでは翻訳APIを使用）
+	// 日本語フォントの有無を確認
+	// 注意: 日本語を表示するにはTTFフォントが必要です
+	// 例: https://fonts.google.com/noto/specimen/Noto+Sans+JP からダウンロード
+	ttfFontPath := "NotoSansJP-Regular.ttf"
+	useJapanese := false
+
+	var targetFont interface{}
+	var targetFontName string
+
+	// TTFフォントが存在するか確認
+	if _, err := os.Stat(ttfFontPath); err == nil {
+		// TTFフォントを読み込み
+		jpFont, err := gopdf.LoadTTF(ttfFontPath)
+		if err == nil {
+			targetFont = jpFont
+			targetFontName = "NotoSansJP"
+			useJapanese = true
+			fmt.Println("  Using TTF font for Japanese text")
+		} else {
+			fmt.Printf("  Warning: Failed to load TTF font: %v\n", err)
+		}
+	}
+
+	// TTFフォントがない場合は標準フォントを使用（英語のみ）
+	if !useJapanese {
+		targetFont = font.Helvetica
+		targetFontName = "Helvetica"
+		fmt.Println("  Warning: TTF font not found. Using Helvetica (English only)")
+		fmt.Println("  To display Japanese, download NotoSansJP-Regular.ttf from:")
+		fmt.Println("  https://fonts.google.com/noto/specimen/Noto+Sans+JP")
+	}
+
+	// 翻訳辞書（useJapaneseがtrueの場合のみ日本語に翻訳）
 	translationDict := map[string]string{
-		"Technical Report":                      "技術レポート",
-		"Annual Performance Summary":            "年次業績概要",
-		"Introduction":                          "はじめに",
-		"This document provides a comprehensive": "このドキュメントは包括的な",
-		"overview of the project performance":   "プロジェクト業績の概要を",
-		"during the fiscal year.":               "会計年度中に提供します。",
-		"Key Findings":                          "主な発見",
-		"The analysis revealed significant":     "分析により重要な",
-		"improvements in efficiency and":        "効率性と",
-		"customer satisfaction metrics.":        "顧客満足度の改善が明らかになりました。",
-		"Conclusion":                            "結論",
-		"We recommend continued investment":     "継続的な投資を",
-		"in infrastructure and training.":       "インフラと研修に推奨します。",
-		"Page 2 - Details":                      "ページ2 - 詳細",
-		"Left Column":                           "左カラム",
-		"First item":                            "最初の項目",
-		"Second item":                           "2番目の項目",
-		"Third item":                            "3番目の項目",
-		"Right Column":                          "右カラム",
-		"Data point A":                          "データポイントA",
-		"Data point B":                          "データポイントB",
-		"Data point C":                          "データポイントC",
+		"Technical Report":                      "Technical Report",
+		"Annual Performance Summary":            "Annual Performance Summary",
+		"Introduction":                          "Introduction",
+		"This document provides a comprehensive": "This document provides a comprehensive",
+		"overview of the project performance":   "overview of the project performance",
+		"during the fiscal year.":               "during the fiscal year.",
+		"Key Findings":                          "Key Findings",
+		"The analysis revealed significant":     "The analysis revealed significant",
+		"improvements in efficiency and":        "improvements in efficiency and",
+		"customer satisfaction metrics.":        "customer satisfaction metrics.",
+		"Conclusion":                            "Conclusion",
+		"We recommend continued investment":     "We recommend continued investment",
+		"in infrastructure and training.":       "in infrastructure and training.",
+		"Page 2 - Details":                      "Page 2 - Details",
+		"Left Column":                           "Left Column",
+		"First item":                            "First item",
+		"Second item":                           "Second item",
+		"Third item":                            "Third item",
+		"Right Column":                          "Right Column",
+		"Data point A":                          "Data point A",
+		"Data point B":                          "Data point B",
+		"Data point C":                          "Data point C",
+	}
+
+	// 日本語フォントがある場合は日本語に翻訳
+	if useJapanese {
+		translationDict = map[string]string{
+			"Technical Report":                      "技術レポート",
+			"Annual Performance Summary":            "年次業績概要",
+			"Introduction":                          "はじめに",
+			"This document provides a comprehensive": "このドキュメントは包括的な",
+			"overview of the project performance":   "プロジェクト業績の概要を",
+			"during the fiscal year.":               "会計年度中に提供します。",
+			"Key Findings":                          "主な発見",
+			"The analysis revealed significant":     "分析により重要な",
+			"improvements in efficiency and":        "効率性と",
+			"customer satisfaction metrics.":        "顧客満足度の改善が明らかになりました。",
+			"Conclusion":                            "結論",
+			"We recommend continued investment":     "継続的な投資を",
+			"in infrastructure and training.":       "インフラと研修に推奨します。",
+			"Page 2 - Details":                      "ページ2 - 詳細",
+			"Left Column":                           "左カラム",
+			"First item":                            "最初の項目",
+			"Second item":                           "2番目の項目",
+			"Third item":                            "3番目の項目",
+			"Right Column":                          "右カラム",
+			"Data point A":                          "データポイントA",
+			"Data point B":                          "データポイントB",
+			"Data point C":                          "データポイントC",
+		}
 	}
 
 	// Translatorインターフェースの実装
@@ -198,16 +258,11 @@ func demonstrateTranslation(inputPath string, outputPath string) error {
 		return text, nil
 	})
 
-	// 日本語フォントを使用（標準フォントで代用）
-	// 実際のアプリケーションではTTFフォントを読み込む
-	// jpFont, err := gopdf.LoadTTF("NotoSansJP-Regular.ttf")
-	jpFont := font.Helvetica // 仮にHelveticaを使用
-
 	// 翻訳オプション
 	opts := gopdf.PDFTranslatorOptions{
 		Translator:     translator,
-		TargetFont:     jpFont,
-		TargetFontName: "Helvetica",
+		TargetFont:     targetFont,
+		TargetFontName: targetFontName,
 		FittingOptions: gopdf.FitTextOptions{
 			MaxFontSize: 24.0,
 			MinFontSize: 8.0,
@@ -228,5 +283,10 @@ func demonstrateTranslation(inputPath string, outputPath string) error {
 	}
 
 	fmt.Printf("  Translated PDF saved: %s\n", outputPath)
+	if useJapanese {
+		fmt.Println("  ✓ Japanese translation completed")
+	} else {
+		fmt.Println("  ✓ Layout preserved (English text retained)")
+	}
 	return nil
 }
