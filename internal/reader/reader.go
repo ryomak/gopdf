@@ -305,7 +305,8 @@ func (r *Reader) GetObject(objNum int) (core.Object, error) {
 	}
 
 	// 暗号化されている場合は復号化
-	if r.encryption != nil && r.encryption.Authenticated {
+	// ただし、Encrypt辞書自体は暗号化されていないのでスキップ
+	if r.encryption != nil && r.encryption.Authenticated && !r.isEncryptObject(objNum) {
 		obj = r.decryptObject(obj, objNum, gen)
 	}
 
@@ -691,6 +692,20 @@ func (r *Reader) AuthenticateWithPassword(password string) error {
 // GetEncryptionInfo returns the encryption information (for debugging/info purposes)
 func (r *Reader) GetEncryptionInfo() *EncryptionInfo {
 	return r.encryption
+}
+
+// isEncryptObject checks if the given object number is the Encrypt dictionary
+func (r *Reader) isEncryptObject(objNum int) bool {
+	if r.encryption == nil {
+		return false
+	}
+
+	// Check if Encrypt entry in trailer points to this object
+	if encryptRef, ok := r.trailer[core.Name("Encrypt")].(*core.Reference); ok {
+		return encryptRef.ObjectNumber == objNum
+	}
+
+	return false
 }
 
 // decryptObject decrypts an object if necessary
