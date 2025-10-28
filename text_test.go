@@ -179,3 +179,151 @@ func TestDifferentFonts(t *testing.T) {
 		t.Error("Output should contain Times-Roman font")
 	}
 }
+
+// TestPage_drawTextInternal は drawTextInternal 関数のユニットテストを行う
+func TestPage_drawTextInternal(t *testing.T) {
+	tests := []struct {
+		name          string
+		x, y          float64
+		fontKey       string
+		encodedText   string
+		useBrackets   bool
+		fontSize      float64
+		expectedParts []string
+	}{
+		{
+			name:        "standard font with brackets",
+			x:           100.0,
+			y:           200.0,
+			fontKey:     "F1",
+			encodedText: "Hello",
+			useBrackets: true,
+			fontSize:    12.0,
+			expectedParts: []string{
+				"BT\n",
+				"/F1 12.00 Tf\n",
+				"100.00 200.00 Td\n",
+				"(Hello) Tj\n",
+				"ET\n",
+			},
+		},
+		{
+			name:        "TTF font with angle brackets",
+			x:           50.0,
+			y:           300.0,
+			fontKey:     "F15",
+			encodedText: "3053308230930306306F",
+			useBrackets: false,
+			fontSize:    14.0,
+			expectedParts: []string{
+				"BT\n",
+				"/F15 14.00 Tf\n",
+				"50.00 300.00 Td\n",
+				"<3053308230930306306F> Tj\n",
+				"ET\n",
+			},
+		},
+		{
+			name:        "with escaped characters in brackets",
+			x:           10.0,
+			y:           20.0,
+			fontKey:     "F2",
+			encodedText: "Hello \\(World\\)",
+			useBrackets: true,
+			fontSize:    10.0,
+			expectedParts: []string{
+				"BT\n",
+				"/F2 10.00 Tf\n",
+				"10.00 20.00 Td\n",
+				"(Hello \\(World\\)) Tj\n",
+				"ET\n",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doc := New()
+			page := doc.AddPage(A4, Portrait)
+			page.fontSize = tt.fontSize
+
+			page.drawTextInternal(tt.x, tt.y, tt.fontKey, tt.encodedText, tt.useBrackets)
+
+			content := page.content.String()
+
+			// 各期待される部分文字列が含まれているか確認
+			for _, part := range tt.expectedParts {
+				if !strings.Contains(content, part) {
+					t.Errorf("content doesn't contain expected part:\nwant: %q\ngot: %q",
+						part, content)
+				}
+			}
+
+			// 全体の順序も確認
+			expectedFull := strings.Join(tt.expectedParts, "")
+			if content != expectedFull {
+				t.Errorf("content doesn't match expected full output:\nwant: %q\ngot: %q",
+					expectedFull, content)
+			}
+		})
+	}
+}
+
+// TestPage_textEncodings はテキストエンコーディング関数をテストする
+func TestPage_textEncodings(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		method   string // "escape" or "hex"
+	}{
+		{
+			name:     "escape normal text",
+			input:    "Hello World",
+			expected: "Hello World",
+			method:   "escape",
+		},
+		{
+			name:     "escape special characters - parentheses",
+			input:    "Hello (World)",
+			expected: "Hello \\(World\\)",
+			method:   "escape",
+		},
+		{
+			name:     "escape backslash",
+			input:    "C:\\path\\to\\file",
+			expected: "C:\\\\path\\\\to\\\\file",
+			method:   "escape",
+		},
+		{
+			name:     "hex encoding for ASCII",
+			input:    "Hello",
+			expected: "00480065006C006C006F",
+			method:   "hex",
+		},
+		{
+			name:     "hex encoding for Japanese",
+			input:    "こんにちは",
+			expected: "30533093306B3061306F",
+			method:   "hex",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			page := &Page{}
+
+			var result string
+			if tt.method == "escape" {
+				result = page.escapeString(tt.input)
+			} else {
+				result = page.textToHexString(tt.input)
+			}
+
+			if result != tt.expected {
+				t.Errorf("encoding failed:\ninput: %q\nwant: %q\ngot:  %q",
+					tt.input, tt.expected, result)
+			}
+		})
+	}
+}

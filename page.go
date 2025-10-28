@@ -45,6 +45,27 @@ func (p *Page) SetFont(f font.StandardFont, size float64) error {
 	return nil
 }
 
+// drawTextInternal は DrawText と DrawTextUTF8 の共通ロジック
+// このメソッドは内部実装用であり、外部から直接呼び出すべきではない
+func (p *Page) drawTextInternal(
+	x, y float64,
+	fontKey string,
+	encodedText string,
+	useBrackets bool,
+) {
+	fmt.Fprintf(&p.content, "BT\n")
+	fmt.Fprintf(&p.content, "/%s %.2f Tf\n", fontKey, p.fontSize)
+	fmt.Fprintf(&p.content, "%.2f %.2f Td\n", x, y)
+
+	if useBrackets {
+		fmt.Fprintf(&p.content, "(%s) Tj\n", encodedText)
+	} else {
+		fmt.Fprintf(&p.content, "<%s> Tj\n", encodedText)
+	}
+
+	fmt.Fprintf(&p.content, "ET\n")
+}
+
 // DrawText draws text at the specified position.
 // The position (x, y) is in PDF units (points), where (0, 0) is the bottom-left corner.
 func (p *Page) DrawText(text string, x, y float64) error {
@@ -52,20 +73,9 @@ func (p *Page) DrawText(text string, x, y float64) error {
 		return fmt.Errorf("no font set; call SetFont before DrawText")
 	}
 
-	// PDFコンテンツストリームの生成
-	// BT = Begin Text
-	// /F1 12 Tf = Set font F1 at size 12
-	// 100 700 Td = Move to position (100, 700)
-	// (Hello, World!) Tj = Show text
-	// ET = End Text
-
 	fontKey := p.getFontKey(*p.currentFont)
-
-	fmt.Fprintf(&p.content, "BT\n")
-	fmt.Fprintf(&p.content, "/%s %.2f Tf\n", fontKey, p.fontSize)
-	fmt.Fprintf(&p.content, "%.2f %.2f Td\n", x, y)
-	fmt.Fprintf(&p.content, "(%s) Tj\n", p.escapeString(text))
-	fmt.Fprintf(&p.content, "ET\n")
+	encodedText := p.escapeString(text)
+	p.drawTextInternal(x, y, fontKey, encodedText, true)
 
 	return nil
 }
@@ -303,16 +313,8 @@ func (p *Page) DrawTextUTF8(text string, x, y float64) error {
 	}
 
 	fontKey := p.getTTFFontKey(p.currentTTFFont)
-
-	// Convert text to hex string for PDF
-	hexString := p.textToHexString(text)
-
-	// Write PDF text operators
-	fmt.Fprintf(&p.content, "BT\n")
-	fmt.Fprintf(&p.content, "/%s %.2f Tf\n", fontKey, p.fontSize)
-	fmt.Fprintf(&p.content, "%.2f %.2f Td\n", x, y)
-	fmt.Fprintf(&p.content, "<%s> Tj\n", hexString)
-	fmt.Fprintf(&p.content, "ET\n")
+	encodedText := p.textToHexString(text)
+	p.drawTextInternal(x, y, fontKey, encodedText, false)
 
 	return nil
 }
