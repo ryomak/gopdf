@@ -12,6 +12,7 @@ import (
 type Document struct {
 	pages      []*Page
 	encryption *EncryptionOptions
+	metadata   *Metadata
 }
 
 // New creates a new PDF document.
@@ -308,9 +309,24 @@ func (d *Document) WriteTo(w io.Writer) error {
 		return err
 	}
 
+	// Info辞書を作成（メタデータが設定されている場合）
+	var infoNum int
+	if d.metadata != nil {
+		infoDict := createInfoDict(d.metadata)
+		if len(infoDict) > 0 {
+			infoNum, err = pdfWriter.AddObject(infoDict)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Trailerを書く
-	// ここで全オブジェクト数を計算: Catalog + Pages + (Content + Page) * ページ数 + 1(offset 0)
+	// ここで全オブジェクト数を計算: Catalog + Pages + (Content + Page) * ページ数 + Info(0 or 1) + 1(offset 0)
 	totalObjects := 1 + 1 + len(d.pages)*2 + 1
+	if infoNum > 0 {
+		totalObjects++
+	}
 
 	trailer := core.Dictionary{
 		core.Name("Size"): core.Integer(totalObjects),
@@ -318,6 +334,14 @@ func (d *Document) WriteTo(w io.Writer) error {
 			ObjectNumber:     catalogNum,
 			GenerationNumber: 0,
 		},
+	}
+
+	// Info辞書の参照を追加
+	if infoNum > 0 {
+		trailer[core.Name("Info")] = &core.Reference{
+			ObjectNumber:     infoNum,
+			GenerationNumber: 0,
+		}
 	}
 
 	return pdfWriter.WriteTrailer(trailer)
