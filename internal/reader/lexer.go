@@ -75,10 +75,10 @@ func (l *Lexer) NextToken() (Token, error) {
 		// >>
 		return l.readDictEnd()
 	case '[':
-		l.readByte()
+		_, _ = l.readByte() // エラーは既にpeekByteで検出済み
 		return Token{Type: TokenArrayStart}, nil
 	case ']':
-		l.readByte()
+		_, _ = l.readByte() // エラーは既にpeekByteで検出済み
 		return Token{Type: TokenArrayEnd}, nil
 	case '(':
 		return l.readLiteralString()
@@ -102,7 +102,7 @@ func (l *Lexer) skipWhitespaceAndComments() error {
 
 		// 空白文字
 		if b == ' ' || b == '\t' || b == '\n' || b == '\r' || b == '\x00' || b == '\x0c' {
-			l.readByte()
+			_, _ = l.readByte() // エラーは既にpeekByteで検出済み
 			continue
 		}
 
@@ -130,7 +130,7 @@ func (l *Lexer) skipWhitespaceAndComments() error {
 
 // readDictStartOrHexString は << または <hex> を読む
 func (l *Lexer) readDictStartOrHexString() (Token, error) {
-	l.readByte() // '<'
+	_, _ = l.readByte() // '<' (エラーは既にpeekByteで検出済み)
 	b2, err := l.peekByte()
 	if err != nil {
 		return Token{}, err
@@ -138,7 +138,7 @@ func (l *Lexer) readDictStartOrHexString() (Token, error) {
 
 	if b2 == '<' {
 		// <<
-		l.readByte()
+		_, _ = l.readByte() // エラーは既にpeekByteで検出済み
 		return Token{Type: TokenDictStart}, nil
 	}
 
@@ -169,7 +169,7 @@ func (l *Lexer) readDictStartOrHexString() (Token, error) {
 
 // readDictEnd は >> を読む
 func (l *Lexer) readDictEnd() (Token, error) {
-	l.readByte() // '>'
+	_, _ = l.readByte() // '>' (エラーは既にpeekByteで検出済み)
 	b2, err := l.readByte()
 	if err != nil {
 		return Token{}, err
@@ -182,7 +182,7 @@ func (l *Lexer) readDictEnd() (Token, error) {
 
 // readLiteralString は (text) を読む
 func (l *Lexer) readLiteralString() (Token, error) {
-	l.readByte() // '('
+	_, _ = l.readByte() // '(' (エラーは既にpeekByteで検出済み)
 
 	var buf bytes.Buffer
 	depth := 1 // 括弧のネストレベル
@@ -233,7 +233,7 @@ func (l *Lexer) readLiteralString() (Token, error) {
 
 // readName は /Name を読む
 func (l *Lexer) readName() (Token, error) {
-	l.readByte() // '/'
+	_, _ = l.readByte() // '/' (エラーは既にpeekByteで検出済み)
 
 	var buf bytes.Buffer
 	for {
@@ -250,7 +250,7 @@ func (l *Lexer) readName() (Token, error) {
 			break
 		}
 
-		l.readByte()
+		_, _ = l.readByte() // エラーは既にpeekByteで検出済み
 
 		// # エスケープ処理
 		if b == '#' {
@@ -285,7 +285,7 @@ func (l *Lexer) readNumber() (Token, error) {
 		}
 
 		if (b >= '0' && b <= '9') || b == '+' || b == '-' || b == '.' {
-			l.readByte()
+			_, _ = l.readByte() // エラーは既にpeekByteで検出済み
 			buf.WriteByte(b)
 		} else {
 			break
@@ -328,7 +328,7 @@ func (l *Lexer) readKeyword() (Token, error) {
 			break
 		}
 
-		l.readByte()
+		_, _ = l.readByte() // エラーは既にpeekByteで検出済み
 		buf.WriteByte(b)
 	}
 

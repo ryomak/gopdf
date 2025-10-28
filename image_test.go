@@ -186,7 +186,9 @@ func createTestPNGImage(width, height int, hasAlpha bool) []byte {
 	}
 
 	var buf bytes.Buffer
-	png.Encode(&buf, img)
+	if err := png.Encode(&buf, img); err != nil {
+		panic(err) // テスト用のヘルパー関数なのでpanicで問題ない
+	}
 	return buf.Bytes()
 }
 

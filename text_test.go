@@ -36,7 +36,9 @@ func TestPageDrawText(t *testing.T) {
 	}
 
 	// フォントを設定
-	page.SetFont(font.Helvetica, 12)
+	if err := page.SetFont(font.Helvetica, 12); err != nil {
+		t.Fatalf("Failed to set font: %v", err)
+	}
 
 	// テキストを描画
 	err = page.DrawText("Hello, World!", 100, 700)
@@ -56,8 +58,12 @@ func TestDocumentWithText(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// フォントを設定してテキストを描画
-	page.SetFont(font.Helvetica, 12)
-	page.DrawText("Hello, World!", 100, 700)
+	if err := page.SetFont(font.Helvetica, 12); err != nil {
+		t.Fatalf("Failed to set font: %v", err)
+	}
+	if err := page.DrawText("Hello, World!", 100, 700); err != nil {
+		t.Fatalf("Failed to draw text: %v", err)
+	}
 
 	var buf bytes.Buffer
 	err := doc.WriteTo(&buf)
@@ -111,10 +117,14 @@ func TestMultipleTextDrawing(t *testing.T) {
 	doc := New()
 	page := doc.AddPage(A4, Portrait)
 
-	page.SetFont(font.Helvetica, 12)
-	page.DrawText("Line 1", 100, 700)
-	page.DrawText("Line 2", 100, 680)
-	page.DrawText("Line 3", 100, 660)
+	if err := page.SetFont(font.Helvetica, 12); err != nil {
+		t.Fatalf("Failed to set font: %v", err)
+	}
+	if err := page.DrawText("Line 1", 100, 700); err != nil {
+		t.Fatalf("Failed to draw text: %v", err)
+	}
+	_ = page.DrawText("Line 2", 100, 680)
+	_ = page.DrawText("Line 3", 100, 660)
 
 	var buf bytes.Buffer
 	err := doc.WriteTo(&buf)
@@ -142,12 +152,16 @@ func TestDifferentFonts(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Helveticaで描画
-	page.SetFont(font.Helvetica, 12)
-	page.DrawText("Helvetica text", 100, 700)
+	if err := page.SetFont(font.Helvetica, 12); err != nil {
+		t.Fatalf("Failed to set font: %v", err)
+	}
+	_ = page.DrawText("Helvetica text", 100, 700)
 
 	// Times-Romanに変更して描画
-	page.SetFont(font.TimesRoman, 14)
-	page.DrawText("Times text", 100, 680)
+	if err := page.SetFont(font.TimesRoman, 14); err != nil {
+		t.Fatalf("Failed to set font: %v", err)
+	}
+	_ = page.DrawText("Times text", 100, 680)
 
 	var buf bytes.Buffer
 	err := doc.WriteTo(&buf)

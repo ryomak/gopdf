@@ -150,7 +150,10 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 				// 画像の読み込みに失敗しても続行
 				continue
 			}
-			page.DrawImage(pdfImage, img.X, img.Y, img.PlacedWidth, img.PlacedHeight)
+			if err := page.DrawImage(pdfImage, img.X, img.Y, img.PlacedWidth, img.PlacedHeight); err != nil {
+				// 画像の描画に失敗しても続行
+				continue
+			}
 		}
 	}
 
@@ -165,13 +168,17 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 			fitted, err := FitText(block.Text, block.Bounds, opts.TargetFontName, opts.FittingOptions)
 			if err != nil {
 				// フィッティングできない場合は元のサイズを使用
-				setPageFont(page, opts.TargetFont, block.FontSize)
-				page.DrawText(block.Text, block.Bounds.X, block.Bounds.Y)
+				if err := setPageFont(page, opts.TargetFont, block.FontSize); err != nil {
+					continue
+				}
+				_ = page.DrawText(block.Text, block.Bounds.X, block.Bounds.Y)
 				continue
 			}
 
 			// 複数行を描画
-			setPageFont(page, opts.TargetFont, fitted.FontSize)
+			if err := setPageFont(page, opts.TargetFont, fitted.FontSize); err != nil {
+				continue
+			}
 			// 上から下に描画（Y座標が大きい方から小さい方へ）
 			y := block.Bounds.Y + block.Bounds.Height - fitted.LineHeight
 			for _, line := range fitted.Lines {
@@ -185,7 +192,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 						lineWidth := estimateTextWidth(line, fitted.FontSize, opts.TargetFontName)
 						x = block.Bounds.X + block.Bounds.Width - lineWidth
 					}
-					page.DrawText(line, x, y)
+					_ = page.DrawText(line, x, y) // エラー無視（レイアウト変換の続行を優先）
 				}
 				y -= fitted.LineHeight
 			}

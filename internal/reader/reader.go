@@ -62,7 +62,9 @@ func (r *Reader) parse() error {
 // findStartXref はstartxrefの値を取得する
 func (r *Reader) findStartXref() (int64, error) {
 	// ファイルの末尾にシーク
-	r.r.Seek(0, io.SeekEnd)
+	if _, err := r.r.Seek(0, io.SeekEnd); err != nil {
+		return 0, fmt.Errorf("failed to seek to end: %w", err)
+	}
 
 	// 末尾から1024バイト（またはファイルサイズ）を読む
 	const bufSize = 1024
@@ -76,7 +78,9 @@ func (r *Reader) findStartXref() (int64, error) {
 	}
 
 	// startPosにシークして読む
-	r.r.Seek(startPos, io.SeekStart)
+	if _, err := r.r.Seek(startPos, io.SeekStart); err != nil {
+		return 0, fmt.Errorf("failed to seek: %w", err)
+	}
 	n, _ := r.r.Read(buf)
 	buf = buf[:n]
 
@@ -107,7 +111,9 @@ func (r *Reader) findStartXref() (int64, error) {
 // parseXrefAndTrailer はxrefテーブルとtrailerを解析する
 func (r *Reader) parseXrefAndTrailer(offset int64) error {
 	// xrefオフセット位置にシーク
-	r.r.Seek(offset, io.SeekStart)
+	if _, err := r.r.Seek(offset, io.SeekStart); err != nil {
+		return fmt.Errorf("failed to seek to xref: %w", err)
+	}
 
 	// "xref" キーワードを確認
 	reader := bufio.NewReader(r.r)
@@ -222,7 +228,9 @@ func (r *Reader) GetObject(objNum int) (core.Object, error) {
 	}
 
 	// オフセット位置にシーク
-	r.r.Seek(entry.offset, io.SeekStart)
+	if _, err := r.r.Seek(entry.offset, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("failed to seek to object: %w", err)
+	}
 
 	// 間接オブジェクトをパース
 	parser := NewParser(r.r)

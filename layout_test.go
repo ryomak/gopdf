@@ -13,10 +13,18 @@ func TestExtractPageLayout(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// テキストを追加
-	page.SetFont(font.Helvetica, 12)
-	page.DrawText("Hello", 100, 700)
-	page.DrawText("World", 200, 700)
-	page.DrawText("Second Line", 100, 680)
+	if err := page.SetFont(font.Helvetica, 12); err != nil {
+		t.Fatalf("Failed to set font: %v", err)
+	}
+	if err := page.DrawText("Hello", 100, 700); err != nil {
+		t.Fatalf("Failed to draw text: %v", err)
+	}
+	if err := page.DrawText("World", 200, 700); err != nil {
+		t.Fatalf("Failed to draw text: %v", err)
+	}
+	if err := page.DrawText("Second Line", 100, 680); err != nil {
+		t.Fatalf("Failed to draw text: %v", err)
+	}
 
 	// PDFをバッファに書き込み
 	var buf bytes.Buffer
@@ -64,13 +72,21 @@ func TestExtractAllLayouts(t *testing.T) {
 
 	// ページ1
 	page1 := doc.AddPage(A4, Portrait)
-	page1.SetFont(font.Helvetica, 12)
-	page1.DrawText("Page 1", 100, 700)
+	if err := page1.SetFont(font.Helvetica, 12); err != nil {
+		t.Fatalf("Failed to set font: %v", err)
+	}
+	if err := page1.DrawText("Page 1", 100, 700); err != nil {
+		t.Fatalf("Failed to draw text: %v", err)
+	}
 
 	// ページ2
 	page2 := doc.AddPage(A4, Portrait)
-	page2.SetFont(font.Helvetica, 12)
-	page2.DrawText("Page 2", 100, 700)
+	if err := page2.SetFont(font.Helvetica, 12); err != nil {
+		t.Fatalf("Failed to set font: %v", err)
+	}
+	if err := page2.DrawText("Page 2", 100, 700); err != nil {
+		t.Fatalf("Failed to draw text: %v", err)
+	}
 
 	// PDFをバッファに書き込み
 	var buf bytes.Buffer

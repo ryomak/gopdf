@@ -273,6 +273,7 @@ func TestTextAlign(t *testing.T) {
 
 		if result == nil {
 			t.Errorf("Expected non-nil result for alignment %d", align)
+			continue
 		}
 
 		t.Logf("Alignment %d: FontSize=%.1f", align, result.FontSize)

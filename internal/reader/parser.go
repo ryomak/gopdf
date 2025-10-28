@@ -73,7 +73,7 @@ func (p *Parser) parseIntegerOrReference(firstNum int) (core.Object, error) {
 	}
 
 	// 2番目の数値を消費
-	p.nextToken()
+	_, _ = p.nextToken() // エラーは既にpeekTokenで検出済み
 	secondNum := token2.Value.(int)
 
 	// 3番目のトークンを先読み
@@ -85,7 +85,7 @@ func (p *Parser) parseIntegerOrReference(firstNum int) (core.Object, error) {
 
 	if token3.Type == TokenRef {
 		// 参照: N M R
-		p.nextToken() // R を消費
+		_, _ = p.nextToken() // R を消費（エラーは既にpeekTokenで検出済み）
 		return &core.Reference{
 			ObjectNumber:     firstNum,
 			GenerationNumber: secondNum,
@@ -109,7 +109,7 @@ func (p *Parser) ParseDictionary() (core.Dictionary, error) {
 		}
 
 		if token.Type == TokenDictEnd {
-			p.nextToken() // >> を消費
+			_, _ = p.nextToken() // >> を消費（エラーは既にpeekTokenで検出済み）
 			break
 		}
 
@@ -149,7 +149,7 @@ func (p *Parser) ParseArray() (core.Array, error) {
 		}
 
 		if token.Type == TokenArrayEnd {
-			p.nextToken() // ] を消費
+			_, _ = p.nextToken() // ] を消費（エラーは既にpeekTokenで検出済み）
 			break
 		}
 
@@ -186,15 +186,10 @@ func (p *Parser) ParseStream(dict core.Dictionary) (*core.Stream, error) {
 	}
 	if firstByte[0] == '\r' {
 		// \r の後に \n が続く可能性がある
-		secondByte, err := p.lexer.ReadBytes(1)
-		if err == nil && secondByte[0] != '\n' {
-			// \n でなければ戻す（この実装では簡略化のため無視）
-			// 実際には unread が必要
-		}
-	} else if firstByte[0] != '\n' {
-		// 改行でない場合もデータの一部として扱う（戻す必要がある）
-		// 簡略化のため、ここでは無視
+		_, _ = p.lexer.ReadBytes(1) // \nを読む（エラーは無視）
 	}
+	// \r\n, \n, その他いずれの場合も、改行として処理を続行
+	// TODO: より厳密には、改行でない文字をunreadする必要がある
 
 	// Lengthを取得
 	lengthObj, ok := dict[core.Name("Length")]

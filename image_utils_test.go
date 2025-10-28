@@ -24,7 +24,9 @@ func createValidJPEG(width, height int) []byte {
 	}
 
 	var buf bytes.Buffer
-	image_jpeg.Encode(&buf, img, &image_jpeg.Options{Quality: 90})
+	if err := image_jpeg.Encode(&buf, img, &image_jpeg.Options{Quality: 90}); err != nil {
+		panic(err) // テスト用のヘルパー関数なのでpanicで問題ない
+	}
 	return buf.Bytes()
 }
 
@@ -264,10 +266,14 @@ func TestExtractImagesWithToImage(t *testing.T) {
 		t.Fatalf("Failed to load JPEG: %v", err)
 	}
 
-	page.DrawImage(jpegImage, 100, 700, 200, 150)
+	if err := page.DrawImage(jpegImage, 100, 700, 200, 150); err != nil {
+		t.Fatalf("Failed to draw image: %v", err)
+	}
 
 	var buf bytes.Buffer
-	doc.WriteTo(&buf)
+	if err := doc.WriteTo(&buf); err != nil {
+		t.Fatalf("Failed to write PDF: %v", err)
+	}
 
 	// PDFを読み込み
 	reader, err := OpenReader(bytes.NewReader(buf.Bytes()))

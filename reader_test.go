@@ -11,7 +11,7 @@ func TestOpen(t *testing.T) {
 	// WriterでPDFを生成
 	doc := New()
 	page := doc.AddPage(A4, Portrait)
-	page.DrawText("Test", 100, 700)
+	_ = page.DrawText("Test", 100, 700) // エラー無視（テストの主目的ではない）
 
 	// 一時ファイルに書き込み
 	tmpfile, err := os.CreateTemp("", "test*.pdf")
@@ -43,7 +43,7 @@ func TestOpenReader(t *testing.T) {
 	// WriterでPDFを生成
 	doc := New()
 	page := doc.AddPage(A4, Portrait)
-	page.DrawText("Test", 100, 700)
+	_ = page.DrawText("Test", 100, 700) // エラー無視（テストの主目的ではない）
 
 	// バッファに書き込み
 	var buf bytes.Buffer
@@ -83,7 +83,9 @@ func TestPDFReader_PageCount(t *testing.T) {
 			}
 
 			var buf bytes.Buffer
-			doc.WriteTo(&buf)
+			if err := doc.WriteTo(&buf); err != nil {
+				t.Fatalf("Failed to write PDF: %v", err)
+			}
 
 			// 読み込み
 			reader, err := OpenReader(bytes.NewReader(buf.Bytes()))
@@ -105,7 +107,9 @@ func TestPDFReader_Info(t *testing.T) {
 	doc.AddPage(A4, Portrait)
 
 	var buf bytes.Buffer
-	doc.WriteTo(&buf)
+	if err := doc.WriteTo(&buf); err != nil {
+		t.Fatalf("Failed to write PDF: %v", err)
+	}
 
 	reader, err := OpenReader(bytes.NewReader(buf.Bytes()))
 	if err != nil {

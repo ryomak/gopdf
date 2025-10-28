@@ -133,17 +133,23 @@ func TestXrefTableFormat(t *testing.T) {
 	w := NewWriter(&buf)
 
 	// ヘッダーとオブジェクトを書く
-	w.WriteHeader()
-	w.AddObject(core.Dictionary{
+	if err := w.WriteHeader(); err != nil {
+		t.Fatalf("WriteHeader() failed: %v", err)
+	}
+	if _, err := w.AddObject(core.Dictionary{
 		core.Name("Type"): core.Name("Catalog"),
-	})
+	}); err != nil {
+		t.Fatalf("AddObject() failed: %v", err)
+	}
 
 	// Trailer
 	trailer := core.Dictionary{
 		core.Name("Size"): core.Integer(2),
 		core.Name("Root"): &core.Reference{ObjectNumber: 1, GenerationNumber: 0},
 	}
-	w.WriteTrailer(trailer)
+	if err := w.WriteTrailer(trailer); err != nil {
+		t.Fatalf("WriteTrailer() failed: %v", err)
+	}
 
 	output := buf.String()
 
@@ -171,19 +177,25 @@ func TestObjectOffsets(t *testing.T) {
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
 
-	w.WriteHeader()
+	if err := w.WriteHeader(); err != nil {
+		t.Fatalf("WriteHeader() failed: %v", err)
+	}
 
 	// オブジェクト1のオフセットを記録
 	offset1 := buf.Len()
-	w.AddObject(core.Dictionary{
+	if _, err := w.AddObject(core.Dictionary{
 		core.Name("Type"): core.Name("Catalog"),
-	})
+	}); err != nil {
+		t.Fatalf("AddObject() failed: %v", err)
+	}
 
 	// オブジェクト2のオフセットを記録
 	offset2 := buf.Len()
-	w.AddObject(core.Dictionary{
+	if _, err := w.AddObject(core.Dictionary{
 		core.Name("Type"): core.Name("Pages"),
-	})
+	}); err != nil {
+		t.Fatalf("AddObject() failed: %v", err)
+	}
 
 	// オフセットが正しく記録されているか確認
 	if len(w.offsets) != 2 {

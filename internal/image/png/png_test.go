@@ -39,7 +39,9 @@ func createTestPNG(width, height int, colorModel color.Model) ([]byte, image.Ima
 	}
 
 	var buf bytes.Buffer
-	png.Encode(&buf, img)
+	if err := png.Encode(&buf, img); err != nil {
+		panic(err) // テスト用のヘルパー関数なのでpanicで問題ない
+	}
 	return buf.Bytes(), img
 }
 
@@ -153,7 +155,9 @@ func TestSeparateAlphaChannel(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	png.Encode(&buf, rgba)
+	if err := png.Encode(&buf, rgba); err != nil {
+		t.Fatalf("Failed to encode PNG: %v", err)
+	}
 
 	reader := bytes.NewReader(buf.Bytes())
 	data, err := ExtractPixelData(reader)
