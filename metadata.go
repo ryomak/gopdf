@@ -213,3 +213,252 @@ func createInfoDict(metadata *Metadata) core.Dictionary {
 func needsUTF16(s string) bool {
 	return !utf8.ValidString(s) || !isASCII(s)
 }
+
+// parsePDFDate parses a PDF date string to time.Time
+// Format: D:YYYYMMDDHHmmSSOHH'mm'
+// Example: D:20250129123045+09'00'
+func parsePDFDate(s string) (time.Time, error) {
+	if s == "" {
+		return time.Time{}, nil
+	}
+
+	// Remove "D:" prefix if present
+	if strings.HasPrefix(s, "D:") {
+		s = s[2:]
+	}
+
+	// Minimum length check (at least YYYY)
+	if len(s) < 4 {
+		return time.Time{}, fmt.Errorf("invalid PDF date format: too short")
+	}
+
+	// Parse components
+	year := 0
+	month := 1
+	day := 1
+	hour := 0
+	minute := 0
+	second := 0
+	offsetHours := 0
+	offsetMinutes := 0
+
+	// Year (required)
+	fmt.Sscanf(s[0:4], "%d", &year)
+
+	// Month (optional)
+	if len(s) >= 6 {
+		fmt.Sscanf(s[4:6], "%d", &month)
+	}
+
+	// Day (optional)
+	if len(s) >= 8 {
+		fmt.Sscanf(s[6:8], "%d", &day)
+	}
+
+	// Hour (optional)
+	if len(s) >= 10 {
+		fmt.Sscanf(s[8:10], "%d", &hour)
+	}
+
+	// Minute (optional)
+	if len(s) >= 12 {
+		fmt.Sscanf(s[10:12], "%d", &minute)
+	}
+
+	// Second (optional)
+	if len(s) >= 14 {
+		fmt.Sscanf(s[12:14], "%d", &second)
+	}
+
+	// Timezone offset (optional)
+	loc := time.UTC
+	if len(s) > 14 {
+		tzPart := s[14:]
+		if tzPart == "Z" {
+			loc = time.UTC
+		} else if len(tzPart) >= 3 {
+			sign := tzPart[0]
+			// Remove apostrophes from offset
+			tzPart = strings.ReplaceAll(tzPart[1:], "'", "")
+
+			parts := strings.Split(tzPart, "+")
+			if len(parts) < 2 {
+				parts = strings.Split(tzPart, "-")
+			}
+
+			if len(tzPart) >= 2 {
+				fmt.Sscanf(tzPart[0:2], "%d", &offsetHours)
+			}
+			if len(tzPart) >= 4 {
+				fmt.Sscanf(tzPart[2:4], "%d", &offsetMinutes)
+			}
+
+			offsetSeconds := offsetHours*3600 + offsetMinutes*60
+			if sign == '-' {
+				offsetSeconds = -offsetSeconds
+			}
+			loc = time.FixedZone("PDF", offsetSeconds)
+		}
+	}
+
+	return time.Date(year, time.Month(month), day, hour, minute, second, 0, loc), nil
+}
+
+// unescapeString unescapes PDF string special characters
+// Unescapes: \(, \), \\
+func unescapeString(s string) string {
+	s = strings.ReplaceAll(s, "\\(", "(")
+	s = strings.ReplaceAll(s, "\\)", ")")
+	s = strings.ReplaceAll(s, "\\\\", "\\")
+	return s
+}
+
+// decodeTextString decodes a PDF text string
+// Handles both PDFDocEncoding (ASCII with escapes) and UTF-16BE (with BOM)
+func decodeTextString(obj core.Object) string {
+	str, ok := obj.(core.String)
+	if !ok {
+		return ""
+	}
+
+	s := string(str)
+
+	// Remove parentheses if present (literal string)
+	if len(s) >= 2 && s[0] == '(' && s[len(s)-1] == ')' {
+		s = s[1 : len(s)-1]
+		// Unescape
+		s = unescapeString(s)
+		return s
+	}
+
+	// Remove angle brackets if present (hex string)
+	if len(s) >= 2 && s[0] == '<' && s[len(s)-1] == '>' {
+		s = s[1 : len(s)-1]
+
+		// Check for UTF-16BE BOM (FEFF)
+		if strings.HasPrefix(s, "FEFF") || strings.HasPrefix(s, "feff") {
+			// UTF-16BE encoded
+			return decodeUTF16BE(s[4:]) // Skip BOM
+		}
+
+		// Regular hex string
+		return decodeHexString(s)
+	}
+
+	return s
+}
+
+// decodeHexString decodes a hex string to UTF-8
+func decodeHexString(hexStr string) string {
+	// Remove spaces
+	hexStr = strings.ReplaceAll(hexStr, " ", "")
+
+	if len(hexStr)%2 != 0 {
+		return ""
+	}
+
+	bytes := make([]byte, len(hexStr)/2)
+	for i := 0; i < len(hexStr); i += 2 {
+		var b byte
+		fmt.Sscanf(hexStr[i:i+2], "%02x", &b)
+		bytes[i/2] = b
+	}
+
+	return string(bytes)
+}
+
+// decodeUTF16BE decodes a UTF-16BE hex string to UTF-8
+func decodeUTF16BE(hexStr string) string {
+	// Remove spaces
+	hexStr = strings.ReplaceAll(hexStr, " ", "")
+
+	if len(hexStr)%4 != 0 {
+		return ""
+	}
+
+	runes := make([]rune, 0)
+
+	for i := 0; i < len(hexStr); i += 4 {
+		var code uint16
+		fmt.Sscanf(hexStr[i:i+4], "%04x", &code)
+
+		// Check for surrogate pair
+		if code >= 0xD800 && code <= 0xDBFF {
+			// High surrogate
+			if i+8 <= len(hexStr) {
+				var low uint16
+				fmt.Sscanf(hexStr[i+4:i+8], "%04x", &low)
+				if low >= 0xDC00 && low <= 0xDFFF {
+					// Valid surrogate pair
+					r := 0x10000 + (rune(code&0x3FF)<<10) + rune(low&0x3FF)
+					runes = append(runes, r)
+					i += 4 // Skip the low surrogate in next iteration
+					continue
+				}
+			}
+		}
+
+		runes = append(runes, rune(code))
+	}
+
+	return string(runes)
+}
+
+// parseInfoDict parses a PDF Info dictionary into a Metadata struct
+func parseInfoDict(dict core.Dictionary) Metadata {
+	metadata := Metadata{
+		Custom: make(map[string]string),
+	}
+
+	// Standard fields to check
+	standardFields := map[string]*string{
+		"Title":    &metadata.Title,
+		"Author":   &metadata.Author,
+		"Subject":  &metadata.Subject,
+		"Keywords": &metadata.Keywords,
+		"Creator":  &metadata.Creator,
+		"Producer": &metadata.Producer,
+	}
+
+	// Parse standard text fields
+	for key, field := range standardFields {
+		if obj, ok := dict[core.Name(key)]; ok {
+			*field = decodeTextString(obj)
+		}
+	}
+
+	// Parse date fields
+	if obj, ok := dict[core.Name("CreationDate")]; ok {
+		dateStr := decodeTextString(obj)
+		if t, err := parsePDFDate(dateStr); err == nil {
+			metadata.CreationDate = t
+		}
+	}
+
+	if obj, ok := dict[core.Name("ModDate")]; ok {
+		dateStr := decodeTextString(obj)
+		if t, err := parsePDFDate(dateStr); err == nil {
+			metadata.ModDate = t
+		}
+	}
+
+	// Parse custom fields (any field not in standard list)
+	for key, obj := range dict {
+		keyStr := string(key)
+		// Skip standard fields
+		if _, isStandard := standardFields[keyStr]; isStandard {
+			continue
+		}
+		if keyStr == "CreationDate" || keyStr == "ModDate" || keyStr == "Trapped" {
+			continue
+		}
+
+		// Add to custom fields
+		value := decodeTextString(obj)
+		if value != "" {
+			metadata.Custom[keyStr] = value
+		}
+	}
+
+	return metadata
+}

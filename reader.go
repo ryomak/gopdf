@@ -66,14 +66,7 @@ func (r *PDFReader) Info() Metadata {
 		return Metadata{}
 	}
 
-	return Metadata{
-		Title:    getString(infoDict, "Title"),
-		Author:   getString(infoDict, "Author"),
-		Subject:  getString(infoDict, "Subject"),
-		Keywords: getString(infoDict, "Keywords"),
-		Creator:  getString(infoDict, "Creator"),
-		Producer: getString(infoDict, "Producer"),
-	}
+	return parseInfoDict(infoDict)
 }
 
 // TextElement はテキスト要素の位置とスタイル情報

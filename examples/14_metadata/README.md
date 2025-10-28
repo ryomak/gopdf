@@ -25,7 +25,7 @@ This will create `metadata_example.pdf` with embedded metadata.
 
 ## Features Demonstrated
 
-### Standard Metadata Fields
+### Writing Metadata
 
 ```go
 metadata := gopdf.Metadata{
@@ -39,6 +39,27 @@ metadata := gopdf.Metadata{
     ModDate:      time.Now(),
 }
 doc.SetMetadata(metadata)
+```
+
+### Reading Metadata
+
+```go
+reader, err := gopdf.Open("metadata_example.pdf")
+if err != nil {
+    panic(err)
+}
+defer reader.Close()
+
+metadata := reader.Info()
+
+fmt.Printf("Title: %s\n", metadata.Title)
+fmt.Printf("Author: %s\n", metadata.Author)
+fmt.Printf("Subject: %s\n", metadata.Subject)
+fmt.Printf("Keywords: %s\n", metadata.Keywords)
+fmt.Printf("Creator: %s\n", metadata.Creator)
+fmt.Printf("Producer: %s\n", metadata.Producer)
+fmt.Printf("CreationDate: %s\n", metadata.CreationDate.Format(time.RFC3339))
+fmt.Printf("ModDate: %s\n", metadata.ModDate.Format(time.RFC3339))
 ```
 
 ### Custom Metadata Fields

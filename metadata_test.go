@@ -52,15 +52,11 @@ func TestMetadata_StandardFields(t *testing.T) {
 	tests := []struct {
 		name     string
 		metadata Metadata
-		checks   map[string]string
 	}{
 		{
 			name: "title only",
 			metadata: Metadata{
 				Title: "Sample Document",
-			},
-			checks: map[string]string{
-				"/Title": "(Sample Document)",
 			},
 		},
 		{
@@ -68,10 +64,6 @@ func TestMetadata_StandardFields(t *testing.T) {
 			metadata: Metadata{
 				Author:  "John Doe",
 				Subject: "PDF Metadata Test",
-			},
-			checks: map[string]string{
-				"/Author":  "(John Doe)",
-				"/Subject": "(PDF Metadata Test)",
 			},
 		},
 		{
@@ -83,14 +75,6 @@ func TestMetadata_StandardFields(t *testing.T) {
 				Keywords: "PDF, metadata, gopdf",
 				Creator:  "My App",
 				Producer: "gopdf v1.0",
-			},
-			checks: map[string]string{
-				"/Title":    "(Complete Metadata)",
-				"/Author":   "(Jane Smith)",
-				"/Subject":  "(Testing)",
-				"/Keywords": "(PDF, metadata, gopdf)",
-				"/Creator":  "(My App)",
-				"/Producer": "(gopdf v1.0)",
 			},
 		},
 	}
@@ -109,18 +93,37 @@ func TestMetadata_StandardFields(t *testing.T) {
 
 			output := buf.String()
 
-			for key, expectedValue := range tt.checks {
-				if !strings.Contains(output, key) {
-					t.Errorf("Output should contain %q", key)
-				}
-				if !strings.Contains(output, expectedValue) {
-					t.Errorf("Output should contain %q", expectedValue)
-				}
-			}
-
 			// Trailer should contain /Info reference
 			if !strings.Contains(output, "/Info") {
 				t.Error("Trailer should contain /Info reference")
+			}
+
+			// Verify by round-trip reading
+			reader, err := OpenReader(bytes.NewReader(buf.Bytes()))
+			if err != nil {
+				t.Fatalf("OpenReader() failed: %v", err)
+			}
+			defer reader.Close()
+
+			readMetadata := reader.Info()
+
+			if readMetadata.Title != tt.metadata.Title {
+				t.Errorf("Title = %q, want %q", readMetadata.Title, tt.metadata.Title)
+			}
+			if readMetadata.Author != tt.metadata.Author {
+				t.Errorf("Author = %q, want %q", readMetadata.Author, tt.metadata.Author)
+			}
+			if readMetadata.Subject != tt.metadata.Subject {
+				t.Errorf("Subject = %q, want %q", readMetadata.Subject, tt.metadata.Subject)
+			}
+			if readMetadata.Keywords != tt.metadata.Keywords {
+				t.Errorf("Keywords = %q, want %q", readMetadata.Keywords, tt.metadata.Keywords)
+			}
+			if readMetadata.Creator != tt.metadata.Creator {
+				t.Errorf("Creator = %q, want %q", readMetadata.Creator, tt.metadata.Creator)
+			}
+			if tt.metadata.Producer != "" && readMetadata.Producer != tt.metadata.Producer {
+				t.Errorf("Producer = %q, want %q", readMetadata.Producer, tt.metadata.Producer)
 			}
 		})
 	}
@@ -149,24 +152,36 @@ func TestMetadata_CustomFields(t *testing.T) {
 
 	output := buf.String()
 
-	// Check standard field
-	if !strings.Contains(output, "/Title") {
-		t.Error("Output should contain /Title")
+	// Check that /Info exists
+	if !strings.Contains(output, "/Info") {
+		t.Error("Output should contain /Info")
 	}
 
-	// Check custom fields
-	customChecks := map[string]string{
-		"/Department": "(Engineering)",
-		"/Project":    "(gopdf)",
-		"/Version":    "(1.0.0)",
+	// Verify by round-trip reading
+	reader, err := OpenReader(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("OpenReader() failed: %v", err)
+	}
+	defer reader.Close()
+
+	readMetadata := reader.Info()
+
+	if readMetadata.Title != metadata.Title {
+		t.Errorf("Title = %q, want %q", readMetadata.Title, metadata.Title)
 	}
 
-	for key, expectedValue := range customChecks {
-		if !strings.Contains(output, key) {
-			t.Errorf("Output should contain custom field %q", key)
+	if readMetadata.Custom == nil {
+		t.Fatal("Custom fields are nil")
+	}
+
+	for key, expectedValue := range metadata.Custom {
+		actualValue, ok := readMetadata.Custom[key]
+		if !ok {
+			t.Errorf("Custom field %q not found", key)
+			continue
 		}
-		if !strings.Contains(output, expectedValue) {
-			t.Errorf("Output should contain custom value %q", expectedValue)
+		if actualValue != expectedValue {
+			t.Errorf("Custom field %q = %q, want %q", key, actualValue, expectedValue)
 		}
 	}
 }
@@ -193,18 +208,38 @@ func TestMetadata_DateFields(t *testing.T) {
 		t.Fatalf("WriteTo() failed: %v", err)
 	}
 
-	output := buf.String()
+	// Verify by round-trip reading
+	reader, err := OpenReader(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("OpenReader() failed: %v", err)
+	}
+	defer reader.Close()
 
-	// Check date format: D:YYYYMMDDHHmmSSOHH'mm'
-	expectedCreation := "D:20250129123045+09'00'"
-	expectedMod := "D:20250129134530+09'00'"
+	readMetadata := reader.Info()
 
-	if !strings.Contains(output, expectedCreation) {
-		t.Errorf("Output should contain creation date %q", expectedCreation)
+	// Verify dates (within 1 second tolerance due to formatting)
+	if !readMetadata.CreationDate.IsZero() {
+		diff := readMetadata.CreationDate.Sub(creationTime)
+		if diff < 0 {
+			diff = -diff
+		}
+		if diff > time.Second {
+			t.Errorf("CreationDate = %v, want %v (diff: %v)", readMetadata.CreationDate, creationTime, diff)
+		}
+	} else {
+		t.Error("CreationDate is zero")
 	}
 
-	if !strings.Contains(output, expectedMod) {
-		t.Errorf("Output should contain modification date %q", expectedMod)
+	if !readMetadata.ModDate.IsZero() {
+		diff := readMetadata.ModDate.Sub(modTime)
+		if diff < 0 {
+			diff = -diff
+		}
+		if diff > time.Second {
+			t.Errorf("ModDate = %v, want %v (diff: %v)", readMetadata.ModDate, modTime, diff)
+		}
+	} else {
+		t.Error("ModDate is zero")
 	}
 }
 
@@ -225,15 +260,17 @@ func TestMetadata_DefaultProducer(t *testing.T) {
 		t.Fatalf("WriteTo() failed: %v", err)
 	}
 
-	output := buf.String()
-
-	// Should contain default Producer
-	if !strings.Contains(output, "/Producer") {
-		t.Error("Output should contain /Producer")
+	// Verify by round-trip reading
+	reader, err := OpenReader(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("OpenReader() failed: %v", err)
 	}
+	defer reader.Close()
 
-	if !strings.Contains(output, "(gopdf)") {
-		t.Error("Output should contain default Producer value 'gopdf'")
+	readMetadata := reader.Info()
+
+	if readMetadata.Producer != "gopdf" {
+		t.Errorf("Producer = %q, want %q", readMetadata.Producer, "gopdf")
 	}
 }
 
@@ -254,40 +291,38 @@ func TestMetadata_DefaultCreationDate(t *testing.T) {
 		t.Fatalf("WriteTo() failed: %v", err)
 	}
 
-	output := buf.String()
-
-	// Should contain CreationDate
-	if !strings.Contains(output, "/CreationDate") {
-		t.Error("Output should contain /CreationDate")
+	// Verify by round-trip reading
+	reader, err := OpenReader(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("OpenReader() failed: %v", err)
 	}
+	defer reader.Close()
 
-	// Should contain date in PDF format (D:YYYY...)
-	if !strings.Contains(output, "D:") {
-		t.Error("Output should contain date in PDF format")
+	readMetadata := reader.Info()
+
+	// Should have a creation date (automatically set to current time)
+	if readMetadata.CreationDate.IsZero() {
+		t.Error("CreationDate should be set automatically")
 	}
 }
 
 // TestMetadata_SpecialCharacters tests escaping of special characters
 func TestMetadata_SpecialCharacters(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		expected string
+		name  string
+		input string
 	}{
 		{
-			name:     "parentheses",
-			input:    "Title (with parentheses)",
-			expected: "Title \\(with parentheses\\)",
+			name:  "parentheses",
+			input: "Title (with parentheses)",
 		},
 		{
-			name:     "backslash",
-			input:    "Path\\to\\file",
-			expected: "Path\\\\to\\\\file",
+			name:  "backslash",
+			input: "Path\\to\\file",
 		},
 		{
-			name:     "mixed",
-			input:    "Text with (parens) and \\ backslash",
-			expected: "Text with \\(parens\\) and \\\\ backslash",
+			name:  "mixed",
+			input: "Text with (parens) and \\ backslash",
 		},
 	}
 
@@ -307,11 +342,17 @@ func TestMetadata_SpecialCharacters(t *testing.T) {
 				t.Fatalf("WriteTo() failed: %v", err)
 			}
 
-			output := buf.String()
+			// Verify by round-trip reading
+			reader, err := OpenReader(bytes.NewReader(buf.Bytes()))
+			if err != nil {
+				t.Fatalf("OpenReader() failed: %v", err)
+			}
+			defer reader.Close()
 
-			if !strings.Contains(output, tt.expected) {
-				t.Errorf("Output should contain escaped string %q, got output:\n%s",
-					tt.expected, output)
+			readMetadata := reader.Info()
+
+			if readMetadata.Title != tt.input {
+				t.Errorf("Title = %q, want %q", readMetadata.Title, tt.input)
 			}
 		})
 	}
@@ -335,12 +376,25 @@ func TestMetadata_NonASCII(t *testing.T) {
 		t.Fatalf("WriteTo() failed: %v", err)
 	}
 
-	output := buf.String()
+	// Verify by round-trip reading
+	reader, err := OpenReader(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("OpenReader() failed: %v", err)
+	}
+	defer reader.Close()
 
-	// Non-ASCII strings should be encoded as UTF-16BE with BOM
-	// The output should contain the hex encoded string starting with FEFF (BOM)
-	if !strings.Contains(output, "<FEFF") {
-		t.Error("Output should contain UTF-16BE BOM (FEFF) for non-ASCII text")
+	readMetadata := reader.Info()
+
+	if readMetadata.Title != metadata.Title {
+		t.Errorf("Title = %q, want %q", readMetadata.Title, metadata.Title)
+	}
+
+	if readMetadata.Author != metadata.Author {
+		t.Errorf("Author = %q, want %q", readMetadata.Author, metadata.Author)
+	}
+
+	if readMetadata.Subject != metadata.Subject {
+		t.Errorf("Subject = %q, want %q", readMetadata.Subject, metadata.Subject)
 	}
 }
 

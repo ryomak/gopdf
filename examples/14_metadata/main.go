@@ -24,7 +24,7 @@ func main() {
 	page.DrawText("This PDF has custom metadata.", 100, 700)
 	page.DrawText("You can view it in your PDF viewer's properties.", 100, 680)
 
-	// Set metadata
+	// Set metadata (including custom fields)
 	metadata := gopdf.Metadata{
 		Title:        "PDF Metadata Example",
 		Author:       "gopdf Library",
@@ -34,6 +34,10 @@ func main() {
 		Producer:     "gopdf v1.0",
 		CreationDate: time.Date(2025, 1, 29, 12, 0, 0, 0, time.UTC),
 		ModDate:      time.Now(),
+		Custom: map[string]string{
+			"Department": "Engineering",
+			"Project":    "gopdf",
+		},
 	}
 	doc.SetMetadata(metadata)
 
@@ -48,10 +52,32 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("PDF created successfully: metadata_example.pdf")
-	fmt.Println("Metadata:")
-	fmt.Printf("  Title: %s\n", metadata.Title)
-	fmt.Printf("  Author: %s\n", metadata.Author)
-	fmt.Printf("  Subject: %s\n", metadata.Subject)
-	fmt.Printf("  Keywords: %s\n", metadata.Keywords)
+	fmt.Println("=== PDF created successfully: metadata_example.pdf ===\n")
+
+	// Now read the metadata back
+	fmt.Println("=== Reading metadata back ===")
+	reader, err := gopdf.Open("metadata_example.pdf")
+	if err != nil {
+		panic(err)
+	}
+	defer reader.Close()
+
+	readMetadata := reader.Info()
+
+	fmt.Println("\nStandard fields:")
+	fmt.Printf("  Title:        %s\n", readMetadata.Title)
+	fmt.Printf("  Author:       %s\n", readMetadata.Author)
+	fmt.Printf("  Subject:      %s\n", readMetadata.Subject)
+	fmt.Printf("  Keywords:     %s\n", readMetadata.Keywords)
+	fmt.Printf("  Creator:      %s\n", readMetadata.Creator)
+	fmt.Printf("  Producer:     %s\n", readMetadata.Producer)
+	fmt.Printf("  CreationDate: %s\n", readMetadata.CreationDate.Format(time.RFC3339))
+	fmt.Printf("  ModDate:      %s\n", readMetadata.ModDate.Format(time.RFC3339))
+
+	if len(readMetadata.Custom) > 0 {
+		fmt.Println("\nCustom fields:")
+		for key, value := range readMetadata.Custom {
+			fmt.Printf("  %s: %s\n", key, value)
+		}
+	}
 }
