@@ -332,10 +332,9 @@ func (p *Page) getTTFFontKey(f *TTFFont) string {
 // textToHexString converts UTF-8 text to hex string for PDF
 // For Type0 fonts, we use UTF-16BE encoding
 func (p *Page) textToHexString(text string) string {
-	runes := []rune(text)
 	result := ""
 
-	for _, r := range runes {
+	for _, r := range text {
 		// Convert rune to UTF-16BE (simplified: only BMP characters)
 		if r <= 0xFFFF {
 			result += fmt.Sprintf("%04X", r)
@@ -392,12 +391,16 @@ func (p *Page) DrawRuby(rubyText RubyText, x, y float64, style RubyStyle) (float
 	// ルビテキストを描画
 	originalFontSize := p.fontSize
 	if p.currentTTFFont != nil {
-		p.SetTTFFont(p.currentTTFFont, rubyFontSize)
+		if err := p.SetTTFFont(p.currentTTFFont, rubyFontSize); err != nil {
+			return 0, err
+		}
 		if err := p.DrawTextUTF8(rubyText.Ruby, rubyX, rubyY); err != nil {
 			return 0, err
 		}
 	} else {
-		p.SetFont(*p.currentFont, rubyFontSize)
+		if err := p.SetFont(*p.currentFont, rubyFontSize); err != nil {
+			return 0, err
+		}
 		if err := p.DrawText(rubyText.Ruby, rubyX, rubyY); err != nil {
 			return 0, err
 		}
@@ -405,9 +408,13 @@ func (p *Page) DrawRuby(rubyText RubyText, x, y float64, style RubyStyle) (float
 
 	// フォントサイズを元に戻す
 	if p.currentTTFFont != nil {
-		p.SetTTFFont(p.currentTTFFont, originalFontSize)
+		if err := p.SetTTFFont(p.currentTTFFont, originalFontSize); err != nil {
+			return 0, err
+		}
 	} else {
-		p.SetFont(*p.currentFont, originalFontSize)
+		if err := p.SetFont(*p.currentFont, originalFontSize); err != nil {
+			return 0, err
+		}
 	}
 
 	// 親文字を描画
@@ -496,4 +503,101 @@ func (p *Page) getCurrentFontName() string {
 		return p.getFontKey(*p.currentFont)
 	}
 	return "F1" // デフォルト
+}
+
+// AddTextLayer はページにテキストレイヤーを追加する
+// テキストは通常透明にして、画像の上に配置される（コピー・検索可能）
+func (p *Page) AddTextLayer(layer TextLayer) error {
+	if len(layer.Words) == 0 {
+		return nil // 単語がない場合は何もしない
+	}
+
+	// フォントが設定されていない場合はデフォルトフォントを使用
+	if p.currentFont == nil && p.currentTTFFont == nil {
+		if err := p.SetFont(font.Helvetica, 12); err != nil {
+			return fmt.Errorf("failed to set default font: %w", err)
+		}
+	}
+
+	// Graphics state for opacity
+	if layer.Opacity < 1.0 {
+		fmt.Fprintf(&p.content, "q\n") // Save graphics state
+		fmt.Fprintf(&p.content, "/GS1 gs\n")
+	}
+
+	// 各単語を描画
+	for _, word := range layer.Words {
+		if word.Text == "" {
+			continue
+		}
+
+		// フォントサイズを単語の高さに合わせる
+		fontSize := word.Bounds.Height
+		if fontSize <= 0 {
+			fontSize = 12 // デフォルトサイズ
+		}
+
+		// テキストを描画
+		fmt.Fprintf(&p.content, "BT\n") // Begin Text
+
+		// フォントとサイズを設定
+		if p.currentTTFFont != nil {
+			fontKey := p.getTTFFontKey(p.currentTTFFont)
+			fmt.Fprintf(&p.content, "/%s %.2f Tf\n", fontKey, fontSize)
+		} else if p.currentFont != nil {
+			fontKey := p.getFontKey(*p.currentFont)
+			fmt.Fprintf(&p.content, "/%s %.2f Tf\n", fontKey, fontSize)
+		}
+
+		// テキストレンダリングモードを設定
+		fmt.Fprintf(&p.content, "%d Tr\n", layer.RenderMode)
+
+		// 位置を設定
+		fmt.Fprintf(&p.content, "%.2f %.2f Td\n", word.Bounds.X, word.Bounds.Y)
+
+		// テキストを描画
+		if p.currentTTFFont != nil {
+			hexString := p.textToHexString(word.Text)
+			fmt.Fprintf(&p.content, "<%s> Tj\n", hexString)
+		} else {
+			fmt.Fprintf(&p.content, "(%s) Tj\n", p.escapeString(word.Text))
+		}
+
+		fmt.Fprintf(&p.content, "ET\n") // End Text
+	}
+
+	// Restore graphics state
+	if layer.Opacity < 1.0 {
+		fmt.Fprintf(&p.content, "Q\n")
+	}
+
+	return nil
+}
+
+// AddTextLayerWords は個別の単語を追加する（簡易版）
+func (p *Page) AddTextLayerWords(words []TextLayerWord) error {
+	layer := NewTextLayer(words)
+	return p.AddTextLayer(layer)
+}
+
+// AddInvisibleText は指定位置に透明テキストを追加
+// 画像の特定箇所をコピー・検索可能にする簡易メソッド
+func (p *Page) AddInvisibleText(text string, x, y, width, height float64) error {
+	word := TextLayerWord{
+		Text: text,
+		Bounds: Rectangle{
+			X:      x,
+			Y:      y,
+			Width:  width,
+			Height: height,
+		},
+	}
+
+	layer := TextLayer{
+		Words:      []TextLayerWord{word},
+		RenderMode: TextRenderInvisible,
+		Opacity:    0.0,
+	}
+
+	return p.AddTextLayer(layer)
 }

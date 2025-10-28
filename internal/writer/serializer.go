@@ -6,7 +6,6 @@ import (
 	"io"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/ryomak/gopdf/internal/core"
 )
@@ -166,9 +165,4 @@ func (s *Serializer) SerializeIndirectObject(obj *core.IndirectObject) error {
 
 	// オブジェクト定義の終了
 	return s.writeString("\nendobj\n")
-}
-
-// Utility function to check if a string needs escaping
-func needsEscape(s string) bool {
-	return strings.ContainsAny(s, "()\\")
 }
