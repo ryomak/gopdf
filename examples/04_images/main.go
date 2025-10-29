@@ -53,18 +53,18 @@ func main() {
 	doc := gopdf.New()
 
 	// A4サイズの縦向きページを追加
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// === タイトル ===
-	page.SetFont(gopdf.HelveticaBold, 24)
+	page.SetFont(gopdf.FontHelveticaBold, 24)
 	page.DrawText("Image Embedding Demo", 50, 800)
 
 	// === 説明 ===
-	page.SetFont(gopdf.Helvetica, 12)
+	page.SetFont(gopdf.FontHelvetica, 12)
 	page.DrawText("This PDF demonstrates JPEG image embedding capabilities.", 50, 775)
 
 	// === 色付き矩形画像 ===
-	page.SetFont(gopdf.HelveticaBold, 14)
+	page.SetFont(gopdf.FontHelveticaBold, 14)
 	page.DrawText("1. Colored Rectangles", 50, 745)
 
 	// 赤い矩形
@@ -76,7 +76,7 @@ func main() {
 		os.Exit(1)
 	}
 	page.DrawImage(redImage, 50, 630, 150, 75)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Red", 105, 615)
 
 	// 緑の矩形
@@ -84,7 +84,7 @@ func main() {
 	greenJPEG, _ := encodeJPEG(greenImg)
 	greenImage, _ := gopdf.LoadJPEG(bytes.NewReader(greenJPEG))
 	page.DrawImage(greenImage, 220, 630, 150, 75)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Green", 275, 615)
 
 	// 青い矩形
@@ -92,11 +92,11 @@ func main() {
 	blueJPEG, _ := encodeJPEG(blueImg)
 	blueImage, _ := gopdf.LoadJPEG(bytes.NewReader(blueJPEG))
 	page.DrawImage(blueImage, 390, 630, 150, 75)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Blue", 450, 615)
 
 	// === グラデーション画像 ===
-	page.SetFont(gopdf.HelveticaBold, 14)
+	page.SetFont(gopdf.FontHelveticaBold, 14)
 	page.DrawText("2. Gradient Image", 50, 580)
 
 	gradientImg := createGradientImage(400, 200)
@@ -104,11 +104,11 @@ func main() {
 	gradientImage, _ := gopdf.LoadJPEG(bytes.NewReader(gradientJPEG))
 	page.DrawImage(gradientImage, 50, 380, 300, 150)
 
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("RGB gradient: X-axis (red), Y-axis (green)", 50, 365)
 
 	// === 異なるサイズの画像 ===
-	page.SetFont(gopdf.HelveticaBold, 14)
+	page.SetFont(gopdf.FontHelveticaBold, 14)
 	page.DrawText("3. Different Sizes", 50, 335)
 
 	// 小サイズ
@@ -116,21 +116,21 @@ func main() {
 	smallJPEG, _ := encodeJPEG(smallImg)
 	smallImage, _ := gopdf.LoadJPEG(bytes.NewReader(smallJPEG))
 	page.DrawImage(smallImage, 50, 260, 50, 50)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("50x50", 55, 245)
 
 	// 中サイズ
 	page.DrawImage(smallImage, 120, 250, 75, 75)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("75x75", 135, 235)
 
 	// 大サイズ
 	page.DrawImage(smallImage, 215, 235, 100, 100)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("100x100", 240, 220)
 
 	// === パターン ===
-	page.SetFont(gopdf.HelveticaBold, 14)
+	page.SetFont(gopdf.FontHelveticaBold, 14)
 	page.DrawText("4. Pattern", 50, 190)
 
 	// チェッカーボードパターン
@@ -148,12 +148,12 @@ func main() {
 	checkerImage, _ := gopdf.LoadJPEG(bytes.NewReader(checkerJPEG))
 	page.DrawImage(checkerImage, 50, 80, 120, 120)
 
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Checkerboard pattern", 50, 65)
 
 	// === フッター ===
-	page.SetFont(gopdf.HelveticaOblique, 10)
-	page.SetStrokeColor(gopdf.Black)
+	page.SetFont(gopdf.FontHelveticaOblique, 10)
+	page.SetStrokeColor(gopdf.ColorBlack)
 	page.DrawText("Generated with gopdf - https://github.com/ryomak/gopdf", 50, 30)
 
 	// ファイルに出力

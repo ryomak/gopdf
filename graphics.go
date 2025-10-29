@@ -16,11 +16,11 @@ func NewRGB(r, g, b uint8) Color {
 
 // Predefined colors
 var (
-	Black = Color{R: 0, G: 0, B: 0}
-	White = Color{R: 1, G: 1, B: 1}
-	Red   = Color{R: 1, G: 0, B: 0}
-	Green = Color{R: 0, G: 1, B: 0}
-	Blue  = Color{R: 0, G: 0, B: 1}
+	ColorBlack = Color{R: 0, G: 0, B: 0}
+	ColorWhite = Color{R: 1, G: 1, B: 1}
+	ColorRed   = Color{R: 1, G: 0, B: 0}
+	ColorGreen = Color{R: 0, G: 1, B: 0}
+	ColorBlue  = Color{R: 0, G: 0, B: 1}
 )
 
 // LineCapStyle represents the line cap style

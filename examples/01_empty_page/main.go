@@ -14,13 +14,13 @@ func main() {
 	doc := gopdf.New()
 
 	// A4サイズの縦向きページを追加
-	doc.AddPage(gopdf.A4, gopdf.Portrait)
+	doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// Letterサイズの横向きページを追加
-	doc.AddPage(gopdf.Letter, gopdf.Landscape)
+	doc.AddPage(gopdf.PageSizeLetter, gopdf.Landscape)
 
 	// A4サイズの横向きページを追加
-	doc.AddPage(gopdf.A4, gopdf.Landscape)
+	doc.AddPage(gopdf.PageSizeA4, gopdf.Landscape)
 
 	// ファイルに出力
 	file, err := os.Create("output.pdf")

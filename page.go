@@ -563,7 +563,7 @@ func (p *Page) AddTextLayer(layer TextLayer) error {
 
 	// フォントが設定されていない場合はデフォルトフォントを使用
 	if p.currentFont == nil && p.currentTTFFont == nil {
-		if err := p.SetFont(Helvetica, 12); err != nil {
+		if err := p.SetFont(FontHelvetica, 12); err != nil {
 			return fmt.Errorf("failed to set default font: %w", err)
 		}
 	}

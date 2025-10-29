@@ -1,6 +1,9 @@
 package content
 
 import (
+	"unicode/utf16"
+	"unicode/utf8"
+
 	"github.com/ryomak/gopdf/internal/core"
 	"github.com/ryomak/gopdf/internal/utils"
 )
@@ -201,13 +204,161 @@ func getNumber(obj core.Object) float64 {
 }
 
 // getString はオブジェクトから文字列を取得する
+// PDFの文字列エンコーディング(PDFDocEncoding, UTF-16BE)を考慮する
 func getString(obj core.Object) string {
 	switch v := obj.(type) {
 	case core.String:
-		return string(v)
+		return decodePDFString([]byte(v))
 	case core.Name:
 		return string(v)
 	default:
 		return ""
 	}
+}
+
+// decodePDFString はPDF文字列をデコードする
+func decodePDFString(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+
+	// UTF-16BE BOM (0xFE 0xFF) をチェック
+	if len(data) >= 2 && data[0] == 0xFE && data[1] == 0xFF {
+		return decodeUTF16BE(data[2:])
+	}
+
+	// UTF-16LE BOM (0xFF 0xFE) をチェック
+	if len(data) >= 2 && data[0] == 0xFF && data[1] == 0xFE {
+		return decodeUTF16LE(data[2:])
+	}
+
+	// UTF-8として有効かを先にチェック
+	// UTF-8マルチバイト文字は0x80以上のバイトを含むが、これを優先する
+	if utf8.Valid(data) {
+		// ASCII範囲のみの場合はどちらでも同じ
+		// マルチバイト文字がある場合はUTF-8として扱う
+		hasMultiByte := false
+		for i := 0; i < len(data); {
+			r, size := utf8.DecodeRune(data[i:])
+			if size > 1 {
+				hasMultiByte = true
+				break
+			}
+			if r == utf8.RuneError {
+				break
+			}
+			i += size
+		}
+
+		// マルチバイト文字があればUTF-8
+		if hasMultiByte {
+			return string(data)
+		}
+	}
+
+	// PDFDocEncodingの特殊範囲(0x80-0x9F)が単一バイトで含まれているか確認
+	// これはUTF-8マルチバイトシーケンスの一部ではない場合のみ
+	hasPDFDocSpecialChars := false
+	for _, b := range data {
+		if b >= 0x80 && b <= 0x9F {
+			hasPDFDocSpecialChars = true
+			break
+		}
+	}
+
+	// 特殊文字があり、UTF-8マルチバイトではない場合
+	if hasPDFDocSpecialChars {
+		return decodePDFDocEncoding(data)
+	}
+
+	// ASCIIまたはLatin-1範囲として処理
+	if utf8.Valid(data) {
+		return string(data)
+	}
+
+	// PDFDocEncodingとして処理（基本的にはLatin-1）
+	return decodePDFDocEncoding(data)
+}
+
+// decodeUTF16BE はUTF-16BEをデコードする
+func decodeUTF16BE(data []byte) string {
+	if len(data)%2 != 0 {
+		return ""
+	}
+
+	u16s := make([]uint16, 0, len(data)/2)
+	for i := 0; i < len(data); i += 2 {
+		u16s = append(u16s, uint16(data[i])<<8|uint16(data[i+1]))
+	}
+
+	return string(utf16.Decode(u16s))
+}
+
+// decodeUTF16LE はUTF-16LEをデコードする
+func decodeUTF16LE(data []byte) string {
+	if len(data)%2 != 0 {
+		return ""
+	}
+
+	u16s := make([]uint16, 0, len(data)/2)
+	for i := 0; i < len(data); i += 2 {
+		u16s = append(u16s, uint16(data[i+1])<<8|uint16(data[i]))
+	}
+
+	return string(utf16.Decode(u16s))
+}
+
+// decodePDFDocEncoding はPDFDocEncodingをデコードする
+// PDFDocEncodingは基本的にLatin-1と同じだが、0x80-0x9Fの範囲で特殊文字を定義
+func decodePDFDocEncoding(data []byte) string {
+	// PDFDocEncodingの0x80-0x9F範囲の特殊文字マッピング
+	pdfDocEncodingTable := map[byte]rune{
+		0x80: 0x2022, // BULLET
+		0x81: 0x2020, // DAGGER
+		0x82: 0x2021, // DOUBLE DAGGER
+		0x83: 0x2026, // HORIZONTAL ELLIPSIS
+		0x84: 0x2014, // EM DASH
+		0x85: 0x2013, // EN DASH
+		0x86: 0x0192, // LATIN SMALL LETTER F WITH HOOK
+		0x87: 0x2044, // FRACTION SLASH
+		0x88: 0x2039, // SINGLE LEFT-POINTING ANGLE QUOTATION MARK
+		0x89: 0x203A, // SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
+		0x8A: 0x2212, // MINUS SIGN
+		0x8B: 0x2030, // PER MILLE SIGN
+		0x8C: 0x201E, // DOUBLE LOW-9 QUOTATION MARK
+		0x8D: 0x201C, // LEFT DOUBLE QUOTATION MARK
+		0x8E: 0x201D, // RIGHT DOUBLE QUOTATION MARK
+		0x8F: 0x2018, // LEFT SINGLE QUOTATION MARK
+		0x90: 0x2019, // RIGHT SINGLE QUOTATION MARK
+		0x91: 0x201A, // SINGLE LOW-9 QUOTATION MARK
+		0x92: 0x2122, // TRADE MARK SIGN
+		0x93: 0xFB01, // LATIN SMALL LIGATURE FI
+		0x94: 0xFB02, // LATIN SMALL LIGATURE FL
+		0x95: 0x0141, // LATIN CAPITAL LETTER L WITH STROKE
+		0x96: 0x0152, // LATIN CAPITAL LIGATURE OE
+		0x97: 0x0160, // LATIN CAPITAL LETTER S WITH CARON
+		0x98: 0x0178, // LATIN CAPITAL LETTER Y WITH DIAERESIS
+		0x99: 0x017D, // LATIN CAPITAL LETTER Z WITH CARON
+		0x9A: 0x0131, // LATIN SMALL LETTER DOTLESS I
+		0x9B: 0x0142, // LATIN SMALL LETTER L WITH STROKE
+		0x9C: 0x0153, // LATIN SMALL LIGATURE OE
+		0x9D: 0x0161, // LATIN SMALL LETTER S WITH CARON
+		0x9E: 0x017E, // LATIN SMALL LETTER Z WITH CARON
+		0x9F: 0xFFFD, // REPLACEMENT CHARACTER
+	}
+
+	runes := make([]rune, 0, len(data))
+	for _, b := range data {
+		if b >= 0x80 && b <= 0x9F {
+			if r, ok := pdfDocEncodingTable[b]; ok {
+				runes = append(runes, r)
+			} else {
+				runes = append(runes, rune(b))
+			}
+		} else {
+			runes = append(runes, rune(b))
+		}
+	}
+
+	return string(runes)
 }

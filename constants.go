@@ -9,20 +9,20 @@ type PageSize struct {
 
 // Standard page sizes
 var (
-	// A4 size: 210mm x 297mm
-	A4 = PageSize{Width: 595.0, Height: 842.0}
+	// PageSizeA4 size: 210mm x 297mm
+	PageSizeA4 = PageSize{Width: 595.0, Height: 842.0}
 
-	// Letter size: 8.5in x 11in
-	Letter = PageSize{Width: 612.0, Height: 792.0}
+	// PageSizeLetter size: 8.5in x 11in
+	PageSizeLetter = PageSize{Width: 612.0, Height: 792.0}
 
-	// Legal size: 8.5in x 14in
-	Legal = PageSize{Width: 612.0, Height: 1008.0}
+	// PageSizeLegal size: 8.5in x 14in
+	PageSizeLegal = PageSize{Width: 612.0, Height: 1008.0}
 
-	// A3 size: 297mm x 420mm
-	A3 = PageSize{Width: 842.0, Height: 1191.0}
+	// PageSizeA3 size: 297mm x 420mm
+	PageSizeA3 = PageSize{Width: 842.0, Height: 1191.0}
 
-	// A5 size: 148mm x 210mm
-	A5 = PageSize{Width: 420.0, Height: 595.0}
+	// PageSizeA5 size: 148mm x 210mm
+	PageSizeA5 = PageSize{Width: 420.0, Height: 595.0}
 )
 
 // Orientation represents page orientation.

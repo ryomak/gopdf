@@ -14,92 +14,92 @@ func main() {
 	doc := gopdf.New()
 
 	// A4サイズの縦向きページを追加
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// === タイトル ===
-	page.SetFont(gopdf.HelveticaBold, 24)
+	page.SetFont(gopdf.FontHelveticaBold, 24)
 	page.DrawText("Graphics Demo", 50, 800)
 
 	// === 線の描画 ===
-	page.SetFont(gopdf.Helvetica, 14)
+	page.SetFont(gopdf.FontHelvetica, 14)
 	page.DrawText("Lines:", 50, 770)
 
 	// 基本的な線
 	page.SetLineWidth(1.0)
-	page.SetStrokeColor(gopdf.Black)
+	page.SetStrokeColor(gopdf.ColorBlack)
 	page.DrawLine(50, 750, 200, 750)
 
 	// 太い赤い線
 	page.SetLineWidth(3.0)
-	page.SetStrokeColor(gopdf.Red)
+	page.SetStrokeColor(gopdf.ColorRed)
 	page.DrawLine(50, 740, 200, 740)
 
 	// 青い線（異なるスタイル）
 	page.SetLineWidth(2.0)
-	page.SetStrokeColor(gopdf.Blue)
+	page.SetStrokeColor(gopdf.ColorBlue)
 	page.SetLineCap(gopdf.RoundCap)
 	page.DrawLine(50, 730, 200, 730)
 
 	// === 矩形の描画 ===
-	page.SetFont(gopdf.Helvetica, 14)
-	page.SetStrokeColor(gopdf.Black)
+	page.SetFont(gopdf.FontHelvetica, 14)
+	page.SetStrokeColor(gopdf.ColorBlack)
 	page.DrawText("Rectangles:", 50, 700)
 
 	// 枠線のみの矩形
 	page.SetLineWidth(1.5)
-	page.SetStrokeColor(gopdf.Blue)
+	page.SetStrokeColor(gopdf.ColorBlue)
 	page.DrawRectangle(50, 620, 100, 60)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Stroke", 70, 645)
 
 	// 塗りつぶしのみの矩形
 	page.SetFillColor(gopdf.Color{R: 1.0, G: 1.0, B: 0.0}) // 黄色
 	page.FillRectangle(170, 620, 100, 60)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Fill", 200, 645)
 
 	// 枠線＋塗りつぶしの矩形
-	page.SetStrokeColor(gopdf.Black)
+	page.SetStrokeColor(gopdf.ColorBlack)
 	page.SetLineWidth(2.0)
 	page.SetFillColor(gopdf.Color{R: 0.8, G: 0.8, B: 0.8}) // 灰色
 	page.DrawAndFillRectangle(290, 620, 100, 60)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Both", 315, 645)
 
 	// === 円の描画 ===
-	page.SetFont(gopdf.Helvetica, 14)
-	page.SetStrokeColor(gopdf.Black)
+	page.SetFont(gopdf.FontHelvetica, 14)
+	page.SetStrokeColor(gopdf.ColorBlack)
 	page.DrawText("Circles:", 50, 590)
 
 	// 枠線のみの円
 	page.SetLineWidth(1.5)
-	page.SetStrokeColor(gopdf.Red)
+	page.SetStrokeColor(gopdf.ColorRed)
 	page.DrawCircle(90, 520, 40)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Stroke", 65, 460)
 
 	// 塗りつぶしのみの円
 	page.SetFillColor(gopdf.Color{R: 0.0, G: 1.0, B: 0.0}) // 緑
 	page.FillCircle(220, 520, 40)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Fill", 200, 460)
 
 	// 枠線＋塗りつぶしの円
-	page.SetStrokeColor(gopdf.Blue)
+	page.SetStrokeColor(gopdf.ColorBlue)
 	page.SetLineWidth(2.5)
 	page.SetFillColor(gopdf.Color{R: 1.0, G: 0.8, B: 0.8}) // 薄い赤
 	page.DrawAndFillCircle(350, 520, 40)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Both", 330, 460)
 
 	// === 複雑な図形 ===
-	page.SetFont(gopdf.Helvetica, 14)
-	page.SetStrokeColor(gopdf.Black)
+	page.SetFont(gopdf.FontHelvetica, 14)
+	page.SetStrokeColor(gopdf.ColorBlack)
 	page.DrawText("Complex Shapes:", 50, 430)
 
 	// 家の形
 	page.SetLineWidth(2.0)
-	page.SetStrokeColor(gopdf.Black)
+	page.SetStrokeColor(gopdf.ColorBlack)
 	page.SetFillColor(gopdf.Color{R: 0.9, G: 0.9, B: 0.7}) // 薄い黄色
 
 	// 家の本体
@@ -126,8 +126,8 @@ func main() {
 	page.DrawAndFillCircle(350, 380, 25)
 
 	// === カラーグラデーション風 ===
-	page.SetFont(gopdf.Helvetica, 14)
-	page.SetStrokeColor(gopdf.Black)
+	page.SetFont(gopdf.FontHelvetica, 14)
+	page.SetStrokeColor(gopdf.ColorBlack)
 	page.DrawText("Color Variations:", 50, 250)
 
 	// 赤のグラデーション風
@@ -152,8 +152,8 @@ func main() {
 	}
 
 	// === フッター ===
-	page.SetFont(gopdf.HelveticaOblique, 10)
-	page.SetStrokeColor(gopdf.Black)
+	page.SetFont(gopdf.FontHelveticaOblique, 10)
+	page.SetStrokeColor(gopdf.ColorBlack)
 	page.DrawText("Generated with gopdf - https://github.com/ryomak/gopdf", 50, 30)
 
 	// ファイルに出力

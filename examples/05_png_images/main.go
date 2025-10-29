@@ -92,43 +92,43 @@ func main() {
 	doc := gopdf.New()
 
 	// A4サイズの縦向きページを追加
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// === タイトル ===
-	page.SetFont(gopdf.HelveticaBold, 24)
+	page.SetFont(gopdf.FontHelveticaBold, 24)
 	page.DrawText("PNG Image Embedding Demo", 50, 800)
 
 	// === 説明 ===
-	page.SetFont(gopdf.Helvetica, 12)
+	page.SetFont(gopdf.FontHelvetica, 12)
 	page.DrawText("This PDF demonstrates PNG image embedding with transparency support.", 50, 775)
 
 	// === 1. Solid Color PNG ===
-	page.SetFont(gopdf.HelveticaBold, 14)
+	page.SetFont(gopdf.FontHelveticaBold, 14)
 	page.DrawText("1. Solid Color PNG (No Alpha)", 50, 745)
 
 	// Red PNG
 	redPNG := createSolidPNG(100, 100, color.RGBA{R: 255, G: 0, B: 0, A: 255})
 	redImg, _ := gopdf.LoadPNG(bytes.NewReader(redPNG))
 	page.DrawImage(redImg, 50, 640, 80, 80)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Red", 70, 625)
 
 	// Green PNG
 	greenPNG := createSolidPNG(100, 100, color.RGBA{R: 0, G: 255, B: 0, A: 255})
 	greenImg, _ := gopdf.LoadPNG(bytes.NewReader(greenPNG))
 	page.DrawImage(greenImg, 150, 640, 80, 80)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Green", 170, 625)
 
 	// Blue PNG
 	bluePNG := createSolidPNG(100, 100, color.RGBA{R: 0, G: 0, B: 255, A: 255})
 	blueImg, _ := gopdf.LoadPNG(bytes.NewReader(bluePNG))
 	page.DrawImage(blueImg, 250, 640, 80, 80)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Blue", 275, 625)
 
 	// === 2. Transparent PNG ===
-	page.SetFont(gopdf.HelveticaBold, 14)
+	page.SetFont(gopdf.FontHelveticaBold, 14)
 	page.DrawText("2. PNG with Alpha Gradient", 50, 595)
 
 	// Create background rectangle to show transparency
@@ -138,21 +138,21 @@ func main() {
 	transparentPNG := createTransparentPNG(200, 100)
 	transparentImg, _ := gopdf.LoadPNG(bytes.NewReader(transparentPNG))
 	page.DrawImage(transparentImg, 50, 490, 200, 100)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Alpha: 0% (left) -> 100% (right)", 50, 475)
 
 	// === 3. Grayscale PNG ===
-	page.SetFont(gopdf.HelveticaBold, 14)
+	page.SetFont(gopdf.FontHelveticaBold, 14)
 	page.DrawText("3. Grayscale PNG", 50, 445)
 
 	grayPNG := createGrayscalePNG(150, 100)
 	grayImg, _ := gopdf.LoadPNG(bytes.NewReader(grayPNG))
 	page.DrawImage(grayImg, 50, 340, 150, 100)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Grayscale gradient", 50, 325)
 
 	// === 4. Circle with Transparency ===
-	page.SetFont(gopdf.HelveticaBold, 14)
+	page.SetFont(gopdf.FontHelveticaBold, 14)
 	page.DrawText("4. Circle with Transparency", 50, 295)
 
 	// Background to show transparency
@@ -164,11 +164,11 @@ func main() {
 	circlePNG := createCirclePNG(120)
 	circleImg, _ := gopdf.LoadPNG(bytes.NewReader(circlePNG))
 	page.DrawImage(circleImg, 80, 220, 120, 120)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Semi-transparent circle", 90, 175)
 
 	// === 5. Overlapping Transparent PNGs ===
-	page.SetFont(gopdf.HelveticaBold, 14)
+	page.SetFont(gopdf.FontHelveticaBold, 14)
 	page.DrawText("5. Overlapping Transparent Images", 300, 595)
 
 	// Three overlapping circles
@@ -184,11 +184,11 @@ func main() {
 	page.DrawImage(circle1Img, 320, 490, 90, 90)
 	page.DrawImage(circle2Img, 360, 520, 90, 90)
 	page.DrawImage(circle3Img, 340, 540, 90, 90)
-	page.SetFont(gopdf.Helvetica, 10)
+	page.SetFont(gopdf.FontHelvetica, 10)
 	page.DrawText("Overlapping with alpha", 330, 470)
 
 	// === フッター ===
-	page.SetFont(gopdf.HelveticaOblique, 10)
+	page.SetFont(gopdf.FontHelveticaOblique, 10)
 	page.DrawText("Generated with gopdf - https://github.com/ryomak/gopdf", 50, 30)
 
 	// ファイルに出力
