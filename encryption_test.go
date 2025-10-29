@@ -163,7 +163,7 @@ func TestDocumentSetEncryption(t *testing.T) {
 func TestDocumentWithEncryption(t *testing.T) {
 	// Create a document with encryption
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Add some content
 	page.SetLineWidth(1)
@@ -231,7 +231,7 @@ func TestDocumentWithEncryption(t *testing.T) {
 
 func TestDocumentWith128BitEncryption(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 	page.DrawRectangle(100, 100, 200, 100)
 
 	// Set 128-bit encryption
@@ -297,7 +297,7 @@ func TestPermissionsPresets(t *testing.T) {
 func TestDocumentWithoutEncryption(t *testing.T) {
 	// Create a document without encryption
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 	page.DrawRectangle(100, 100, 200, 100)
 
 	// Should not have encryption

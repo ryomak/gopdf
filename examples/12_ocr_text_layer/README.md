@@ -35,11 +35,11 @@ go run main.go
 
 ```go
 doc := gopdf.New()
-page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 // 画像を配置
 img, _ := gopdf.LoadJPEG("scan.jpg")
-page.DrawImage(img, 0, 0, gopdf.A4.Width, gopdf.A4.Height)
+page.DrawImage(img, 0, 0, gopdf.PageSizeA4.Width, gopdf.PageSizeA4.Height)
 
 // 透明テキストを追加（検索・コピー可能）
 page.AddInvisibleText("Hello, World!", 50, 750, 200, 20)
@@ -74,7 +74,7 @@ imageWidth := 1000  // 元画像の幅
 imageHeight := 1000 // 元画像の高さ
 textLayer := ocrResult.ToTextLayer(
     imageWidth, imageHeight,
-    gopdf.A4.Width, gopdf.A4.Height,
+    gopdf.PageSizeA4.Width, gopdf.PageSizeA4.Height,
 )
 
 // PDFに追加
@@ -352,15 +352,15 @@ func createSearchablePDF(imagePath, outputPath string) error {
 
     // 3. PDFを作成
     doc := gopdf.New()
-    page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+    page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
     // 4. 画像を配置
-    page.DrawImage(img, 0, 0, gopdf.A4.Width, gopdf.A4.Height)
+    page.DrawImage(img, 0, 0, gopdf.PageSizeA4.Width, gopdf.PageSizeA4.Height)
 
     // 5. テキストレイヤーを追加
     textLayer := ocrResult.ToTextLayer(
         imageWidth, imageHeight,
-        gopdf.A4.Width, gopdf.A4.Height,
+        gopdf.PageSizeA4.Width, gopdf.PageSizeA4.Height,
     )
     page.AddTextLayer(textLayer)
 

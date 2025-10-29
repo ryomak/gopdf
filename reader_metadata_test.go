@@ -10,7 +10,7 @@ import (
 func TestPDFReader_Info_ReadWriteRoundtrip(t *testing.T) {
 	// Create a PDF with metadata
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	metadata := Metadata{
 		Title:        "Test Document",
@@ -96,7 +96,7 @@ func TestPDFReader_Info_ReadWriteRoundtrip(t *testing.T) {
 func TestPDFReader_Info_CustomFields(t *testing.T) {
 	// Create a PDF with custom metadata
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	metadata := Metadata{
 		Title: "Document with Custom Fields",
@@ -151,7 +151,7 @@ func TestPDFReader_Info_CustomFields(t *testing.T) {
 func TestPDFReader_Info_NonASCII(t *testing.T) {
 	// Create a PDF with Japanese metadata
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	metadata := Metadata{
 		Title:   "日本語タイトル",
@@ -195,7 +195,7 @@ func TestPDFReader_Info_NonASCII(t *testing.T) {
 func TestPDFReader_Info_NoMetadata(t *testing.T) {
 	// Create a PDF without metadata
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	// Write to buffer
 	var buf bytes.Buffer
@@ -256,7 +256,7 @@ func TestPDFReader_Info_SpecialCharacters(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create PDF
 			doc := New()
-			doc.AddPage(A4, Portrait)
+			doc.AddPage(PageSizeA4, Portrait)
 
 			metadata := Metadata{
 				Title: tt.input,

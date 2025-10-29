@@ -23,7 +23,7 @@ func TestAddPage(t *testing.T) {
 	doc := New()
 
 	// A4 Portrait
-	page1 := doc.AddPage(A4, Portrait)
+	page1 := doc.AddPage(PageSizeA4, Portrait)
 	if page1 == nil {
 		t.Fatal("AddPage returned nil")
 	}
@@ -46,7 +46,7 @@ func TestAddPage(t *testing.T) {
 // TestDocumentWriteTo は最小限のPDF出力をテストする
 func TestDocumentWriteTo(t *testing.T) {
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	var buf bytes.Buffer
 	err := doc.WriteTo(&buf)
@@ -121,9 +121,9 @@ func TestMultiplePages(t *testing.T) {
 	doc := New()
 
 	// 3ページ追加
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 	doc.AddPage(Letter, Portrait)
-	doc.AddPage(A4, Landscape)
+	doc.AddPage(PageSizeA4, Landscape)
 
 	if len(doc.pages) != 3 {
 		t.Errorf("Document should have 3 pages, got %d", len(doc.pages))

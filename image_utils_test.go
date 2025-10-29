@@ -257,7 +257,7 @@ func TestImageInfo_ToImage_UnsupportedFormat(t *testing.T) {
 func TestExtractImagesWithToImage(t *testing.T) {
 	// 画像入りPDFを生成
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// JPEG画像を追加（有効なJPEGを生成）
 	jpegData := createValidJPEG(100, 100)

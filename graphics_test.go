@@ -111,7 +111,7 @@ func abs(x float64) float64 {
 // TestPageSetLineWidth はSetLineWidthメソッドをテストする
 func TestPageSetLineWidth(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// 線の太さを設定
 	page.SetLineWidth(2.5)
@@ -127,7 +127,7 @@ func TestPageSetLineWidth(t *testing.T) {
 // TestPageSetStrokeColor はSetStrokeColorメソッドをテストする
 func TestPageSetStrokeColor(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// ストローク色を赤に設定
 	page.SetStrokeColor(Red)
@@ -143,7 +143,7 @@ func TestPageSetStrokeColor(t *testing.T) {
 // TestPageSetFillColor はSetFillColorメソッドをテストする
 func TestPageSetFillColor(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// 塗りつぶし色を緑に設定
 	page.SetFillColor(Green)
@@ -159,7 +159,7 @@ func TestPageSetFillColor(t *testing.T) {
 // TestPageSetLineCap はSetLineCapメソッドをテストする
 func TestPageSetLineCap(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// 線の端スタイルを丸めるに設定
 	page.SetLineCap(RoundCap)
@@ -175,7 +175,7 @@ func TestPageSetLineCap(t *testing.T) {
 // TestPageSetLineJoin はSetLineJoinメソッドをテストする
 func TestPageSetLineJoin(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// 線の結合スタイルを丸めるに設定
 	page.SetLineJoin(RoundJoin)
@@ -191,7 +191,7 @@ func TestPageSetLineJoin(t *testing.T) {
 // TestPageDrawLine はDrawLineメソッドをテストする
 func TestPageDrawLine(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// (100, 100) から (300, 200) まで線を描画
 	page.DrawLine(100, 100, 300, 200)
@@ -207,7 +207,7 @@ func TestPageDrawLine(t *testing.T) {
 // TestPageDrawLineWithStyle は線のスタイルを設定してから線を描画するテスト
 func TestPageDrawLineWithStyle(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// スタイルを設定
 	page.SetLineWidth(2.0)
@@ -225,7 +225,7 @@ func TestPageDrawLineWithStyle(t *testing.T) {
 // TestPageDrawRectangle はDrawRectangleメソッドをテストする
 func TestPageDrawRectangle(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// (100, 200) から幅150, 高さ100の矩形を描画（枠線のみ）
 	page.DrawRectangle(100, 200, 150, 100)
@@ -241,7 +241,7 @@ func TestPageDrawRectangle(t *testing.T) {
 // TestPageFillRectangle はFillRectangleメソッドをテストする
 func TestPageFillRectangle(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// (100, 200) から幅150, 高さ100の矩形を塗りつぶし
 	page.FillRectangle(100, 200, 150, 100)
@@ -257,7 +257,7 @@ func TestPageFillRectangle(t *testing.T) {
 // TestPageDrawAndFillRectangle はDrawAndFillRectangleメソッドをテストする
 func TestPageDrawAndFillRectangle(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// (100, 200) から幅150, 高さ100の矩形を枠線＋塗りつぶし
 	page.DrawAndFillRectangle(100, 200, 150, 100)
@@ -302,7 +302,7 @@ func TestPageRectangleWithStyle(t *testing.T) {
 		{
 			name: "DrawAndFillRectangle with both colors",
 			setup: func(p *Page) {
-				p.SetStrokeColor(Black)
+				p.SetStrokeColor(ColorBlack)
 				p.SetFillColor(Color{R: 0.8, G: 0.8, B: 0.8})
 			},
 			method: func(p *Page) {
@@ -315,7 +315,7 @@ func TestPageRectangleWithStyle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc := New()
-			page := doc.AddPage(A4, Portrait)
+			page := doc.AddPage(PageSizeA4, Portrait)
 			tt.setup(page)
 			tt.method(page)
 
@@ -330,7 +330,7 @@ func TestPageRectangleWithStyle(t *testing.T) {
 // TestPageDrawCircle はDrawCircleメソッドをテストする
 func TestPageDrawCircle(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// 中心(300, 400)、半径50の円を描画（枠線のみ）
 	page.DrawCircle(300, 400, 50)
@@ -357,7 +357,7 @@ func TestPageDrawCircle(t *testing.T) {
 // TestPageFillCircle はFillCircleメソッドをテストする
 func TestPageFillCircle(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// 中心(300, 400)、半径50の円を塗りつぶし
 	page.FillCircle(300, 400, 50)
@@ -373,7 +373,7 @@ func TestPageFillCircle(t *testing.T) {
 // TestPageDrawAndFillCircle はDrawAndFillCircleメソッドをテストする
 func TestPageDrawAndFillCircle(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// 中心(300, 400)、半径50の円を枠線＋塗りつぶし
 	page.DrawAndFillCircle(300, 400, 50)
@@ -389,7 +389,7 @@ func TestPageDrawAndFillCircle(t *testing.T) {
 // TestCircleWithStyle は円描画のスタイル設定をテストする
 func TestCircleWithStyle(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// スタイルを設定
 	page.SetStrokeColor(Red)

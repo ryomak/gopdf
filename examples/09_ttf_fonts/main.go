@@ -20,10 +20,10 @@ func main() {
 	doc := gopdf.New()
 
 	// Add a page
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// Title with standard font
-	page.SetFont(gopdf.HelveticaBold, 24)
+	page.SetFont(gopdf.FontHelveticaBold, 24)
 	page.DrawText("TTF Font Support Example", 50, 800)
 
 	// Load a TTF font
@@ -66,7 +66,7 @@ func main() {
 	} else {
 		fmt.Println("Japanese font not found (this is optional)")
 		// Draw a note with the standard English font
-		page.SetFont(gopdf.Helvetica, 14)
+		page.SetFont(gopdf.FontHelvetica, 14)
 		page.DrawText("(Japanese font not available on this system)", 50, 680)
 	}
 

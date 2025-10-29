@@ -10,9 +10,9 @@ import (
 // TestPageSetFont はフォント設定をテストする
 func TestPageSetFont(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
-	err := page.SetFont(Helvetica, 12)
+	err := page.SetFont(FontHelvetica, 12)
 	if err != nil {
 		t.Fatalf("SetFont() failed: %v", err)
 	}
@@ -26,7 +26,7 @@ func TestPageSetFont(t *testing.T) {
 // TestPageDrawText はテキスト描画をテストする
 func TestPageDrawText(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// フォントを設定せずに描画しようとするとエラー
 	err := page.DrawText("Hello", 100, 700)
@@ -35,7 +35,7 @@ func TestPageDrawText(t *testing.T) {
 	}
 
 	// フォントを設定
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("Failed to set font: %v", err)
 	}
 
@@ -54,10 +54,10 @@ func TestPageDrawText(t *testing.T) {
 // TestDocumentWithText はテキスト付きPDFの生成をテストする
 func TestDocumentWithText(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// フォントを設定してテキストを描画
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("Failed to set font: %v", err)
 	}
 	if err := page.DrawText("Hello, World!", 100, 700); err != nil {
@@ -114,9 +114,9 @@ func TestDocumentWithText(t *testing.T) {
 // TestMultipleTextDrawing は複数のテキスト描画をテストする
 func TestMultipleTextDrawing(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("Failed to set font: %v", err)
 	}
 	if err := page.DrawText("Line 1", 100, 700); err != nil {
@@ -148,16 +148,16 @@ func TestMultipleTextDrawing(t *testing.T) {
 // TestDifferentFonts は異なるフォントの使用をテストする
 func TestDifferentFonts(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Helveticaで描画
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("Failed to set font: %v", err)
 	}
 	_ = page.DrawText("Helvetica text", 100, 700)
 
 	// Times-Romanに変更して描画
-	if err := page.SetFont(TimesRoman, 14); err != nil {
+	if err := page.SetFont(FontTimesRoman, 14); err != nil {
 		t.Fatalf("Failed to set font: %v", err)
 	}
 	_ = page.DrawText("Times text", 100, 680)
@@ -246,7 +246,7 @@ func TestPage_drawTextInternal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc := New()
-			page := doc.AddPage(A4, Portrait)
+			page := doc.AddPage(PageSizeA4, Portrait)
 			page.fontSize = tt.fontSize
 
 			page.drawTextInternal(tt.x, tt.y, tt.fontKey, tt.encodedText, tt.useBrackets)

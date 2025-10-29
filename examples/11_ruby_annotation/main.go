@@ -69,7 +69,7 @@ func main() {
 // createBasicRubyExample creates a PDF with basic ruby annotation
 func createBasicRubyExample(jpFont *gopdf.TTFFont, filename string) error {
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// Set Japanese font
 	page.SetTTFFont(jpFont, 20)
@@ -116,7 +116,7 @@ func createBasicRubyExample(jpFont *gopdf.TTFFont, filename string) error {
 // createAlignmentExample creates a PDF demonstrating different ruby alignments
 func createAlignmentExample(jpFont *gopdf.TTFFont, filename string) error {
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// Set Japanese font
 	page.SetTTFFont(jpFont, 20)
@@ -186,7 +186,7 @@ func createAlignmentExample(jpFont *gopdf.TTFFont, filename string) error {
 // createActualTextExample creates a PDF demonstrating ActualText copy modes
 func createActualTextExample(jpFont *gopdf.TTFFont, filename string) error {
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// Set Japanese font
 	page.SetTTFFont(jpFont, 20)
@@ -244,7 +244,7 @@ func createActualTextExample(jpFont *gopdf.TTFFont, filename string) error {
 // createMultipleRubyExample creates a PDF with multiple sequential ruby texts
 func createMultipleRubyExample(jpFont *gopdf.TTFFont, filename string) error {
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// Set Japanese font
 	page.SetTTFFont(jpFont, 20)

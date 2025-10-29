@@ -45,7 +45,7 @@ func main() {
 // createSimpleInvisibleText creates a PDF with an image and simple invisible text
 func createSimpleInvisibleText(filename string) error {
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// Create a simple image with text rendered on it
 	img := createSampleImage("Hello, World!", "This is a sample image")
@@ -60,7 +60,7 @@ func createSimpleInvisibleText(filename string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load image: %w", err)
 	}
-	if err := page.DrawImage(pdfImage, 0, 0, gopdf.A4.Width, gopdf.A4.Height); err != nil {
+	if err := page.DrawImage(pdfImage, 0, 0, gopdf.PageSizeA4.Width, gopdf.PageSizeA4.Height); err != nil {
 		return fmt.Errorf("failed to draw image: %w", err)
 	}
 
@@ -88,7 +88,7 @@ func createSimpleInvisibleText(filename string) error {
 // createOCRTextLayer simulates OCR results and creates a searchable PDF
 func createOCRTextLayer(filename string) error {
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// Create a sample image
 	img := createSampleImage(
@@ -107,7 +107,7 @@ func createOCRTextLayer(filename string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load image: %w", err)
 	}
-	if err := page.DrawImage(pdfImage, 0, 0, gopdf.A4.Width, gopdf.A4.Height); err != nil {
+	if err := page.DrawImage(pdfImage, 0, 0, gopdf.PageSizeA4.Width, gopdf.PageSizeA4.Height); err != nil {
 		return fmt.Errorf("failed to draw image: %w", err)
 	}
 
@@ -135,7 +135,7 @@ func createOCRTextLayer(filename string) error {
 	// Image size: 800x600 pixels, PDF page: A4 (595x842 points)
 	imageWidth := 800
 	imageHeight := 600
-	textLayer := ocrResult.ToTextLayer(imageWidth, imageHeight, gopdf.A4.Width, gopdf.A4.Height)
+	textLayer := ocrResult.ToTextLayer(imageWidth, imageHeight, gopdf.PageSizeA4.Width, gopdf.PageSizeA4.Height)
 
 	// Add text layer to page
 	if err := page.AddTextLayer(textLayer); err != nil {
@@ -162,7 +162,7 @@ func createOCRTextLayer(filename string) error {
 // createMultipleWordsExample demonstrates manual word positioning
 func createMultipleWordsExample(filename string) error {
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// Create image
 	img := createSampleImage(
@@ -180,7 +180,7 @@ func createMultipleWordsExample(filename string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load image: %w", err)
 	}
-	if err := page.DrawImage(pdfImage, 0, 0, gopdf.A4.Width, gopdf.A4.Height); err != nil {
+	if err := page.DrawImage(pdfImage, 0, 0, gopdf.PageSizeA4.Width, gopdf.PageSizeA4.Height); err != nil {
 		return fmt.Errorf("failed to draw image: %w", err)
 	}
 

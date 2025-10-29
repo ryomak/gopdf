@@ -38,15 +38,15 @@ func example1BasicPassword() error {
 
 	// Create a new PDF document
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// Add some text
-	if err := page.SetFont(gopdf.Helvetica, 24); err != nil {
+	if err := page.SetFont(gopdf.FontHelvetica, 24); err != nil {
 		return err
 	}
 	page.DrawText("Password Protected PDF", 100, 700)
 
-	page.SetFont(gopdf.Helvetica, 12)
+	page.SetFont(gopdf.FontHelvetica, 12)
 	page.DrawText("This PDF requires a password to open.", 100, 670)
 	page.DrawText("User password: user123", 100, 650)
 	page.DrawText("Owner password: owner123", 100, 630)
@@ -84,12 +84,12 @@ func example2RestrictedPermissions() error {
 	fmt.Println("Creating Example 2: Restricted permissions...")
 
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
-	page.SetFont(gopdf.Helvetica, 24)
+	page.SetFont(gopdf.FontHelvetica, 24)
 	page.DrawText("View-Only PDF", 100, 700)
 
-	page.SetFont(gopdf.Helvetica, 12)
+	page.SetFont(gopdf.FontHelvetica, 12)
 	page.DrawText("This PDF can be opened but cannot be printed or copied.", 100, 670)
 	page.DrawText("User password: user123", 100, 650)
 	page.DrawText("All operations are restricted.", 100, 630)
@@ -124,12 +124,12 @@ func example3CustomPermissions() error {
 	fmt.Println("Creating Example 3: Custom permissions...")
 
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
-	page.SetFont(gopdf.Helvetica, 24)
+	page.SetFont(gopdf.FontHelvetica, 24)
 	page.DrawText("Custom Permissions PDF", 100, 700)
 
-	page.SetFont(gopdf.Helvetica, 12)
+	page.SetFont(gopdf.FontHelvetica, 12)
 	page.DrawText("This PDF allows printing and copying only.", 100, 670)
 	page.DrawText("User password: user123", 100, 650)
 	page.DrawText("Allowed: Print, Copy", 100, 630)
@@ -176,12 +176,12 @@ func example4StrongEncryption() error {
 	fmt.Println("Creating Example 4: Strong encryption (128-bit)...")
 
 	doc := gopdf.New()
-	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
-	page.SetFont(gopdf.Helvetica, 24)
+	page.SetFont(gopdf.FontHelvetica, 24)
 	page.DrawText("128-bit Encrypted PDF", 100, 700)
 
-	page.SetFont(gopdf.Helvetica, 12)
+	page.SetFont(gopdf.FontHelvetica, 12)
 	page.DrawText("This PDF uses 128-bit RC4 encryption.", 100, 670)
 	page.DrawText("User password: strongpass", 100, 650)
 	page.DrawText("Owner password: ownerpass", 100, 630)

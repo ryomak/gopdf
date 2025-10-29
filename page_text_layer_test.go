@@ -8,10 +8,10 @@ import (
 
 func TestPage_AddInvisibleText(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -24,10 +24,10 @@ func TestPage_AddInvisibleText(t *testing.T) {
 
 func TestPage_AddTextLayer(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -50,10 +50,10 @@ func TestPage_AddTextLayer(t *testing.T) {
 
 func TestPage_AddTextLayer_EmptyWords(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -73,7 +73,7 @@ func TestPage_AddTextLayer_EmptyWords(t *testing.T) {
 
 func TestPage_AddTextLayer_NoFont(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Don't set font - should use default
 
@@ -94,10 +94,10 @@ func TestPage_AddTextLayer_NoFont(t *testing.T) {
 
 func TestPage_AddTextLayerWords(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -117,10 +117,10 @@ func TestPage_AddTextLayerWords(t *testing.T) {
 
 func TestPage_AddTextLayer_DifferentRenderModes(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -156,10 +156,10 @@ func TestPage_AddTextLayer_DifferentRenderModes(t *testing.T) {
 
 func TestPage_AddTextLayer_WithOpacity(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -201,10 +201,10 @@ func TestPage_AddTextLayer_Integration(t *testing.T) {
 
 	// Create document
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 

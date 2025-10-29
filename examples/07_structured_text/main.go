@@ -79,46 +79,46 @@ func createSamplePDF(filename string) {
 	doc := gopdf.New()
 
 	// ページ1: 複数のテキスト要素
-	page1 := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page1 := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// タイトル（大きいフォント、上部）
-	page1.SetFont(gopdf.HelveticaBold, 24)
+	page1.SetFont(gopdf.FontHelveticaBold, 24)
 	page1.DrawText("Structured Text Extraction", 50, 800)
 
 	// サブタイトル（中サイズ、タイトルの下）
-	page1.SetFont(gopdf.Helvetica, 14)
+	page1.SetFont(gopdf.FontHelvetica, 14)
 	page1.DrawText("Demonstration of Position and Style Information", 50, 770)
 
 	// セクション1（通常サイズ）
-	page1.SetFont(gopdf.HelveticaBold, 12)
+	page1.SetFont(gopdf.FontHelveticaBold, 12)
 	page1.DrawText("Section 1: Basic Text", 50, 730)
 
-	page1.SetFont(gopdf.Helvetica, 10)
+	page1.SetFont(gopdf.FontHelvetica, 10)
 	page1.DrawText("This is the first paragraph with normal size text.", 50, 710)
 	page1.DrawText("It demonstrates how text position is tracked.", 50, 695)
 
 	// セクション2（異なる位置）
-	page1.SetFont(gopdf.HelveticaBold, 12)
+	page1.SetFont(gopdf.FontHelveticaBold, 12)
 	page1.DrawText("Section 2: Multiple Lines", 50, 660)
 
-	page1.SetFont(gopdf.Courier, 10)
+	page1.SetFont(gopdf.FontCourier, 10)
 	page1.DrawText("Line 1 with Courier font", 50, 640)
 	page1.DrawText("Line 2 with same font", 50, 625)
 	page1.DrawText("Line 3 continues", 50, 610)
 
 	// 右側にもテキスト（異なるX座標）
-	page1.SetFont(gopdf.Helvetica, 10)
+	page1.SetFont(gopdf.FontHelvetica, 10)
 	page1.DrawText("Right", 300, 710)
 	page1.DrawText("Side", 300, 695)
 	page1.DrawText("Text", 300, 680)
 
 	// ページ2: シンプルなテキスト
-	page2 := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page2 := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
-	page2.SetFont(gopdf.HelveticaBold, 18)
+	page2.SetFont(gopdf.FontHelveticaBold, 18)
 	page2.DrawText("Page 2", 50, 800)
 
-	page2.SetFont(gopdf.Helvetica, 12)
+	page2.SetFont(gopdf.FontHelvetica, 12)
 	page2.DrawText("This is the second page.", 50, 770)
 	page2.DrawText("It has less content.", 50, 755)
 

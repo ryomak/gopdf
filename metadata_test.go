@@ -82,7 +82,7 @@ func TestMetadata_StandardFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc := New()
-			doc.AddPage(A4, Portrait)
+			doc.AddPage(PageSizeA4, Portrait)
 			doc.SetMetadata(tt.metadata)
 
 			var buf bytes.Buffer
@@ -132,7 +132,7 @@ func TestMetadata_StandardFields(t *testing.T) {
 // TestMetadata_CustomFields tests custom metadata fields
 func TestMetadata_CustomFields(t *testing.T) {
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	metadata := Metadata{
 		Title: "Document with Custom Fields",
@@ -189,7 +189,7 @@ func TestMetadata_CustomFields(t *testing.T) {
 // TestMetadata_DateFields tests date field formatting
 func TestMetadata_DateFields(t *testing.T) {
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	// Use specific time for testing
 	creationTime := time.Date(2025, 1, 29, 12, 30, 45, 0, time.FixedZone("JST", 9*3600))
@@ -246,7 +246,7 @@ func TestMetadata_DateFields(t *testing.T) {
 // TestMetadata_DefaultProducer tests default Producer value
 func TestMetadata_DefaultProducer(t *testing.T) {
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	metadata := Metadata{
 		Title: "Test Default Producer",
@@ -277,7 +277,7 @@ func TestMetadata_DefaultProducer(t *testing.T) {
 // TestMetadata_DefaultCreationDate tests default CreationDate value
 func TestMetadata_DefaultCreationDate(t *testing.T) {
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	metadata := Metadata{
 		Title: "Test Default CreationDate",
@@ -329,7 +329,7 @@ func TestMetadata_SpecialCharacters(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc := New()
-			doc.AddPage(A4, Portrait)
+			doc.AddPage(PageSizeA4, Portrait)
 
 			metadata := Metadata{
 				Title: tt.input,
@@ -361,7 +361,7 @@ func TestMetadata_SpecialCharacters(t *testing.T) {
 // TestMetadata_NonASCII tests encoding of non-ASCII characters
 func TestMetadata_NonASCII(t *testing.T) {
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	metadata := Metadata{
 		Title:   "日本語タイトル",
@@ -401,7 +401,7 @@ func TestMetadata_NonASCII(t *testing.T) {
 // TestMetadata_NoMetadata tests that PDF works without metadata
 func TestMetadata_NoMetadata(t *testing.T) {
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 	// No metadata set
 
 	var buf bytes.Buffer
@@ -427,7 +427,7 @@ func TestMetadata_NoMetadata(t *testing.T) {
 // TestMetadata_WithEncryption tests metadata with encryption
 func TestMetadata_WithEncryption(t *testing.T) {
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	// Set metadata
 	metadata := Metadata{

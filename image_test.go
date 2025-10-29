@@ -287,7 +287,7 @@ func TestLoadPNGFile(t *testing.T) {
 // TestPageDrawImage はDrawImageメソッドをテストする
 func TestPageDrawImage(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Create a minimal JPEG image
 	jpegData := createMinimalJPEG(100, 100, 3)
@@ -330,7 +330,7 @@ func TestPageDrawImage(t *testing.T) {
 // TestDocumentWithImage はDocument全体で画像が正しく処理されることをテストする
 func TestDocumentWithImage(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Create and load a test image
 	jpegData := createMinimalJPEG(320, 240, 3)
@@ -371,7 +371,7 @@ func TestDocumentWithImage(t *testing.T) {
 // TestMultipleImages は複数の画像を同じページに配置できることをテストする
 func TestMultipleImages(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Create two different images
 	img1, _ := LoadJPEG(bytes.NewReader(createMinimalJPEG(100, 100, 3)))
@@ -398,7 +398,7 @@ func TestMultipleImages(t *testing.T) {
 // TestDocumentWithPNGImage はPNG画像を含むPDFドキュメントをテストする
 func TestDocumentWithPNGImage(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Create and load a PNG image
 	pngData := createTestPNGImage(100, 100, false)
@@ -430,7 +430,7 @@ func TestDocumentWithPNGImage(t *testing.T) {
 // TestDocumentWithTransparentPNG は透明度ありPNG画像を含むPDFドキュメントをテストする
 func TestDocumentWithTransparentPNG(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Create and load a PNG image with alpha channel
 	pngData := createTestPNGImage(100, 100, true)
@@ -467,7 +467,7 @@ func TestDocumentWithTransparentPNG(t *testing.T) {
 // TestMixedImageFormats はJPEGとPNG混在をテストする
 func TestMixedImageFormats(t *testing.T) {
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Load JPEG
 	jpegData := createMinimalJPEG(100, 100, 3)

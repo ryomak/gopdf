@@ -40,62 +40,62 @@ func createEnglishPDF(filename string) error {
 	doc := gopdf.New()
 
 	// ページ1: タイトルと本文
-	page1 := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page1 := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
 	// タイトル
-	page1.SetFont(gopdf.HelveticaBold, 24)
+	page1.SetFont(gopdf.FontHelveticaBold, 24)
 	page1.DrawText("Technical Report", 50, 800)
 
 	// サブタイトル
-	page1.SetFont(gopdf.Helvetica, 14)
+	page1.SetFont(gopdf.FontHelvetica, 14)
 	page1.DrawText("Annual Performance Summary", 50, 770)
 
 	// セクション1
-	page1.SetFont(gopdf.HelveticaBold, 16)
+	page1.SetFont(gopdf.FontHelveticaBold, 16)
 	page1.DrawText("Introduction", 50, 720)
 
-	page1.SetFont(gopdf.Helvetica, 12)
+	page1.SetFont(gopdf.FontHelvetica, 12)
 	page1.DrawText("This document provides a comprehensive", 50, 695)
 	page1.DrawText("overview of the project performance", 50, 678)
 	page1.DrawText("during the fiscal year.", 50, 661)
 
 	// セクション2
-	page1.SetFont(gopdf.HelveticaBold, 16)
+	page1.SetFont(gopdf.FontHelveticaBold, 16)
 	page1.DrawText("Key Findings", 50, 620)
 
-	page1.SetFont(gopdf.Helvetica, 12)
+	page1.SetFont(gopdf.FontHelvetica, 12)
 	page1.DrawText("The analysis revealed significant", 50, 595)
 	page1.DrawText("improvements in efficiency and", 50, 578)
 	page1.DrawText("customer satisfaction metrics.", 50, 561)
 
 	// セクション3
-	page1.SetFont(gopdf.HelveticaBold, 16)
+	page1.SetFont(gopdf.FontHelveticaBold, 16)
 	page1.DrawText("Conclusion", 50, 520)
 
-	page1.SetFont(gopdf.Helvetica, 12)
+	page1.SetFont(gopdf.FontHelvetica, 12)
 	page1.DrawText("We recommend continued investment", 50, 495)
 	page1.DrawText("in infrastructure and training.", 50, 478)
 
 	// ページ2: より複雑なレイアウト
-	page2 := doc.AddPage(gopdf.A4, gopdf.Portrait)
+	page2 := doc.AddPage(gopdf.PageSizeA4, gopdf.Portrait)
 
-	page2.SetFont(gopdf.HelveticaBold, 20)
+	page2.SetFont(gopdf.FontHelveticaBold, 20)
 	page2.DrawText("Page 2 - Details", 50, 800)
 
 	// 左カラム
-	page2.SetFont(gopdf.HelveticaBold, 14)
+	page2.SetFont(gopdf.FontHelveticaBold, 14)
 	page2.DrawText("Left Column", 50, 750)
 
-	page2.SetFont(gopdf.Helvetica, 11)
+	page2.SetFont(gopdf.FontHelvetica, 11)
 	page2.DrawText("First item", 50, 730)
 	page2.DrawText("Second item", 50, 715)
 	page2.DrawText("Third item", 50, 700)
 
 	// 右カラム
-	page2.SetFont(gopdf.HelveticaBold, 14)
+	page2.SetFont(gopdf.FontHelveticaBold, 14)
 	page2.DrawText("Right Column", 320, 750)
 
-	page2.SetFont(gopdf.Helvetica, 11)
+	page2.SetFont(gopdf.FontHelvetica, 11)
 	page2.DrawText("Data point A", 320, 730)
 	page2.DrawText("Data point B", 320, 715)
 	page2.DrawText("Data point C", 320, 700)
@@ -176,7 +176,7 @@ func demonstrateTranslation(inputPath string, outputPath string) error {
 		fmt.Println("  Using embedded Koruri font for Japanese text")
 	} else {
 		// フォント読み込みに失敗した場合は標準フォントを使用（英語のみ）
-		targetFont = gopdf.Helvetica
+		targetFont = gopdf.FontHelvetica
 		targetFontName = "Helvetica"
 		fmt.Printf("  Warning: Failed to load Japanese font: %v\n", err)
 		fmt.Println("  Using Helvetica (English only)")

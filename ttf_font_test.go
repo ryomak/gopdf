@@ -132,7 +132,7 @@ func TestPage_SetTTFFont(t *testing.T) {
 	}
 
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	font, err := LoadTTF(fontPath)
 	if err != nil {
@@ -160,7 +160,7 @@ func TestPage_DrawTextUTF8(t *testing.T) {
 	}
 
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	font, err := LoadTTF(fontPath)
 	if err != nil {
@@ -205,7 +205,7 @@ func TestTTFFont_PDFGeneration(t *testing.T) {
 	}
 
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	font, err := LoadTTF(fontPath)
 	if err != nil {
@@ -266,7 +266,7 @@ func TestTTFFont_UnicodeText(t *testing.T) {
 	}
 
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	font, err := LoadTTF(fontPath)
 	if err != nil {

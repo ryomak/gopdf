@@ -9,10 +9,10 @@ import (
 func TestPage_DrawRuby(t *testing.T) {
 	// Create a test document
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set a font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -34,7 +34,7 @@ func TestPage_DrawRuby(t *testing.T) {
 func TestPage_DrawRuby_NoFont(t *testing.T) {
 	// Create a test document without setting font
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	rubyText := NewRubyText("Test", "test")
 	style := DefaultRubyStyle()
@@ -49,10 +49,10 @@ func TestPage_DrawRuby_NoFont(t *testing.T) {
 func TestPage_DrawRubyWithActualText(t *testing.T) {
 	// Create a test document
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set a font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -89,10 +89,10 @@ func TestPage_DrawRubyWithActualText(t *testing.T) {
 func TestPage_DrawRubyTexts(t *testing.T) {
 	// Create a test document
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set a font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -122,10 +122,10 @@ func TestPage_DrawRubyTexts(t *testing.T) {
 func TestPage_DrawRuby_Alignments(t *testing.T) {
 	// Create a test document
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set a font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -161,10 +161,10 @@ func TestPage_DrawRuby_Alignments(t *testing.T) {
 func TestPage_DrawRuby_SizeRatios(t *testing.T) {
 	// Create a test document
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set a font
-	if err := page.SetFont(Helvetica, 12); err != nil {
+	if err := page.SetFont(FontHelvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -206,14 +206,14 @@ func TestPage_GetCurrentFontName(t *testing.T) {
 		{
 			name: "Standard font",
 			setup: func(p *Page) error {
-				return p.SetFont(Helvetica, 12)
+				return p.SetFont(FontHelvetica, 12)
 			},
 			expected: "F1",
 		},
 		{
 			name: "Bold font",
 			setup: func(p *Page) error {
-				return p.SetFont(HelveticaBold, 12)
+				return p.SetFont(FontHelveticaBold, 12)
 			},
 			expected: "F2",
 		},
@@ -229,7 +229,7 @@ func TestPage_GetCurrentFontName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc := New()
-			page := doc.AddPage(A4, Portrait)
+			page := doc.AddPage(PageSizeA4, Portrait)
 
 			if err := tt.setup(page); err != nil {
 				t.Fatalf("Setup failed: %v", err)
@@ -252,10 +252,10 @@ func TestPage_DrawRuby_Integration(t *testing.T) {
 
 	// Create a test document
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 
 	// Set font
-	if err := page.SetFont(Helvetica, 16); err != nil {
+	if err := page.SetFont(FontHelvetica, 16); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 

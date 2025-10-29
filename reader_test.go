@@ -10,7 +10,7 @@ import (
 func TestOpen(t *testing.T) {
 	// WriterでPDFを生成
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 	_ = page.DrawText("Test", 100, 700) // エラー無視（テストの主目的ではない）
 
 	// 一時ファイルに書き込み
@@ -42,7 +42,7 @@ func TestOpen(t *testing.T) {
 func TestOpenReader(t *testing.T) {
 	// WriterでPDFを生成
 	doc := New()
-	page := doc.AddPage(A4, Portrait)
+	page := doc.AddPage(PageSizeA4, Portrait)
 	_ = page.DrawText("Test", 100, 700) // エラー無視（テストの主目的ではない）
 
 	// バッファに書き込み
@@ -79,7 +79,7 @@ func TestPDFReader_PageCount(t *testing.T) {
 			// PDFを生成
 			doc := New()
 			for i := 0; i < tt.pageCount; i++ {
-				doc.AddPage(A4, Portrait)
+				doc.AddPage(PageSizeA4, Portrait)
 			}
 
 			var buf bytes.Buffer
@@ -104,7 +104,7 @@ func TestPDFReader_PageCount(t *testing.T) {
 func TestPDFReader_Info(t *testing.T) {
 	// Writerで生成したPDFにはInfo辞書がないため、空のMetadataが返る
 	doc := New()
-	doc.AddPage(A4, Portrait)
+	doc.AddPage(PageSizeA4, Portrait)
 
 	var buf bytes.Buffer
 	if err := doc.WriteTo(&buf); err != nil {
