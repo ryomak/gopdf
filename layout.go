@@ -173,51 +173,234 @@ func convertImageBlocks(internalBlocks []content.ImageBlock) []layout.ImageBlock
 }
 
 // groupTextElements はTextElementsをTextBlocksにグループ化
+// 設計書: docs/text_block_grouping_design.md
 func (r *PDFReader) groupTextElements(elements []layout.TextElement) []layout.TextBlock {
 	if len(elements) == 0 {
 		return nil
 	}
 
-	// 1. Y座標でソート（上から下）
+	// 1. 行単位でグルーピング
+	lines := groupElementsByLine(elements)
+	if len(lines) == 0 {
+		return nil
+	}
+
+	// 2. ブロック単位でグルーピング
+	var blocks []layout.TextBlock
+	currentBlock := [][]layout.TextElement{lines[0]}
+
+	for i := 1; i < len(lines); i++ {
+		prevLine := lines[i-1]
+		currLine := lines[i]
+
+		if shouldMergeLines(prevLine, currLine) {
+			currentBlock = append(currentBlock, currLine)
+		} else {
+			// 現在のブロックを確定
+			blocks = append(blocks, createTextBlockFromLines(currentBlock))
+			// 新しいブロックを開始
+			currentBlock = [][]layout.TextElement{currLine}
+		}
+	}
+
+	// 最後のブロックを追加
+	blocks = append(blocks, createTextBlockFromLines(currentBlock))
+
+	return blocks
+}
+
+// groupElementsByLine は要素を行単位でグルーピング
+func groupElementsByLine(elements []layout.TextElement) [][]layout.TextElement {
+	if len(elements) == 0 {
+		return nil
+	}
+
+	// Y座標でソート（上から下）
 	sorted := make([]layout.TextElement, len(elements))
 	copy(sorted, elements)
 	sort.Slice(sorted, func(i, j int) bool {
+		// Y座標が同じ場合はX座標でソート（左から右）
+		if math.Abs(sorted[i].Y-sorted[j].Y) < 1.0 {
+			return sorted[i].X < sorted[j].X
+		}
 		return sorted[i].Y > sorted[j].Y
 	})
 
-	var blocks []layout.TextBlock
-	var currentBlock []layout.TextElement
-	threshold := 5.0 // ピクセル単位の閾値
+	var lines [][]layout.TextElement
+	currentLine := []layout.TextElement{sorted[0]}
 
-	for i, elem := range sorted {
-		if i == 0 {
-			currentBlock = []layout.TextElement{elem}
-			continue
-		}
+	for i := 1; i < len(sorted); i++ {
+		elem := sorted[i]
+		prevElem := sorted[i-1]
 
-		// 前の要素との距離を計算
-		prev := sorted[i-1]
-		xDist := math.Abs(elem.X - (prev.X + prev.Width))
-		yDist := math.Abs(elem.Y - prev.Y)
+		// Y座標の差を計算
+		yDiff := math.Abs(elem.Y - prevElem.Y)
+		// フォントサイズの平均
+		avgSize := (elem.Size + prevElem.Size) / 2
+		// 同じ行の閾値: フォントサイズの50%
+		lineThreshold := avgSize * 0.5
 
-		// 近接している場合は同じブロック
-		if yDist < threshold && xDist < prev.Size*2 {
-			currentBlock = append(currentBlock, elem)
+		if yDiff < lineThreshold {
+			// 同じ行
+			currentLine = append(currentLine, elem)
 		} else {
-			// 新しいブロック
-			if len(currentBlock) > 0 {
-				blocks = append(blocks, createTextBlock(currentBlock))
-			}
-			currentBlock = []layout.TextElement{elem}
+			// 新しい行
+			lines = append(lines, currentLine)
+			currentLine = []layout.TextElement{elem}
 		}
 	}
 
-	// 最後のブロック
-	if len(currentBlock) > 0 {
-		blocks = append(blocks, createTextBlock(currentBlock))
+	// 最後の行を追加
+	lines = append(lines, currentLine)
+
+	return lines
+}
+
+// shouldMergeLines は2つの行を同じブロックにマージするべきか判定
+func shouldMergeLines(prevLine, currLine []layout.TextElement) bool {
+	if len(prevLine) == 0 || len(currLine) == 0 {
+		return false
 	}
 
-	return blocks
+	// 行間を計算（PDFは下が原点なので、prevLineの下端とcurrLineの上端の差）
+	prevMinY := minY(prevLine)
+	currMaxY := maxY(currLine)
+	lineSpacing := prevMinY - currMaxY
+
+	// フォントサイズの平均
+	avgSize := (avgFontSize(prevLine) + avgFontSize(currLine)) / 2
+
+	// 行間の閾値: フォントサイズ * 1.5
+	// 通常の段落内の行間は1.2-1.5程度なので、これを超えたら段落が変わったと判定
+	lineSpacingThreshold := avgSize * 1.5
+
+	// X座標の範囲をチェック（段落の左端が揃っているか）
+	prevLeftX := minX(prevLine)
+	currLeftX := minX(currLine)
+	xDiff := math.Abs(prevLeftX - currLeftX)
+
+	// X座標の差の閾値: 50ポイント
+	// インデントなどで多少ずれていても同じ段落と判定
+	xThreshold := 50.0
+
+	// 条件: 行間が閾値以内 AND X座標が近い
+	return lineSpacing <= lineSpacingThreshold && xDiff <= xThreshold
+}
+
+// createTextBlockFromLines は行のリストからTextBlockを作成
+func createTextBlockFromLines(lines [][]layout.TextElement) layout.TextBlock {
+	if len(lines) == 0 {
+		return layout.TextBlock{}
+	}
+
+	// 全要素を収集
+	var allElements []layout.TextElement
+	for _, line := range lines {
+		allElements = append(allElements, line...)
+	}
+
+	// バウンディングボックスを計算
+	minX, minY := allElements[0].X, allElements[0].Y
+	maxX, maxY := allElements[0].X+allElements[0].Width, allElements[0].Y+allElements[0].Height
+
+	var totalSize float64
+	for _, elem := range allElements {
+		totalSize += elem.Size
+		minX = math.Min(minX, elem.X)
+		minY = math.Min(minY, elem.Y)
+		maxX = math.Max(maxX, elem.X+elem.Width)
+		maxY = math.Max(maxY, elem.Y+elem.Height)
+	}
+
+	avgSize := totalSize / float64(len(allElements))
+
+	// テキストを結合（行間に改行を入れる）
+	text := combineBlockText(lines)
+
+	return layout.TextBlock{
+		Text:     text,
+		Elements: allElements,
+		Rect: layout.Rectangle{
+			X:      minX,
+			Y:      minY,
+			Width:  maxX - minX,
+			Height: maxY - minY,
+		},
+		Font:     allElements[0].Font,
+		FontSize: avgSize,
+		Color:    layout.Color{R: 0, G: 0, B: 0},
+	}
+}
+
+// combineBlockText はブロック内のテキストを結合（行間に改行を保持）
+func combineBlockText(lines [][]layout.TextElement) string {
+	var result strings.Builder
+
+	for i, line := range lines {
+		if i > 0 {
+			result.WriteString("\n") // 行間は改行
+		}
+
+		for j, elem := range line {
+			if j > 0 {
+				result.WriteString(" ") // 単語間はスペース
+			}
+			result.WriteString(elem.Text)
+		}
+	}
+
+	return result.String()
+}
+
+// ヘルパー関数
+func minY(elements []layout.TextElement) float64 {
+	if len(elements) == 0 {
+		return 0
+	}
+	min := elements[0].Y
+	for _, e := range elements[1:] {
+		if e.Y < min {
+			min = e.Y
+		}
+	}
+	return min
+}
+
+func maxY(elements []layout.TextElement) float64 {
+	if len(elements) == 0 {
+		return 0
+	}
+	max := elements[0].Y + elements[0].Height
+	for _, e := range elements[1:] {
+		if e.Y+e.Height > max {
+			max = e.Y + e.Height
+		}
+	}
+	return max
+}
+
+func minX(elements []layout.TextElement) float64 {
+	if len(elements) == 0 {
+		return 0
+	}
+	min := elements[0].X
+	for _, e := range elements[1:] {
+		if e.X < min {
+			min = e.X
+		}
+	}
+	return min
+}
+
+func avgFontSize(elements []layout.TextElement) float64 {
+	if len(elements) == 0 {
+		return 0
+	}
+	sum := 0.0
+	for _, e := range elements {
+		sum += e.Size
+	}
+	return sum / float64(len(elements))
 }
 
 // createTextBlock はTextElementsからTextBlockを作成
