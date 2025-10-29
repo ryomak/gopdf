@@ -182,6 +182,22 @@ jobs:
 
           echo "Created and pushed tag: $NEW_VERSION"
 
+      - name: Set up Go for release
+        if: steps.determine_bump.outputs.bump_type != 'none'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run GoReleaser
+        if: steps.determine_bump.outputs.bump_type != 'none'
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: No version bump needed
         if: steps.determine_bump.outputs.bump_type == 'none'
         run: |

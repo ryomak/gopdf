@@ -36,9 +36,10 @@ mainブランチへのpushまたはPR時に実行：
    - 最新タグ以降のコミットメッセージを解析
    - Conventional Commitsに基づいてバージョンをインクリメント
    - 新しいバージョンタグを作成してGitHubにpush
+   - GoReleaserでGitHubリリースを作成
 
 #### release.yml
-タグがpushされた時に実行：
+タグがpushされた時に実行（手動実行用）：
 1. **test**: リリース前のテスト
 2. **release**: GoReleaserでリリースを作成
 
@@ -67,9 +68,23 @@ git push origin v1.2.3
 ```
 mainへのpush
     ↓
-test.yml実行（テスト・lint）
-    ↓
-auto-tag.yml実行（バージョン決定・タグ作成）
-    ↓
-release.yml実行（リリース作成）
+test.yml実行
+    ├── test（複数Goバージョン）
+    ├── lint
+    └── auto-tag（mainのみ）
+        ├── バージョン決定
+        ├── タグ作成
+        └── GitHubリリース作成
 ```
+
+## 注意事項
+
+### リリースの自動化について
+- mainブランチへのpushで、テストとlintが成功すると自動的にタグとリリースが作成されます
+- `feat:`, `fix:`, `perf:` のコミットがある場合のみバージョンがインクリメントされます
+- `docs:`, `chore:`, `test:` などのコミットだけではタグは作成されません
+
+### GITHUB_TOKENの制限
+- GitHub Actionsの`GITHUB_TOKEN`で作成したタグは、新しいワークフローをトリガーしません
+- そのため、test.ymlのauto-tagジョブ内でタグ作成とリリース作成を統合しています
+- release.ymlは手動でタグをpushした場合に実行されます
