@@ -12,6 +12,39 @@ type ToUnicodeCMap struct {
 	ranges  []CIDRange        // 範囲マッピング (bfrange)
 }
 
+// GetCharMapSize は charMap のエントリ数を返す（デバッグ用）
+func (cm *ToUnicodeCMap) GetCharMapSize() int {
+	if cm == nil {
+		return 0
+	}
+	return len(cm.charMap)
+}
+
+// GetRangesSize は ranges のエントリ数を返す（デバッグ用）
+func (cm *ToUnicodeCMap) GetRangesSize() int {
+	if cm == nil {
+		return 0
+	}
+	return len(cm.ranges)
+}
+
+// GetSampleMappings はサンプルマッピングを返す（デバッグ用）
+func (cm *ToUnicodeCMap) GetSampleMappings(count int) map[uint16]rune {
+	if cm == nil || count <= 0 {
+		return nil
+	}
+	samples := make(map[uint16]rune)
+	i := 0
+	for cid, r := range cm.charMap {
+		if i >= count {
+			break
+		}
+		samples[cid] = r
+		i++
+	}
+	return samples
+}
+
 // CIDRange はCIDの範囲マッピング
 type CIDRange struct {
 	StartCID  uint16

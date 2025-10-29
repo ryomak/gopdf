@@ -143,8 +143,11 @@ func (fm *FontManager) extractToUnicodeCMap(fontDict core.Dictionary) (*ToUnicod
 		return nil, fmt.Errorf("ToUnicode is not a Stream")
 	}
 
-	// ストリームデータを取得
-	data := stream.Data
+	// ストリームデータをデコード（フィルターを適用）
+	data, err := fm.reader.DecodeStream(stream)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode ToUnicode stream: %w", err)
+	}
 
 	// CMap をパース
 	cmap, err := ParseToUnicodeCMap(data)

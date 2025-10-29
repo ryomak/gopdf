@@ -600,6 +600,11 @@ func (r *Reader) GetPageContents(page core.Dictionary) ([]byte, error) {
 	return nil, fmt.Errorf("contents is neither a stream nor an array")
 }
 
+// DecodeStream はストリームをデコードする（公開API）
+func (r *Reader) DecodeStream(stream *core.Stream) ([]byte, error) {
+	return r.decodeStream(stream)
+}
+
 // decodeStream はストリームをデコードする
 func (r *Reader) decodeStream(stream *core.Stream) ([]byte, error) {
 	data := stream.Data

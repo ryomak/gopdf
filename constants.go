@@ -23,6 +23,12 @@ var (
 
 	// PageSizeA5 size: 148mm x 210mm
 	PageSizeA5 = PageSize{Width: 420.0, Height: 595.0}
+
+	// PageSizePresentation16x9 size: 10in x 5.625in (Widescreen)
+	PageSizePresentation16x9 = PageSize{Width: 720.0, Height: 405.0}
+
+	// PageSizePresentation4x3 size: 10in x 7.5in (Standard)
+	PageSizePresentation4x3 = PageSize{Width: 720.0, Height: 540.0}
 )
 
 // Orientation represents page orientation.

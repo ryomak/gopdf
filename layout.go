@@ -535,3 +535,238 @@ func (pl *PageLayout) SplitIntoPages(maxHeight, minSpacing, pageMargin float64) 
 
 	return pages, nil
 }
+
+// LayoutStrategy はレイアウト調整の戦略
+type LayoutStrategy string
+
+const (
+	// StrategyPreservePosition は元の位置をできるだけ保持
+	StrategyPreservePosition LayoutStrategy = "preserve_position"
+
+	// StrategyCompact は上に詰めて配置
+	StrategyCompact LayoutStrategy = "compact"
+
+	// StrategyEvenSpacing は均等間隔で配置
+	StrategyEvenSpacing LayoutStrategy = "even_spacing"
+
+	// StrategyFlowDown は上から下に流し込む（後続ブロックを自動調整）
+	StrategyFlowDown LayoutStrategy = "flow_down"
+)
+
+// LayoutAdjustmentOptions はレイアウト自動調整のオプション
+type LayoutAdjustmentOptions struct {
+	// 配置戦略
+	Strategy LayoutStrategy
+
+	// ブロック間の最小間隔
+	MinSpacing float64
+
+	// ページ端からのマージン
+	PageMargin float64
+}
+
+// DefaultLayoutAdjustmentOptions はデフォルトのオプション
+func DefaultLayoutAdjustmentOptions() LayoutAdjustmentOptions {
+	return LayoutAdjustmentOptions{
+		Strategy:   StrategyCompact,
+		MinSpacing: 10.0,
+		PageMargin: 20.0,
+	}
+}
+
+// AdjustLayout はPageLayoutを自動調整する
+func (pl *PageLayout) AdjustLayout(opts LayoutAdjustmentOptions) error {
+	switch opts.Strategy {
+	case StrategyFlowDown:
+		return pl.adjustLayoutFlowDown(opts)
+	case StrategyCompact:
+		return pl.adjustLayoutCompact(opts)
+	case StrategyEvenSpacing:
+		return pl.adjustLayoutEvenSpacing(opts)
+	case StrategyPreservePosition:
+		// 位置を保持するので何もしない
+		return nil
+	default:
+		return fmt.Errorf("unsupported layout strategy: %s", opts.Strategy)
+	}
+}
+
+// adjustLayoutFlowDown は上から順に配置し、前のブロックとの間隔を保つ
+func (pl *PageLayout) adjustLayoutFlowDown(opts LayoutAdjustmentOptions) error {
+	blocks := pl.SortedContentBlocks()
+	if len(blocks) == 0 {
+		return nil
+	}
+
+	// 各ブロックを識別するためのマップ（位置とサイズで識別）
+	type blockKey struct {
+		x, y, width, height float64
+		blockType           ContentBlockType
+	}
+
+	findTextBlockIndex := func(bounds Rectangle) int {
+		for i := range pl.TextBlocks {
+			if pl.TextBlocks[i].Rect.X == bounds.X &&
+				pl.TextBlocks[i].Rect.Y == bounds.Y &&
+				pl.TextBlocks[i].Rect.Width == bounds.Width &&
+				pl.TextBlocks[i].Rect.Height == bounds.Height {
+				return i
+			}
+		}
+		return -1
+	}
+
+	findImageBlockIndex := func(bounds Rectangle) int {
+		for i := range pl.Images {
+			if pl.Images[i].X == bounds.X &&
+				pl.Images[i].Y == bounds.Y &&
+				pl.Images[i].PlacedWidth == bounds.Width &&
+				pl.Images[i].PlacedHeight == bounds.Height {
+				return i
+			}
+		}
+		return -1
+	}
+
+	// 前のブロックの下端を追跡
+	prevBottom := blocks[0].Bounds().Y
+
+	for i := 1; i < len(blocks); i++ {
+		currentBounds := blocks[i].Bounds()
+		currentTop := currentBounds.Y + currentBounds.Height
+
+		// 前のブロックとの間隔をチェック
+		spacing := currentTop - prevBottom
+		if spacing < opts.MinSpacing {
+			// 間隔が足りない場合、下に移動
+			offset := opts.MinSpacing - spacing
+			newY := currentBounds.Y - offset
+
+			// ブロックを移動
+			switch blocks[i].Type() {
+			case ContentBlockTypeText:
+				idx := findTextBlockIndex(currentBounds)
+				if idx >= 0 {
+					pl.TextBlocks[idx].Rect.Y = newY
+					prevBottom = newY
+				}
+			case ContentBlockTypeImage:
+				idx := findImageBlockIndex(currentBounds)
+				if idx >= 0 {
+					pl.Images[idx].Y = newY
+					prevBottom = newY
+				}
+			}
+		} else {
+			prevBottom = currentBounds.Y
+		}
+	}
+
+	return nil
+}
+
+// adjustLayoutCompact はブロックを上に詰めて配置
+func (pl *PageLayout) adjustLayoutCompact(opts LayoutAdjustmentOptions) error {
+	blocks := pl.SortedContentBlocks()
+	if len(blocks) == 0 {
+		return nil
+	}
+
+	// ページトップから配置
+	currentY := pl.Height - opts.PageMargin
+
+	for _, block := range blocks {
+		bounds := block.Bounds()
+		newY := currentY - bounds.Height
+
+		switch block.Type() {
+		case ContentBlockTypeText:
+			// 元のTextBlockを探して更新
+			for i := range pl.TextBlocks {
+				if pl.TextBlocks[i].Rect.X == bounds.X &&
+					pl.TextBlocks[i].Rect.Y == bounds.Y &&
+					pl.TextBlocks[i].Rect.Width == bounds.Width &&
+					pl.TextBlocks[i].Rect.Height == bounds.Height {
+					pl.TextBlocks[i].Rect.Y = newY
+					break
+				}
+			}
+		case ContentBlockTypeImage:
+			for i := range pl.Images {
+				if pl.Images[i].X == bounds.X &&
+					pl.Images[i].Y == bounds.Y &&
+					pl.Images[i].PlacedWidth == bounds.Width &&
+					pl.Images[i].PlacedHeight == bounds.Height {
+					pl.Images[i].Y = newY
+					break
+				}
+			}
+		}
+
+		currentY = newY - opts.MinSpacing
+	}
+
+	return nil
+}
+
+// adjustLayoutEvenSpacing はブロックを均等間隔で配置
+func (pl *PageLayout) adjustLayoutEvenSpacing(opts LayoutAdjustmentOptions) error {
+	blocks := pl.SortedContentBlocks()
+	if len(blocks) == 0 {
+		return nil
+	}
+
+	// 全ブロックの高さの合計を計算
+	totalHeight := float64(0)
+	for _, block := range blocks {
+		totalHeight += block.Bounds().Height
+	}
+
+	// 利用可能な空間
+	availableSpace := pl.Height - 2*opts.PageMargin - totalHeight
+	if availableSpace < 0 {
+		// 空間が足りない場合はCompact戦略にフォールバック
+		return pl.adjustLayoutCompact(opts)
+	}
+
+	// 均等な間隔を計算
+	spacing := availableSpace / float64(len(blocks)-1)
+	if spacing < opts.MinSpacing {
+		spacing = opts.MinSpacing
+	}
+
+	// 配置
+	currentY := pl.Height - opts.PageMargin
+
+	for _, block := range blocks {
+		bounds := block.Bounds()
+		newY := currentY - bounds.Height
+
+		switch block.Type() {
+		case ContentBlockTypeText:
+			for i := range pl.TextBlocks {
+				if pl.TextBlocks[i].Rect.X == bounds.X &&
+					pl.TextBlocks[i].Rect.Y == bounds.Y &&
+					pl.TextBlocks[i].Rect.Width == bounds.Width &&
+					pl.TextBlocks[i].Rect.Height == bounds.Height {
+					pl.TextBlocks[i].Rect.Y = newY
+					break
+				}
+			}
+		case ContentBlockTypeImage:
+			for i := range pl.Images {
+				if pl.Images[i].X == bounds.X &&
+					pl.Images[i].Y == bounds.Y &&
+					pl.Images[i].PlacedWidth == bounds.Width &&
+					pl.Images[i].PlacedHeight == bounds.Height {
+					pl.Images[i].Y = newY
+					break
+				}
+			}
+		}
+
+		currentY = newY - spacing
+	}
+
+	return nil
+}
