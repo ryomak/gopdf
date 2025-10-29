@@ -126,7 +126,9 @@ func (r *documentRenderer) renderHeading(heading *ast.Heading) error {
 	r.checkPageBreak(fontSize + r.style.ParagraphSpacing)
 
 	// Set font and color
-	r.currentPage.SetFont(FontHelveticaBold, fontSize)
+	if err := r.currentPage.SetFont(FontHelveticaBold, fontSize); err != nil {
+		return fmt.Errorf("failed to set font: %w", err)
+	}
 	r.currentPage.SetFillColor(convertColor(r.style.HeadingColor))
 
 	// Extract text from children
@@ -158,7 +160,9 @@ func (r *documentRenderer) renderParagraph(para *ast.Paragraph) error {
 	r.checkPageBreak(estimatedHeight)
 
 	// Set font and color
-	r.currentPage.SetFont(FontHelvetica, r.style.BodySize)
+	if err := r.currentPage.SetFont(FontHelvetica, r.style.BodySize); err != nil {
+		return fmt.Errorf("failed to set font: %w", err)
+	}
 	r.currentPage.SetFillColor(convertColor(r.style.TextColor))
 
 	// For now, draw as a single line
