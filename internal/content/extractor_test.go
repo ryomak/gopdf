@@ -16,7 +16,7 @@ func TestTextExtractor_Extract(t *testing.T) {
 		{Operator: "ET"},
 	}
 
-	extractor := NewTextExtractor(operations)
+	extractor := NewTextExtractor(operations, nil, nil)
 	elements, err := extractor.Extract()
 
 	if err != nil {
@@ -57,7 +57,7 @@ func TestTextExtractor_MultipleTexts(t *testing.T) {
 		{Operator: "ET"},
 	}
 
-	extractor := NewTextExtractor(operations)
+	extractor := NewTextExtractor(operations, nil, nil)
 	elements, err := extractor.Extract()
 
 	if err != nil {
@@ -93,7 +93,7 @@ func TestTextExtractor_TJ(t *testing.T) {
 		{Operator: "ET"},
 	}
 
-	extractor := NewTextExtractor(operations)
+	extractor := NewTextExtractor(operations, nil, nil)
 	elements, err := extractor.Extract()
 
 	if err != nil {
@@ -125,7 +125,7 @@ func TestTextExtractor_Tm(t *testing.T) {
 		{Operator: "ET"},
 	}
 
-	extractor := NewTextExtractor(operations)
+	extractor := NewTextExtractor(operations, nil, nil)
 	elements, err := extractor.Extract()
 
 	if err != nil {
@@ -158,7 +158,7 @@ func TestTextExtractor_TStar(t *testing.T) {
 		{Operator: "ET"},
 	}
 
-	extractor := NewTextExtractor(operations)
+	extractor := NewTextExtractor(operations, nil, nil)
 	elements, err := extractor.Extract()
 
 	if err != nil {
@@ -186,7 +186,7 @@ func TestTextExtractor_Quote(t *testing.T) {
 		{Operator: "ET"},
 	}
 
-	extractor := NewTextExtractor(operations)
+	extractor := NewTextExtractor(operations, nil, nil)
 	elements, err := extractor.Extract()
 
 	if err != nil {
@@ -209,7 +209,7 @@ func TestTextExtractor_NoText(t *testing.T) {
 		{Operator: "Q"},
 	}
 
-	extractor := NewTextExtractor(operations)
+	extractor := NewTextExtractor(operations, nil, nil)
 	elements, err := extractor.Extract()
 
 	if err != nil {
@@ -245,7 +245,7 @@ ET`
 		t.Fatalf("ParseOperations failed: %v", err)
 	}
 
-	extractor := NewTextExtractor(operations)
+	extractor := NewTextExtractor(operations, nil, nil)
 	elements, err := extractor.Extract()
 
 	if err != nil {

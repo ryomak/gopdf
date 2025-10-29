@@ -10,6 +10,28 @@ import (
 	"github.com/ryomak/gopdf/internal/utils"
 )
 
+// ContentBlock はページ内のコンテンツブロックを表す統一インターフェース
+type ContentBlock interface {
+	// Bounds はブロックの境界矩形を返す
+	Bounds() Rectangle
+
+	// Type はブロックの種類を返す
+	Type() ContentBlockType
+
+	// Position はブロックの配置位置を返す（左下座標）
+	Position() (x, y float64)
+}
+
+// ContentBlockType はコンテンツブロックの種類
+type ContentBlockType string
+
+const (
+	// ContentBlockTypeText はテキストブロック
+	ContentBlockTypeText ContentBlockType = "text"
+	// ContentBlockTypeImage は画像ブロック
+	ContentBlockTypeImage ContentBlockType = "image"
+)
+
 // PageLayout はページの完全なレイアウト情報
 type PageLayout struct {
 	PageNum    int          // ページ番号（0-indexed）
@@ -21,12 +43,27 @@ type PageLayout struct {
 
 // TextBlock はテキストの論理的なブロック
 type TextBlock struct {
-	Text      string        // テキスト内容
-	Elements  []TextElement // 構成要素
-	Bounds    Rectangle     // バウンディングボックス
-	Font      string        // 主要フォント
-	FontSize  float64       // 主要フォントサイズ
-	Color     Color         // テキスト色
+	Text       string        // テキスト内容
+	Elements   []TextElement // 構成要素
+	Rect Rectangle     // バウンディングボックス
+	Font       string        // 主要フォント
+	FontSize   float64       // 主要フォントサイズ
+	Color      Color         // テキスト色
+}
+
+// Bounds はブロックの境界矩形を返す（ContentBlockインターフェース実装）
+func (tb TextBlock) Bounds() Rectangle {
+	return tb.Rect
+}
+
+// Type はブロックの種類を返す（ContentBlockインターフェース実装）
+func (tb TextBlock) Type() ContentBlockType {
+	return ContentBlockTypeText
+}
+
+// Position はブロックの配置位置を返す（ContentBlockインターフェース実装）
+func (tb TextBlock) Position() (x, y float64) {
+	return tb.Rect.X, tb.Rect.Y
 }
 
 // ImageBlock は画像の配置情報
@@ -36,6 +73,26 @@ type ImageBlock struct {
 	Y            float64   // 配置Y座標
 	PlacedWidth  float64   // 表示幅
 	PlacedHeight float64   // 表示高さ
+}
+
+// Bounds はブロックの境界矩形を返す（ContentBlockインターフェース実装）
+func (ib ImageBlock) Bounds() Rectangle {
+	return Rectangle{
+		X:      ib.X,
+		Y:      ib.Y,
+		Width:  ib.PlacedWidth,
+		Height: ib.PlacedHeight,
+	}
+}
+
+// Type はブロックの種類を返す（ContentBlockインターフェース実装）
+func (ib ImageBlock) Type() ContentBlockType {
+	return ContentBlockTypeImage
+}
+
+// Position はブロックの配置位置を返す（ContentBlockインターフェース実装）
+func (ib ImageBlock) Position() (x, y float64) {
+	return ib.X, ib.Y
 }
 
 // Rectangle は矩形領域
@@ -71,7 +128,7 @@ func (r *PDFReader) ExtractPageLayout(pageNum int) (*PageLayout, error) {
 	}
 
 	// テキスト要素を抽出
-	textExtractor := content.NewTextExtractor(operations)
+	textExtractor := content.NewTextExtractor(operations, r.r, page)
 	textElements, err := textExtractor.Extract()
 	if err != nil {
 		return nil, err
@@ -253,7 +310,7 @@ func createTextBlock(elements []TextElement) TextBlock {
 	return TextBlock{
 		Text:     text.String(),
 		Elements: elements,
-		Bounds: Rectangle{
+		Rect: Rectangle{
 			X:      minX,
 			Y:      minY,
 			Width:  maxX - minX,
@@ -274,4 +331,49 @@ func toFloat64(obj core.Object) float64 {
 	default:
 		return 0
 	}
+}
+
+// ContentBlocks はページ内のすべてのコンテンツブロックをY座標順で返す
+func (pl *PageLayout) ContentBlocks() []ContentBlock {
+	var blocks []ContentBlock
+
+	// TextBlocksを追加
+	for _, tb := range pl.TextBlocks {
+		blocks = append(blocks, tb)
+	}
+
+	// ImageBlocksを追加
+	for _, ib := range pl.Images {
+		blocks = append(blocks, ib)
+	}
+
+	// Y座標でソート（上から下）
+	sort.Slice(blocks, func(i, j int) bool {
+		_, yi := blocks[i].Position()
+		_, yj := blocks[j].Position()
+		return yi > yj
+	})
+
+	return blocks
+}
+
+// SortedContentBlocks はコンテンツブロックをソート順で返す
+// ソート順: Y座標（上から下）、同じY座標ならX座標（左から右）
+func (pl *PageLayout) SortedContentBlocks() []ContentBlock {
+	blocks := pl.ContentBlocks()
+
+	sort.Slice(blocks, func(i, j int) bool {
+		xi, yi := blocks[i].Position()
+		xj, yj := blocks[j].Position()
+
+		// Y座標で比較（上から下）
+		if math.Abs(yi-yj) > 1.0 {
+			return yi > yj
+		}
+
+		// X座標で比較（左から右）
+		return xi < xj
+	})
+
+	return blocks
 }

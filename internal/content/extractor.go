@@ -5,6 +5,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/ryomak/gopdf/internal/core"
+	"github.com/ryomak/gopdf/internal/reader"
 	"github.com/ryomak/gopdf/internal/utils"
 )
 
@@ -20,6 +21,12 @@ type TextElement struct {
 // TextExtractor はテキストを抽出する
 type TextExtractor struct {
 	operations []Operation
+	reader     *reader.Reader  // PDFリーダー (フォント情報取得用)
+	page       core.Dictionary // ページリソース
+
+	// フォント管理
+	fontManager     *FontManager
+	currentFontInfo *FontInfo
 
 	// テキスト状態
 	textMatrix  [6]float64 // Current text matrix
@@ -32,9 +39,17 @@ type TextExtractor struct {
 }
 
 // NewTextExtractor は新しいTextExtractorを作成する
-func NewTextExtractor(operations []Operation) *TextExtractor {
+func NewTextExtractor(operations []Operation, r *reader.Reader, page core.Dictionary) *TextExtractor {
+	var fontManager *FontManager
+	if r != nil {
+		fontManager = NewFontManager(r)
+	}
+
 	return &TextExtractor{
-		operations: operations,
+		operations:  operations,
+		reader:      r,
+		page:        page,
+		fontManager: fontManager,
 	}
 }
 
@@ -57,6 +72,32 @@ func (e *TextExtractor) Extract() ([]TextElement, error) {
 			if len(op.Operands) >= 2 {
 				e.currentFont = getString(op.Operands[0])
 				e.fontSize = getNumber(op.Operands[1])
+
+				// フォント情報を取得
+				if e.fontManager != nil && e.page != nil {
+					// ページリソースからフォント情報を取得
+					pageResources, ok := e.page["Resources"]
+					if ok {
+						// 間接参照を解決
+						if ref, isRef := pageResources.(*core.Reference); isRef {
+							var err error
+							pageResources, err = e.reader.ResolveReference(ref)
+							if err == nil {
+								if resDict, ok := pageResources.(core.Dictionary); ok {
+									fontInfo, err := e.fontManager.GetFont(e.currentFont, resDict)
+									if err == nil {
+										e.currentFontInfo = fontInfo
+									}
+								}
+							}
+						} else if resDict, ok := pageResources.(core.Dictionary); ok {
+							fontInfo, err := e.fontManager.GetFont(e.currentFont, resDict)
+							if err == nil {
+								e.currentFontInfo = fontInfo
+							}
+						}
+					}
+				}
 			}
 
 		case "Td": // Move text position
@@ -84,7 +125,7 @@ func (e *TextExtractor) Extract() ([]TextElement, error) {
 
 		case "Tj": // Show text
 			if len(op.Operands) >= 1 {
-				text := getString(op.Operands[0])
+				text := e.getTextString(op.Operands[0])
 				elem := e.createTextElement(text)
 				elements = append(elements, elem)
 			}
@@ -94,7 +135,8 @@ func (e *TextExtractor) Extract() ([]TextElement, error) {
 				if array, ok := utils.ExtractAs[core.Array](op.Operands[0]); ok {
 					for _, item := range array {
 						if str, ok := utils.ExtractAs[core.String](item); ok {
-							elem := e.createTextElement(string(str))
+							text := e.getTextString(core.String(str))
+							elem := e.createTextElement(text)
 							elements = append(elements, elem)
 						}
 						// 数値の場合は位置調整（今は無視）
@@ -105,7 +147,7 @@ func (e *TextExtractor) Extract() ([]TextElement, error) {
 		case "'": // Move to next line and show text
 			e.moveText(0, -e.leading)
 			if len(op.Operands) >= 1 {
-				text := getString(op.Operands[0])
+				text := e.getTextString(op.Operands[0])
 				elem := e.createTextElement(text)
 				elements = append(elements, elem)
 			}
@@ -115,7 +157,7 @@ func (e *TextExtractor) Extract() ([]TextElement, error) {
 				e.wordSpacing = getNumber(op.Operands[0])
 				e.charSpacing = getNumber(op.Operands[1])
 				e.moveText(0, -e.leading)
-				text := getString(op.Operands[2])
+				text := e.getTextString(op.Operands[2])
 				elem := e.createTextElement(text)
 				elements = append(elements, elem)
 			}
@@ -209,6 +251,31 @@ func getString(obj core.Object) string {
 	switch v := obj.(type) {
 	case core.String:
 		return decodePDFString([]byte(v))
+	case core.Name:
+		return string(v)
+	default:
+		return ""
+	}
+}
+
+// getTextString はテキスト表示用の文字列を取得する
+// ToUnicode CMapがあればそれを使用し、なければ通常のエンコーディングを使用
+func (e *TextExtractor) getTextString(obj core.Object) string {
+	switch v := obj.(type) {
+	case core.String:
+		data := []byte(v)
+
+		// ToUnicode CMapがあれば優先的に使用
+		if e.currentFontInfo != nil && e.currentFontInfo.ToUnicodeCMap != nil {
+			result := e.currentFontInfo.ToUnicodeCMap.LookupString(data)
+			if result != "" {
+				return result
+			}
+		}
+
+		// ToUnicode がない、または失敗した場合は通常のデコード
+		return decodePDFString(data)
+
 	case core.Name:
 		return string(v)
 	default:

@@ -140,8 +140,8 @@ func demonstrateLayoutExtraction(filename string) error {
 		for i, block := range layout.TextBlocks {
 			fmt.Printf("\n  Text Block %d:\n", i+1)
 			fmt.Printf("    Text: %s\n", block.Text)
-			fmt.Printf("    Position: (%.1f, %.1f)\n", block.Bounds.X, block.Bounds.Y)
-			fmt.Printf("    Size: %.1f x %.1f\n", block.Bounds.Width, block.Bounds.Height)
+			fmt.Printf("    Position: (%.1f, %.1f)\n", block.Rect.X, block.Rect.Y)
+			fmt.Printf("    Size: %.1f x %.1f\n", block.Rect.Width, block.Rect.Height)
 			fmt.Printf("    Font: %s, Size: %.1f\n", block.Font, block.FontSize)
 		}
 

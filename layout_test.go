@@ -61,7 +61,7 @@ func TestExtractPageLayout(t *testing.T) {
 
 	t.Logf("Found %d text blocks", len(layout.TextBlocks))
 	for i, block := range layout.TextBlocks {
-		t.Logf("Block %d: %q at (%.1f, %.1f)", i, block.Text, block.Bounds.X, block.Bounds.Y)
+		t.Logf("Block %d: %q at (%.1f, %.1f)", i, block.Text, block.Rect.X, block.Rect.Y)
 	}
 }
 
@@ -174,11 +174,11 @@ func TestCreateTextBlock(t *testing.T) {
 	}
 
 	// バウンディングボックスが正しく計算されていることを検証
-	if block.Bounds.X != 100 {
-		t.Errorf("Bounds.X = %.1f, want 100.0", block.Bounds.X)
+	if block.Rect.X != 100 {
+		t.Errorf("Bounds.X = %.1f, want 100.0", block.Rect.X)
 	}
-	if block.Bounds.Y != 700 {
-		t.Errorf("Bounds.Y = %.1f, want 700.0", block.Bounds.Y)
+	if block.Rect.Y != 700 {
+		t.Errorf("Bounds.Y = %.1f, want 700.0", block.Rect.Y)
 	}
 }
 

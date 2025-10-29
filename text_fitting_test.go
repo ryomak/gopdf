@@ -233,7 +233,7 @@ func TestDefaultFitTextOptions(t *testing.T) {
 func TestFitTextInBlock(t *testing.T) {
 	block := TextBlock{
 		Text: "Original text",
-		Bounds: Rectangle{
+		Rect: Rectangle{
 			X:      50,
 			Y:      700,
 			Width:  200,

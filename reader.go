@@ -132,7 +132,7 @@ func (r *PDFReader) ExtractPageText(pageNum int) (string, error) {
 	}
 
 	// テキストを抽出
-	extractor := content.NewTextExtractor(operations)
+	extractor := content.NewTextExtractor(operations, r.r, page)
 	elements, err := extractor.Extract()
 	if err != nil {
 		return "", err
@@ -185,7 +185,7 @@ func (r *PDFReader) ExtractPageTextElements(pageNum int) ([]TextElement, error) 
 	}
 
 	// テキストを抽出
-	extractor := content.NewTextExtractor(operations)
+	extractor := content.NewTextExtractor(operations, r.r, page)
 	internalElements, err := extractor.Extract()
 	if err != nil {
 		return nil, err

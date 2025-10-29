@@ -165,14 +165,14 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 
 		for _, block := range layout.TextBlocks {
 			// テキストをフィッティング
-			fitted, err := FitText(block.Text, block.Bounds, opts.TargetFontName, opts.FittingOptions)
+			fitted, err := FitText(block.Text, block.Rect, opts.TargetFontName, opts.FittingOptions)
 			if err != nil {
 				// フィッティングできない場合は元のサイズを使用
 				if err := setPageFont(page, opts.TargetFont, block.FontSize); err != nil {
 					continue
 				}
 				// 適切な描画メソッドを使用
-				_ = drawPageText(page, opts.TargetFont, block.Text, block.Bounds.X, block.Bounds.Y)
+				_ = drawPageText(page, opts.TargetFont, block.Text, block.Rect.X, block.Rect.Y)
 				continue
 			}
 
@@ -181,17 +181,17 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 				continue
 			}
 			// 上から下に描画（Y座標が大きい方から小さい方へ）
-			y := block.Bounds.Y + block.Bounds.Height - fitted.LineHeight
+			y := block.Rect.Y + block.Rect.Height - fitted.LineHeight
 			for _, line := range fitted.Lines {
 				if line != "" {
-					x := block.Bounds.X
+					x := block.Rect.X
 					// アラインメントに応じてX座標を調整
 					if opts.FittingOptions.Alignment == AlignCenter {
 						lineWidth := estimateTextWidth(line, fitted.FontSize, opts.TargetFontName)
-						x = block.Bounds.X + (block.Bounds.Width-lineWidth)/2
+						x = block.Rect.X + (block.Rect.Width-lineWidth)/2
 					} else if opts.FittingOptions.Alignment == AlignRight {
 						lineWidth := estimateTextWidth(line, fitted.FontSize, opts.TargetFontName)
-						x = block.Bounds.X + block.Bounds.Width - lineWidth
+						x = block.Rect.X + block.Rect.Width - lineWidth
 					}
 					// 適切な描画メソッドを使用
 					_ = drawPageText(page, opts.TargetFont, line, x, y)

@@ -100,7 +100,7 @@ func FitText(text string, bounds Rectangle, fontName string, opts FitTextOptions
 
 // FitTextInBlock はTextBlock内にテキストをフィッティング
 func FitTextInBlock(text string, block TextBlock, fontName string, opts FitTextOptions) (*FittedText, error) {
-	return FitText(text, block.Bounds, fontName, opts)
+	return FitText(text, block.Rect, fontName, opts)
 }
 
 // wrapText はテキストを指定幅で改行
