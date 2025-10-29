@@ -79,3 +79,110 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
+
+  auto-tag:
+    name: Create version tag
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 全履歴を取得（タグ情報が必要）
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          # 最新のタグを取得（存在しない場合はv0.0.0とする）
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest tag: $LATEST_TAG"
+
+      - name: Determine version bump
+        id: determine_bump
+        run: |
+          LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+
+          # 最新タグ以降のコミットメッセージを取得
+          if [ "$LATEST_TAG" = "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"%s")
+          else
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%s")
+          fi
+
+          echo "Commits since $LATEST_TAG:"
+          echo "$COMMITS"
+
+          # バージョンタイプを判定
+          BUMP_TYPE="none"
+
+          # BREAKING CHANGEまたは!付きコミットをチェック（MAJOR）
+          if echo "$COMMITS" | grep -qE "^[a-z]+(\([a-z]+\))?!:|BREAKING CHANGE:"; then
+            BUMP_TYPE="major"
+          # featコミットをチェック（MINOR）
+          elif echo "$COMMITS" | grep -qE "^feat(\([a-z]+\))?:"; then
+            BUMP_TYPE="minor"
+          # fix, perfコミットをチェック（PATCH）
+          elif echo "$COMMITS" | grep -qE "^(fix|perf)(\([a-z]+\))?:"; then
+            BUMP_TYPE="patch"
+          fi
+
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "Bump type: $BUMP_TYPE"
+
+      - name: Calculate new version
+        id: calculate_version
+        if: steps.determine_bump.outputs.bump_type != 'none'
+        run: |
+          LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+          BUMP_TYPE="${{ steps.determine_bump.outputs.bump_type }}"
+
+          # v接頭辞を除去
+          VERSION=${LATEST_TAG#v}
+
+          # バージョンを分解
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          # バージョンをインクリメント
+          case $BUMP_TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Create and push tag
+        if: steps.determine_bump.outputs.bump_type != 'none'
+        run: |
+          NEW_VERSION="${{ steps.calculate_version.outputs.new_version }}"
+
+          # タグを作成
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
+
+          # タグをpush
+          git push origin "$NEW_VERSION"
+
+          echo "Created and pushed tag: $NEW_VERSION"
+
+      - name: No version bump needed
+        if: steps.determine_bump.outputs.bump_type == 'none'
+        run: |
+          echo "No version bump needed. Commits do not contain feat, fix, perf, or breaking changes."
