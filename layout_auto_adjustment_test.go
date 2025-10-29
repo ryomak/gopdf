@@ -231,7 +231,7 @@ func TestAdjustLayout_StrategyFitContent(t *testing.T) {
 	opts := LayoutAdjustmentOptions{
 		Strategy: StrategyFitContent,
 	}
-	err := layout.AdjustLayout(opts)
+	err := AdjustLayout(layout, opts)
 	if err != nil {
 		t.Fatalf("AdjustLayout failed: %v", err)
 	}

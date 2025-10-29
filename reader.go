@@ -7,6 +7,7 @@ import (
 
 	"github.com/ryomak/gopdf/internal/content"
 	"github.com/ryomak/gopdf/internal/reader"
+	"github.com/ryomak/gopdf/layout"
 )
 
 // PDFReader はPDFを読み込むための構造体
@@ -68,37 +69,19 @@ func (r *PDFReader) Info() Metadata {
 	return parseInfoDict(infoDict)
 }
 
-// TextElement はテキスト要素の位置とスタイル情報
-type TextElement struct {
-	Text   string  // テキスト内容
-	X      float64 // X座標（左下原点）
-	Y      float64 // Y座標（左下原点）
-	Width  float64 // テキストの幅（概算）
-	Height float64 // テキストの高さ（フォントサイズ）
-	Font   string  // フォント名
-	Size   float64 // フォントサイズ
-}
-
-// ImageFormat は画像フォーマット
-type ImageFormat string
-
-const (
-	ImageFormatJPEG    ImageFormat = "jpeg"
-	ImageFormatPNG     ImageFormat = "png"
-	ImageFormatUnknown ImageFormat = "unknown"
+// 型エイリアス（layout パッケージから）
+type (
+	TextElement = layout.TextElement
+	ImageFormat = layout.ImageFormat
+	ImageInfo   = layout.ImageInfo
 )
 
-// ImageInfo は画像の情報
-type ImageInfo struct {
-	Name        string      // リソース名（例: "Im1"）
-	Width       int         // 画像の幅
-	Height      int         // 画像の高さ
-	ColorSpace  string      // 色空間（DeviceRGB, DeviceGray, DeviceCMYK）
-	BitsPerComp int         // ビット深度
-	Filter      string      // 圧縮フィルター
-	Data        []byte      // 画像データ
-	Format      ImageFormat // 画像フォーマット
-}
+// 定数エイリアス
+const (
+	ImageFormatJPEG    = layout.ImageFormatJPEG
+	ImageFormatPNG     = layout.ImageFormatPNG
+	ImageFormatUnknown = layout.ImageFormatUnknown
+)
 
 // EncryptionInfo はPDF暗号化の情報
 type EncryptionInfo struct {
