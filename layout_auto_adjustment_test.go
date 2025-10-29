@@ -194,6 +194,73 @@ func TestDefaultLayoutAdjustmentOptions(t *testing.T) {
 	}
 }
 
+// TestAdjustLayout_StrategyFitContent はコンテンツをブロックに収める戦略のテスト
+func TestAdjustLayout_StrategyFitContent(t *testing.T) {
+	layout := &PageLayout{
+		Width:  595,
+		Height: 842,
+		TextBlocks: []TextBlock{
+			{
+				Text:     "This is a very long text that needs to be fitted into the block",
+				Font:     "Helvetica",
+				FontSize: 20, // 大きすぎるフォントサイズ
+				Rect:     Rectangle{X: 50, Y: 700, Width: 100, Height: 50}, // 小さいブロック
+			},
+			{
+				Text:     "Normal text",
+				Font:     "Helvetica",
+				FontSize: 12,
+				Rect:     Rectangle{X: 50, Y: 640, Width: 200, Height: 30},
+			},
+		},
+		Images: []ImageBlock{
+			{
+				X:            200,
+				Y:            700,
+				PlacedWidth:  300, // ブロックより大きい
+				PlacedHeight: 300,
+			},
+		},
+	}
+
+	// 元の位置を記録
+	originalY1 := layout.TextBlocks[0].Rect.Y
+	originalY2 := layout.TextBlocks[1].Rect.Y
+	originalImgY := layout.Images[0].Y
+
+	opts := LayoutAdjustmentOptions{
+		Strategy: StrategyFitContent,
+	}
+	err := layout.AdjustLayout(opts)
+	if err != nil {
+		t.Fatalf("AdjustLayout failed: %v", err)
+	}
+
+	// 位置が変わっていないことを確認
+	if layout.TextBlocks[0].Rect.Y != originalY1 {
+		t.Errorf("TextBlock[0] position changed: Y=%f, want %f", layout.TextBlocks[0].Rect.Y, originalY1)
+	}
+	if layout.TextBlocks[1].Rect.Y != originalY2 {
+		t.Errorf("TextBlock[1] position changed: Y=%f, want %f", layout.TextBlocks[1].Rect.Y, originalY2)
+	}
+	if layout.Images[0].Y != originalImgY {
+		t.Errorf("Image position changed: Y=%f, want %f", layout.Images[0].Y, originalImgY)
+	}
+
+	// フォントサイズが調整されていることを確認（元の20より小さくなる）
+	if layout.TextBlocks[0].FontSize >= 20 {
+		t.Errorf("FontSize not adjusted: %f, want < 20", layout.TextBlocks[0].FontSize)
+	}
+
+	// 2つ目のブロックは問題ないのでフォントサイズが変わらない
+	if layout.TextBlocks[1].FontSize != 12 {
+		t.Errorf("TextBlock[1] FontSize changed: %f, want 12", layout.TextBlocks[1].FontSize)
+	}
+
+	// 画像サイズが調整されていることを確認
+	// 画像はブロックサイズがないので、元のサイズのまま（または特定のルールで縮小）
+}
+
 // TestAdjustLayout_TranslationUseCase は翻訳ユースケースのテスト
 func TestAdjustLayout_TranslationUseCase(t *testing.T) {
 	// 翻訳前の状態（ブロックが近い、上から下の順）

@@ -554,6 +554,9 @@ const (
 
 	// StrategyFlowDown は上から下に流し込む（後続ブロックを自動調整）
 	StrategyFlowDown LayoutStrategy = "flow_down"
+
+	// StrategyFitContent はブロックサイズを変えず、コンテンツをブロックに収める
+	StrategyFitContent LayoutStrategy = "fit_content"
 )
 
 // LayoutAdjustmentOptions はレイアウト自動調整のオプション
@@ -586,6 +589,8 @@ func (pl *PageLayout) AdjustLayout(opts LayoutAdjustmentOptions) error {
 		return pl.adjustLayoutCompact(opts)
 	case StrategyEvenSpacing:
 		return pl.adjustLayoutEvenSpacing(opts)
+	case StrategyFitContent:
+		return pl.adjustLayoutFitContent(opts)
 	case StrategyPreservePosition:
 		// 位置を保持するので何もしない
 		return nil
@@ -777,6 +782,68 @@ func (pl *PageLayout) adjustLayoutEvenSpacing(opts LayoutAdjustmentOptions) erro
 
 		currentY = newY - spacing
 	}
+
+	return nil
+}
+
+// adjustLayoutFitContent はブロックサイズを変えず、コンテンツをブロックに収める
+func (pl *PageLayout) adjustLayoutFitContent(opts LayoutAdjustmentOptions) error {
+	// TextBlocksを調整
+	for i := range pl.TextBlocks {
+		block := &pl.TextBlocks[i]
+
+		// 空のテキストはスキップ
+		if block.Text == "" {
+			continue
+		}
+
+		// フォント名を取得（設定されていない場合はHelveticaを使用）
+		fontName := block.Font
+		if fontName == "" {
+			fontName = "Helvetica"
+		}
+
+		// 現在のフォントサイズで収まるかチェック
+		// wrapTextで改行してから行数をカウント
+		wrapped := wrapText(block.Text, block.Rect.Width, fontName, block.FontSize)
+		lineHeight := block.FontSize * 1.2
+		currentHeight := float64(len(wrapped)) * lineHeight
+
+		// 収まる場合はフォントサイズを変更しない
+		if currentHeight <= block.Rect.Height {
+			continue
+		}
+
+		// 収まらない場合のみフィット
+		result, err := FitText(
+			block.Text,
+			block.Rect,
+			fontName,
+			FitTextOptions{
+				MaxFontSize: block.FontSize, // 現在のフォントサイズを最大とする
+				MinFontSize: 6.0,
+				LineSpacing: 1.2,
+				Padding:     0,
+				AllowShrink: true,
+				AllowGrow:   false, // 拡大は許可しない
+			},
+		)
+
+		// エラーが発生した場合は元のフォントサイズを維持
+		if err != nil {
+			continue
+		}
+
+		// フォントサイズを更新（元より小さい場合のみ）
+		if result.FontSize < block.FontSize {
+			block.FontSize = result.FontSize
+		}
+	}
+
+	// ImageBlocksを調整（ブロックサイズがないので、最大サイズを制限する場合のみ）
+	// 画像は元のサイズを保持するが、必要に応じてアスペクト比を維持しながら縮小
+	// ここでは特に制限がないので、画像サイズはそのまま
+	// 必要であれば、LayoutAdjustmentOptionsにMaxImageWidth/Heightを追加して制御可能
 
 	return nil
 }

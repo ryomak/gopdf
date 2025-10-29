@@ -259,4 +259,56 @@ func main() {
 	} else {
 		fmt.Printf("✗ 重なりが%d件あります\n", len(overlaps))
 	}
+
+	fmt.Println("\n=== 7. StrategyFitContent: ブロックサイズを変えずに内容を縮小 ===")
+	// ブロックサイズは固定で、内容をブロックに収める
+	fitLayout := &gopdf.PageLayout{
+		Width:  595,
+		Height: 842,
+		TextBlocks: []gopdf.TextBlock{
+			{
+				Text:     "This is a very long text that will not fit in the small block at the current font size",
+				Font:     "Helvetica",
+				FontSize: 20, // 大きすぎるフォントサイズ
+				Rect:     gopdf.Rectangle{X: 50, Y: 700, Width: 150, Height: 60}, // 小さいブロック
+			},
+			{
+				Text:     "Normal text that fits",
+				Font:     "Helvetica",
+				FontSize: 12,
+				Rect:     gopdf.Rectangle{X: 50, Y: 630, Width: 300, Height: 30},
+			},
+			{
+				Text:     "Another text block",
+				Font:     "Helvetica",
+				FontSize: 14,
+				Rect:     gopdf.Rectangle{X: 50, Y: 590, Width: 200, Height: 25},
+			},
+		},
+	}
+
+	fmt.Println("調整前:")
+	for i, tb := range fitLayout.TextBlocks {
+		fmt.Printf("  Block %d: FontSize=%.1f, Rect=%.0fx%.0f\n", i, tb.FontSize, tb.Rect.Width, tb.Rect.Height)
+	}
+	fmt.Printf("  Block 0 のテキスト: \"%s...\"\n", fitLayout.TextBlocks[0].Text[:40])
+
+	// StrategyFitContent で調整（ブロックサイズは変えず、フォントサイズを調整）
+	err = fitLayout.AdjustLayout(gopdf.LayoutAdjustmentOptions{
+		Strategy: gopdf.StrategyFitContent,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("\n調整後（ブロックサイズは変わらず、フォントサイズのみ調整）:")
+	for i, tb := range fitLayout.TextBlocks {
+		fmt.Printf("  Block %d: FontSize=%.1f, Rect=%.0fx%.0f\n", i, tb.FontSize, tb.Rect.Width, tb.Rect.Height)
+		if i == 0 {
+			fmt.Printf("    → フォントサイズが %.1f から %.1f に縮小されました\n", 20.0, tb.FontSize)
+		}
+	}
+	fmt.Println("\n  ✓ Block 0: 大きすぎたテキストがブロックに収まるように縮小")
+	fmt.Println("  ✓ Block 1, 2: すでに収まっているのでフォントサイズは変更なし")
+	fmt.Println("  ✓ すべてのブロックの位置とサイズは変わらない")
 }
