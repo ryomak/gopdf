@@ -141,62 +141,75 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 	customSize := PageSize{Width: layout.Width, Height: layout.Height}
 	page := doc.AddPage(customSize, Portrait)
 
-	// 画像を配置
-	if opts.KeepImages {
-		for _, img := range layout.Images {
-			// 画像データからImageを作成
-			pdfImage, err := loadImageFromImageInfo(img.ImageInfo)
-			if err != nil {
-				// 画像の読み込みに失敗しても続行
-				continue
-			}
-			if err := page.DrawImage(pdfImage, img.X, img.Y, img.PlacedWidth, img.PlacedHeight); err != nil {
-				// 画像の描画に失敗しても続行
-				continue
-			}
-		}
-	}
+	// ContentBlocksを使用して、画像とテキストを正しい順序で描画
+	// 設計書: docs/render_layout_order_issue.md
+	contentBlocks := layout.SortedContentBlocks()
 
-	// テキストを配置
-	if opts.KeepLayout {
-		if opts.TargetFont == nil {
-			return nil, fmt.Errorf("target font is required")
-		}
-
-		for _, block := range layout.TextBlocks {
-			// テキストをフィッティング
-			fitted, err := FitText(block.Text, block.Rect, opts.TargetFontName, opts.FittingOptions)
-			if err != nil {
-				// フィッティングできない場合は元のサイズを使用
-				if err := setPageFont(page, opts.TargetFont, block.FontSize); err != nil {
+	for _, block := range contentBlocks {
+		switch block.Type() {
+		case ContentBlockTypeImage:
+			if opts.KeepImages {
+				// 画像を描画
+				img, ok := block.(ImageBlock)
+				if !ok {
 					continue
 				}
-				// 適切な描画メソッドを使用
-				_ = drawPageText(page, opts.TargetFont, block.Text, block.Rect.X, block.Rect.Y)
-				continue
+				pdfImage, err := loadImageFromImageInfo(img.ImageInfo)
+				if err != nil {
+					// 画像の読み込みに失敗しても続行
+					continue
+				}
+				if err := page.DrawImage(pdfImage, img.X, img.Y, img.PlacedWidth, img.PlacedHeight); err != nil {
+					// 画像の描画に失敗しても続行
+					continue
+				}
 			}
 
-			// 複数行を描画
-			if err := setPageFont(page, opts.TargetFont, fitted.FontSize); err != nil {
-				continue
-			}
-			// 上から下に描画（Y座標が大きい方から小さい方へ）
-			y := block.Rect.Y + block.Rect.Height - fitted.LineHeight
-			for _, line := range fitted.Lines {
-				if line != "" {
-					x := block.Rect.X
-					// アラインメントに応じてX座標を調整
-					if opts.FittingOptions.Alignment == AlignCenter {
-						lineWidth := estimateTextWidth(line, fitted.FontSize, opts.TargetFontName)
-						x = block.Rect.X + (block.Rect.Width-lineWidth)/2
-					} else if opts.FittingOptions.Alignment == AlignRight {
-						lineWidth := estimateTextWidth(line, fitted.FontSize, opts.TargetFontName)
-						x = block.Rect.X + block.Rect.Width - lineWidth
+		case ContentBlockTypeText:
+			if opts.KeepLayout {
+				if opts.TargetFont == nil {
+					return nil, fmt.Errorf("target font is required")
+				}
+
+				textBlock, ok := block.(TextBlock)
+				if !ok {
+					continue
+				}
+
+				// テキストをフィッティング
+				fitted, err := FitText(textBlock.Text, textBlock.Rect, opts.TargetFontName, opts.FittingOptions)
+				if err != nil {
+					// フィッティングできない場合は元のサイズを使用
+					if err := setPageFont(page, opts.TargetFont, textBlock.FontSize); err != nil {
+						continue
 					}
 					// 適切な描画メソッドを使用
-					_ = drawPageText(page, opts.TargetFont, line, x, y)
+					_ = drawPageText(page, opts.TargetFont, textBlock.Text, textBlock.Rect.X, textBlock.Rect.Y)
+					continue
 				}
-				y -= fitted.LineHeight
+
+				// 複数行を描画
+				if err := setPageFont(page, opts.TargetFont, fitted.FontSize); err != nil {
+					continue
+				}
+				// 上から下に描画（Y座標が大きい方から小さい方へ）
+				y := textBlock.Rect.Y + textBlock.Rect.Height - fitted.LineHeight
+				for _, line := range fitted.Lines {
+					if line != "" {
+						x := textBlock.Rect.X
+						// アラインメントに応じてX座標を調整
+						if opts.FittingOptions.Alignment == AlignCenter {
+							lineWidth := estimateTextWidth(line, fitted.FontSize, opts.TargetFontName)
+							x = textBlock.Rect.X + (textBlock.Rect.Width-lineWidth)/2
+						} else if opts.FittingOptions.Alignment == AlignRight {
+							lineWidth := estimateTextWidth(line, fitted.FontSize, opts.TargetFontName)
+							x = textBlock.Rect.X + textBlock.Rect.Width - lineWidth
+						}
+						// 適切な描画メソッドを使用
+						_ = drawPageText(page, opts.TargetFont, line, x, y)
+					}
+					y -= fitted.LineHeight
+				}
 			}
 		}
 	}
