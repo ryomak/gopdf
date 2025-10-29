@@ -12,7 +12,6 @@ import (
 	"os"
 
 	"github.com/ryomak/gopdf"
-	"github.com/ryomak/gopdf/internal/font"
 )
 
 func main() {
@@ -102,10 +101,10 @@ func createSamplePDF(filename string) {
 
 	// ページ1: JPEG画像
 	page1 := doc.AddPage(gopdf.A4, gopdf.Portrait)
-	page1.SetFont(font.HelveticaBold, 18)
+	page1.SetFont(gopdf.HelveticaBold, 18)
 	page1.DrawText("Image Extraction Example", 50, 800)
 
-	page1.SetFont(font.Helvetica, 12)
+	page1.SetFont(gopdf.Helvetica, 12)
 	page1.DrawText("This page contains a JPEG image:", 50, 770)
 
 	// JPEG画像を追加（テスト用に簡単な画像を生成）
@@ -119,12 +118,12 @@ func createSamplePDF(filename string) {
 
 	page1.DrawImage(jpegImage, 50, 500, 200, 150)
 
-	page1.SetFont(font.Courier, 10)
+	page1.SetFont(gopdf.Courier, 10)
 	page1.DrawText("JPEG image (200x150)", 50, 470)
 
 	// ページ2: 複数の画像
 	page2 := doc.AddPage(gopdf.A4, gopdf.Portrait)
-	page2.SetFont(font.HelveticaBold, 18)
+	page2.SetFont(gopdf.HelveticaBold, 18)
 	page2.DrawText("Page 2 - Multiple Images", 50, 800)
 
 	// 同じ画像を異なる位置に配置

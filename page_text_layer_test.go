@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ryomak/gopdf/internal/font"
 )
 
 func TestPage_AddInvisibleText(t *testing.T) {
@@ -12,7 +11,7 @@ func TestPage_AddInvisibleText(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -28,7 +27,7 @@ func TestPage_AddTextLayer(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -54,7 +53,7 @@ func TestPage_AddTextLayer_EmptyWords(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -98,7 +97,7 @@ func TestPage_AddTextLayerWords(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -121,7 +120,7 @@ func TestPage_AddTextLayer_DifferentRenderModes(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -160,7 +159,7 @@ func TestPage_AddTextLayer_WithOpacity(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -205,7 +204,7 @@ func TestPage_AddTextLayer_Integration(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 

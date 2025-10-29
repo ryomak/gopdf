@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/ryomak/gopdf"
-	"github.com/ryomak/gopdf/internal/font"
 )
 
 func main() {
@@ -67,10 +66,10 @@ func createSamplePDF(filename string) {
 
 	// ページ1
 	page1 := doc.AddPage(gopdf.A4, gopdf.Portrait)
-	page1.SetFont(font.HelveticaBold, 24)
+	page1.SetFont(gopdf.HelveticaBold, 24)
 	page1.DrawText("Sample PDF for Reading", 50, 800)
 
-	page1.SetFont(font.Helvetica, 12)
+	page1.SetFont(gopdf.Helvetica, 12)
 	page1.DrawText("This PDF file is created for demonstrating the PDF reading functionality.", 50, 770)
 	page1.DrawText("It contains multiple pages with text and graphics.", 50, 755)
 
@@ -79,12 +78,12 @@ func createSamplePDF(filename string) {
 	page1.SetLineWidth(2)
 	page1.DrawRectangle(50, 650, 500, 80)
 
-	page1.SetFont(font.Courier, 10)
+	page1.SetFont(gopdf.Courier, 10)
 	page1.DrawText("Page 1 of 3", 50, 680)
 
 	// ページ2
 	page2 := doc.AddPage(gopdf.A4, gopdf.Portrait)
-	page2.SetFont(font.HelveticaBold, 18)
+	page2.SetFont(gopdf.HelveticaBold, 18)
 	page2.DrawText("Page 2 - Graphics Demo", 50, 800)
 
 	// 円を描画
@@ -93,19 +92,19 @@ func createSamplePDF(filename string) {
 	page2.SetLineWidth(3)
 	page2.DrawAndFillCircle(150, 600, 50)
 
-	page2.SetFont(font.Courier, 10)
+	page2.SetFont(gopdf.Courier, 10)
 	page2.DrawText("Page 2 of 3", 50, 680)
 
 	// ページ3
 	page3 := doc.AddPage(gopdf.A4, gopdf.Portrait)
-	page3.SetFont(font.HelveticaBold, 18)
+	page3.SetFont(gopdf.HelveticaBold, 18)
 	page3.DrawText("Page 3 - Final Page", 50, 800)
 
-	page3.SetFont(font.Helvetica, 12)
+	page3.SetFont(gopdf.Helvetica, 12)
 	page3.DrawText("This is the last page of the sample PDF.", 50, 770)
 	page3.DrawText("Thank you for using gopdf!", 50, 755)
 
-	page3.SetFont(font.Courier, 10)
+	page3.SetFont(gopdf.Courier, 10)
 	page3.DrawText("Page 3 of 3", 50, 680)
 
 	// ファイルに出力

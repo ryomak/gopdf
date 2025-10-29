@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ryomak/gopdf/internal/font"
 )
 
 func TestPage_DrawRuby(t *testing.T) {
@@ -13,7 +12,7 @@ func TestPage_DrawRuby(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set a font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -53,7 +52,7 @@ func TestPage_DrawRubyWithActualText(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set a font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -93,7 +92,7 @@ func TestPage_DrawRubyTexts(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set a font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -126,7 +125,7 @@ func TestPage_DrawRuby_Alignments(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set a font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -165,7 +164,7 @@ func TestPage_DrawRuby_SizeRatios(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set a font
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 
@@ -207,14 +206,14 @@ func TestPage_GetCurrentFontName(t *testing.T) {
 		{
 			name: "Standard font",
 			setup: func(p *Page) error {
-				return p.SetFont(font.Helvetica, 12)
+				return p.SetFont(Helvetica, 12)
 			},
 			expected: "F1",
 		},
 		{
 			name: "Bold font",
 			setup: func(p *Page) error {
-				return p.SetFont(font.HelveticaBold, 12)
+				return p.SetFont(HelveticaBold, 12)
 			},
 			expected: "F2",
 		},
@@ -256,7 +255,7 @@ func TestPage_DrawRuby_Integration(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// Set font
-	if err := page.SetFont(font.Helvetica, 16); err != nil {
+	if err := page.SetFont(Helvetica, 16); err != nil {
 		t.Fatalf("SetFont failed: %v", err)
 	}
 

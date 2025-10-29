@@ -208,7 +208,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 func setPageFont(page *Page, fontInterface interface{}, size float64) error {
 	// font.StandardFontの場合
 	if stdFont, ok := fontInterface.(font.StandardFont); ok {
-		return page.SetFont(stdFont, size)
+		return page.SetFont(StandardFont(stdFont.Name()), size)
 	}
 	// *TTFFontの場合
 	if ttfFont, ok := fontInterface.(*TTFFont); ok {

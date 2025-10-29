@@ -31,16 +31,19 @@ func (p *Page) Height() float64 {
 }
 
 // SetFont sets the current font and size for subsequent text operations.
-func (p *Page) SetFont(f font.StandardFont, size float64) error {
-	p.currentFont = &f
+func (p *Page) SetFont(f StandardFont, size float64) error {
+	// 公開APIの型を内部実装の型に変換
+	internalFont := font.StandardFont(f)
+
+	p.currentFont = &internalFont
 	p.fontSize = size
 
 	// フォントをページのフォントリストに追加
 	if p.fonts == nil {
 		p.fonts = make(map[string]font.StandardFont)
 	}
-	fontKey := p.getFontKey(f)
-	p.fonts[fontKey] = f
+	fontKey := p.getFontKey(internalFont)
+	p.fonts[fontKey] = internalFont
 
 	return nil
 }
@@ -444,7 +447,7 @@ func (p *Page) DrawRuby(rubyText RubyText, x, y float64, style RubyStyle) (float
 			return 0, err
 		}
 	} else {
-		if err := p.SetFont(*p.currentFont, rubyFontSize); err != nil {
+		if err := p.SetFont(StandardFont(p.currentFont.Name()), rubyFontSize); err != nil {
 			return 0, err
 		}
 		if err := p.DrawText(rubyText.Ruby, rubyX, rubyY); err != nil {
@@ -458,7 +461,7 @@ func (p *Page) DrawRuby(rubyText RubyText, x, y float64, style RubyStyle) (float
 			return 0, err
 		}
 	} else {
-		if err := p.SetFont(*p.currentFont, originalFontSize); err != nil {
+		if err := p.SetFont(StandardFont(p.currentFont.Name()), originalFontSize); err != nil {
 			return 0, err
 		}
 	}
@@ -560,7 +563,7 @@ func (p *Page) AddTextLayer(layer TextLayer) error {
 
 	// フォントが設定されていない場合はデフォルトフォントを使用
 	if p.currentFont == nil && p.currentTTFFont == nil {
-		if err := p.SetFont(font.Helvetica, 12); err != nil {
+		if err := p.SetFont(Helvetica, 12); err != nil {
 			return fmt.Errorf("failed to set default font: %w", err)
 		}
 	}

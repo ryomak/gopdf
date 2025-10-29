@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ryomak/gopdf/internal/font"
 )
 
 func TestExtractPageLayout(t *testing.T) {
@@ -13,7 +12,7 @@ func TestExtractPageLayout(t *testing.T) {
 	page := doc.AddPage(A4, Portrait)
 
 	// テキストを追加
-	if err := page.SetFont(font.Helvetica, 12); err != nil {
+	if err := page.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("Failed to set font: %v", err)
 	}
 	if err := page.DrawText("Hello", 100, 700); err != nil {
@@ -72,7 +71,7 @@ func TestExtractAllLayouts(t *testing.T) {
 
 	// ページ1
 	page1 := doc.AddPage(A4, Portrait)
-	if err := page1.SetFont(font.Helvetica, 12); err != nil {
+	if err := page1.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("Failed to set font: %v", err)
 	}
 	if err := page1.DrawText("Page 1", 100, 700); err != nil {
@@ -81,7 +80,7 @@ func TestExtractAllLayouts(t *testing.T) {
 
 	// ページ2
 	page2 := doc.AddPage(A4, Portrait)
-	if err := page2.SetFont(font.Helvetica, 12); err != nil {
+	if err := page2.SetFont(Helvetica, 12); err != nil {
 		t.Fatalf("Failed to set font: %v", err)
 	}
 	if err := page2.DrawText("Page 2", 100, 700); err != nil {

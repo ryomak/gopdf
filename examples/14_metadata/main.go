@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ryomak/gopdf"
-	"github.com/ryomak/gopdf/internal/font"
 )
 
 func main() {
@@ -17,10 +16,10 @@ func main() {
 	page := doc.AddPage(gopdf.A4, gopdf.Portrait)
 
 	// Set font and draw text
-	page.SetFont(font.HelveticaBold, 24)
+	page.SetFont(gopdf.HelveticaBold, 24)
 	page.DrawText("PDF Metadata Example", 100, 750)
 
-	page.SetFont(font.Helvetica, 12)
+	page.SetFont(gopdf.Helvetica, 12)
 	page.DrawText("This PDF has custom metadata.", 100, 700)
 	page.DrawText("You can view it in your PDF viewer's properties.", 100, 680)
 
