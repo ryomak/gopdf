@@ -72,9 +72,6 @@ func (r *PDFReader) ExtractPageLayout(pageNum int) (*PageLayout, error) {
 		return nil, err
 	}
 
-	// TextElementsをTextBlocksにグループ化
-	textBlocks := r.groupTextElements(convertTextElements(textElements))
-
 	// 画像を抽出（位置情報付き）
 	imageExtractor := content.NewImageExtractor(r.r)
 	imageBlocks, err := imageExtractor.ExtractImagesWithPosition(page, operations)
@@ -82,12 +79,20 @@ func (r *PDFReader) ExtractPageLayout(pageNum int) (*PageLayout, error) {
 		return nil, err
 	}
 
+	convertedImageBlocks := convertImageBlocks(imageBlocks)
+
+	// TextElementsをTextBlocksにグループ化（画像を考慮）
+	textBlocks := r.groupTextElementsWithImages(
+		convertTextElements(textElements),
+		convertedImageBlocks,
+	)
+
 	return &PageLayout{
 		PageNum:    pageNum,
 		Width:      width,
 		Height:     height,
 		TextBlocks: textBlocks,
-		Images:     convertImageBlocks(imageBlocks),
+		Images:     convertedImageBlocks,
 	}, nil
 }
 
@@ -172,9 +177,24 @@ func convertImageBlocks(internalBlocks []content.ImageBlock) []layout.ImageBlock
 	})
 }
 
+// YRange はY座標の範囲（PDFは下が原点）
+type YRange struct {
+	Min float64 // 下端
+	Max float64 // 上端
+}
+
 // groupTextElements はTextElementsをTextBlocksにグループ化
 // 設計書: docs/text_block_grouping_design.md
 func (r *PDFReader) groupTextElements(elements []layout.TextElement) []layout.TextBlock {
+	return r.groupTextElementsWithImages(elements, nil)
+}
+
+// groupTextElementsWithImages は画像の位置を考慮してTextElementsをグループ化
+// 設計書: docs/unified_content_grouping_design.md
+func (r *PDFReader) groupTextElementsWithImages(
+	elements []layout.TextElement,
+	images []layout.ImageBlock,
+) []layout.TextBlock {
 	if len(elements) == 0 {
 		return nil
 	}
@@ -185,7 +205,10 @@ func (r *PDFReader) groupTextElements(elements []layout.TextElement) []layout.Te
 		return nil
 	}
 
-	// 2. ブロック単位でグルーピング
+	// 2. 画像のY座標範囲を取得
+	imageRanges := getImageYRanges(images)
+
+	// 3. ブロック単位でグルーピング（画像を考慮）
 	var blocks []layout.TextBlock
 	currentBlock := [][]layout.TextElement{lines[0]}
 
@@ -193,18 +216,28 @@ func (r *PDFReader) groupTextElements(elements []layout.TextElement) []layout.Te
 		prevLine := lines[i-1]
 		currLine := lines[i]
 
-		if shouldMergeLines(prevLine, currLine) {
+		// 前の行と現在の行の間に画像があるかチェック
+		hasImage := len(currentBlock) > 0 &&
+			hasImageBetween(currentBlock[len(currentBlock)-1], currLine, imageRanges)
+
+		if hasImage {
+			// 画像が挟まっているのでブロックを分割
+			blocks = append(blocks, createTextBlockFromLines(currentBlock))
+			currentBlock = [][]layout.TextElement{currLine}
+		} else if shouldMergeLines(prevLine, currLine) {
+			// 通常の判定で同じブロックとする
 			currentBlock = append(currentBlock, currLine)
 		} else {
-			// 現在のブロックを確定
+			// 行間が広いので新しいブロック
 			blocks = append(blocks, createTextBlockFromLines(currentBlock))
-			// 新しいブロックを開始
 			currentBlock = [][]layout.TextElement{currLine}
 		}
 	}
 
 	// 最後のブロックを追加
-	blocks = append(blocks, createTextBlockFromLines(currentBlock))
+	if len(currentBlock) > 0 {
+		blocks = append(blocks, createTextBlockFromLines(currentBlock))
+	}
 
 	return blocks
 }
@@ -341,9 +374,20 @@ func combineBlockText(lines [][]layout.TextElement) string {
 			result.WriteString("\n") // 行間は改行
 		}
 
+		// 行内のテキストを結合（要素間の距離を考慮）
 		for j, elem := range line {
 			if j > 0 {
-				result.WriteString(" ") // 単語間はスペース
+				// 前の要素との距離を計算
+				prevElem := line[j-1]
+				gap := elem.X - (prevElem.X + prevElem.Width)
+
+				// 距離の閾値: フォントサイズの20%
+				// これより大きい場合はスペースを入れる
+				threshold := prevElem.Size * 0.2
+
+				if gap > threshold {
+					result.WriteString(" ")
+				}
 			}
 			result.WriteString(elem.Text)
 		}
@@ -414,7 +458,16 @@ func createTextBlock(elements []layout.TextElement) layout.TextBlock {
 
 	for i, elem := range elements {
 		if i > 0 {
-			text.WriteString(" ")
+			// 前の要素との距離を計算
+			prevElem := elements[i-1]
+			gap := elem.X - (prevElem.X + prevElem.Width)
+
+			// 距離の閾値: フォントサイズの20%
+			threshold := prevElem.Size * 0.2
+
+			if gap > threshold {
+				text.WriteString(" ")
+			}
 		}
 		text.WriteString(elem.Text)
 
@@ -526,4 +579,59 @@ func adjustLayoutFitContent(pl *PageLayout, opts LayoutAdjustmentOptions) error 
 	// 必要であれば、LayoutAdjustmentOptionsにMaxImageWidth/Heightを追加して制御可能
 
 	return nil
+}
+
+// getImageYRanges は画像のY座標範囲のリストを取得
+func getImageYRanges(images []layout.ImageBlock) []YRange {
+	if len(images) == 0 {
+		return nil
+	}
+
+	ranges := make([]YRange, len(images))
+	for i, img := range images {
+		ranges[i] = YRange{
+			Min: img.Y,
+			Max: img.Y + img.PlacedHeight,
+		}
+	}
+	return ranges
+}
+
+// hasImageBetween は2つの行の間に画像があるかチェック
+func hasImageBetween(prevLine, currLine []layout.TextElement, imageRanges []YRange) bool {
+	if len(prevLine) == 0 || len(currLine) == 0 || len(imageRanges) == 0 {
+		return false
+	}
+
+	// 前の行の下端（最小Y）
+	prevMinY := minY(prevLine)
+
+	// 現在の行の上端（最大Y）
+	currMaxY := maxY(currLine)
+
+	// 2つの行の間のY座標範囲
+	// PDFは下が原点なので、prevMinY > currMaxY のはず
+	if prevMinY <= currMaxY {
+		return false
+	}
+
+	betweenRange := YRange{
+		Min: currMaxY,
+		Max: prevMinY,
+	}
+
+	// この範囲に画像があるかチェック
+	for _, imgRange := range imageRanges {
+		if overlapsYRange(betweenRange, imgRange) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// overlapsYRange は2つのY座標範囲が重なっているかチェック
+func overlapsYRange(range1, range2 YRange) bool {
+	// range1.Max < range2.Min または range2.Max < range1.Min なら重なっていない
+	return !(range1.Max < range2.Min || range2.Max < range1.Min)
 }

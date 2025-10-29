@@ -240,6 +240,35 @@ func (r *PDFReader) ExtractAllTextBlocks() (map[int][]TextBlock, error) {
 	return result, nil
 }
 
+// ExtractPageContentBlocks はテキストと画像を統合したコンテンツブロックを抽出（0-indexed）
+// 設計書: docs/unified_content_grouping_design.md
+func (r *PDFReader) ExtractPageContentBlocks(pageNum int) ([]ContentBlock, error) {
+	// PageLayoutを取得（テキストと画像の両方）
+	pageLayout, err := r.ExtractPageLayout(pageNum)
+	if err != nil {
+		return nil, err
+	}
+
+	// Y座標順にソートして返す
+	return pageLayout.SortedContentBlocks(), nil
+}
+
+// ExtractAllContentBlocks は全ページのコンテンツブロックを抽出
+func (r *PDFReader) ExtractAllContentBlocks() (map[int][]ContentBlock, error) {
+	pageCount := r.PageCount()
+	result := make(map[int][]ContentBlock)
+
+	for i := 0; i < pageCount; i++ {
+		blocks, err := r.ExtractPageContentBlocks(i)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = blocks
+	}
+
+	return result, nil
+}
+
 // ExtractImages は指定されたページから画像を抽出する（0-indexed）
 func (r *PDFReader) ExtractImages(pageNum int) ([]ImageInfo, error) {
 	// ページを取得
