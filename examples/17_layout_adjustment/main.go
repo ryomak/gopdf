@@ -158,51 +158,105 @@ func main() {
 	}
 	fmt.Println()
 
-	fmt.Println("=== 5. 実用例: 翻訳後の自動調整 ===")
-	// 翻訳でテキストが長くなった場合のシミュレーション
-	docLayout := &gopdf.PageLayout{
+	fmt.Println("=== 5. 自動調整 (AdjustLayout with StrategyFlowDown) ===")
+	// 翻訳や編集で間隔が狭くなった場合の自動調整
+	autoLayout := &gopdf.PageLayout{
 		Width:  595,
 		Height: 842,
 		TextBlocks: []gopdf.TextBlock{
 			{
-				Text: "Original short text",
-				Rect: gopdf.Rectangle{X: 50, Y: 700, Width: 200, Height: 20},
+				Text: "タイトル",
+				Rect: gopdf.Rectangle{X: 50, Y: 680, Width: 400, Height: 20},
 			},
 			{
-				Text: "Next block",
-				Rect: gopdf.Rectangle{X: 50, Y: 670, Width: 200, Height: 20},
+				Text: "本文1: これは最初の段落です。",
+				Rect: gopdf.Rectangle{X: 50, Y: 665, Width: 400, Height: 20}, // 間隔5px
+			},
+			{
+				Text: "本文2: これは2番目の段落です。",
+				Rect: gopdf.Rectangle{X: 50, Y: 650, Width: 400, Height: 20}, // 間隔5px
 			},
 		},
 	}
 
-	fmt.Println("翻訳前:")
-	fmt.Printf("  Block 0: Y=%.1f, Height=%.1f\n", docLayout.TextBlocks[0].Rect.Y, docLayout.TextBlocks[0].Rect.Height)
-	fmt.Printf("  Block 1: Y=%.1f, Height=%.1f\n", docLayout.TextBlocks[1].Rect.Y, docLayout.TextBlocks[1].Rect.Height)
-
-	// 翻訳で高さが増えたとする
-	docLayout.TextBlocks[0].Text = "これは翻訳された長いテキストで、元のテキストよりもかなり長くなっています。"
-	docLayout.ResizeBlock(gopdf.ContentBlockTypeText, 0, 400, 60) // 高さを20→60に
-
-	// 重なりをチェック
-	overlaps = docLayout.DetectOverlaps()
-	if len(overlaps) > 0 {
-		fmt.Println("\n翻訳後、重なりが検出されました！")
-		// Block 1を下に移動して重なりを解消
-		oldHeight := float64(20)
-		newHeight := float64(60)
-		offset := newHeight - oldHeight
-		docLayout.MoveBlock(gopdf.ContentBlockTypeText, 1, 0, -offset-10) // 10pxのマージンも追加
-
-		fmt.Println("Block 1を自動調整しました")
+	fmt.Println("自動調整前:")
+	for i, tb := range autoLayout.TextBlocks {
+		fmt.Printf("  Block %d: Y=%.1f (間隔が狭い)\n", i, tb.Rect.Y)
 	}
 
-	fmt.Println("\n調整後:")
-	fmt.Printf("  Block 0: Y=%.1f, Height=%.1f\n", docLayout.TextBlocks[0].Rect.Y, docLayout.TextBlocks[0].Rect.Height)
-	fmt.Printf("  Block 1: Y=%.1f, Height=%.1f\n", docLayout.TextBlocks[1].Rect.Y, docLayout.TextBlocks[1].Rect.Height)
+	// StrategyFlowDown で自動調整（後続ブロックを自動的にずらす）
+	opts := gopdf.LayoutAdjustmentOptions{
+		Strategy:   gopdf.StrategyFlowDown,
+		MinSpacing: 10, // 最小間隔10px
+	}
+	err = autoLayout.AdjustLayout(opts)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// 重なりが解消されたか確認
-	overlaps = docLayout.DetectOverlaps()
+	fmt.Println("\n自動調整後 (最小間隔10pxを確保):")
+	for i, tb := range autoLayout.TextBlocks {
+		fmt.Printf("  Block %d: Y=%.1f\n", i, tb.Rect.Y)
+	}
+
+	// 間隔を確認
+	for i := 0; i < len(autoLayout.TextBlocks)-1; i++ {
+		bottom := autoLayout.TextBlocks[i].Rect.Y
+		top := autoLayout.TextBlocks[i+1].Rect.Y + autoLayout.TextBlocks[i+1].Rect.Height
+		spacing := bottom - top
+		fmt.Printf("  Block %d ↔ %d の間隔: %.1f px\n", i, i+1, spacing)
+	}
+
+	fmt.Println("\n=== 6. 実用例: ResizeBlock + AdjustLayout ===")
+	// テキストを編集してサイズが変わった場合
+	editLayout := &gopdf.PageLayout{
+		Width:  595,
+		Height: 842,
+		TextBlocks: []gopdf.TextBlock{
+			{
+				Text: "Short",
+				Rect: gopdf.Rectangle{X: 50, Y: 680, Width: 200, Height: 20},
+			},
+			{
+				Text: "Next",
+				Rect: gopdf.Rectangle{X: 50, Y: 650, Width: 200, Height: 20},
+			},
+			{
+				Text: "Third",
+				Rect: gopdf.Rectangle{X: 50, Y: 620, Width: 200, Height: 20},
+			},
+		},
+	}
+
+	fmt.Println("編集前:")
+	fmt.Printf("  Block 0: Height=%.1f\n", editLayout.TextBlocks[0].Rect.Height)
+
+	// テキストを編集して高さを変更
+	editLayout.TextBlocks[0].Text = "This is now a much longer text that requires more space"
+	editLayout.ResizeBlock(gopdf.ContentBlockTypeText, 0, 400, 60)
+
+	fmt.Println("\nResizeBlock後:")
+	fmt.Printf("  Block 0: Height=%.1f (20→60に変更)\n", editLayout.TextBlocks[0].Rect.Height)
+
+	// 自動調整で後続ブロックをずらす
+	err = editLayout.AdjustLayout(gopdf.LayoutAdjustmentOptions{
+		Strategy:   gopdf.StrategyFlowDown,
+		MinSpacing: 10,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("\nAdjustLayout後 (後続ブロックが自動調整):")
+	for i, tb := range editLayout.TextBlocks {
+		fmt.Printf("  Block %d: Y=%.1f\n", i, tb.Rect.Y)
+	}
+
+	// 重なりがないことを確認
+	overlaps = editLayout.DetectOverlaps()
 	if len(overlaps) == 0 {
-		fmt.Println("✓ 重なりが解消されました！")
+		fmt.Println("✓ 重なりなし！")
+	} else {
+		fmt.Printf("✗ 重なりが%d件あります\n", len(overlaps))
 	}
 }

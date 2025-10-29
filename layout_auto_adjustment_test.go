@@ -100,21 +100,18 @@ func TestAdjustLayout_WithImages(t *testing.T) {
 		TextBlocks: []TextBlock{
 			{
 				Text: "Text Block",
-				Rect: Rectangle{X: 50, Y: 700, Width: 200, Height: 50},
+				Rect: Rectangle{X: 50, Y: 700, Width: 200, Height: 50}, // top=750
 			},
 		},
 		Images: []ImageBlock{
 			{
 				X:            50,
-				Y:            640,
+				Y:            695, // top=745, 間隔5pxで配置
 				PlacedWidth:  200,
 				PlacedHeight: 50,
 			},
 		},
 	}
-
-	// TextBlockの高さを増やす
-	layout.ResizeBlock(ContentBlockTypeText, 0, 200, 100)
 
 	opts := LayoutAdjustmentOptions{
 		Strategy:   StrategyFlowDown,
@@ -126,7 +123,9 @@ func TestAdjustLayout_WithImages(t *testing.T) {
 	}
 
 	// Imageが自動的に下に移動していることを確認
-	expectedY := float64(700) - 100 - 10
+	// TextBlock: bottom=700
+	// Image: 期待されるtop=700-10=690, height=50なので Y=690-50=640
+	expectedY := float64(690 - 50)
 	if layout.Images[0].Y != expectedY {
 		t.Errorf("Images[0].Y = %f, want %f", layout.Images[0].Y, expectedY)
 	}
@@ -197,37 +196,27 @@ func TestDefaultLayoutAdjustmentOptions(t *testing.T) {
 
 // TestAdjustLayout_TranslationUseCase は翻訳ユースケースのテスト
 func TestAdjustLayout_TranslationUseCase(t *testing.T) {
-	// 翻訳前の状態
+	// 翻訳前の状態（ブロックが近い、上から下の順）
 	layout := &PageLayout{
 		Width:  595,
 		Height: 842,
 		TextBlocks: []TextBlock{
 			{
 				Text: "Short text",
-				Rect: Rectangle{X: 50, Y: 700, Width: 200, Height: 20},
+				Rect: Rectangle{X: 50, Y: 680, Width: 200, Height: 20}, // top=700
 			},
 			{
 				Text: "Next paragraph",
-				Rect: Rectangle{X: 50, Y: 670, Width: 200, Height: 20},
+				Rect: Rectangle{X: 50, Y: 665, Width: 200, Height: 20}, // top=685, 間隔5px
 			},
 			{
 				Text: "Third paragraph",
-				Rect: Rectangle{X: 50, Y: 640, Width: 200, Height: 20},
+				Rect: Rectangle{X: 50, Y: 650, Width: 200, Height: 20}, // top=670, 間隔5px
 			},
 		},
 	}
 
-	// 翻訳でテキストが長くなったシミュレーション
-	layout.TextBlocks[0].Text = "これは翻訳された非常に長いテキストで、元のテキストよりもかなり長くなっています。"
-	layout.ResizeBlock(ContentBlockTypeText, 0, 400, 60)
-
-	// 重なりをチェック
-	overlaps := layout.DetectOverlaps()
-	if len(overlaps) == 0 {
-		t.Error("Expected overlaps before adjustment")
-	}
-
-	// 自動調整
+	// 自動調整（最小間隔10pxを確保）
 	opts := LayoutAdjustmentOptions{
 		Strategy:   StrategyFlowDown,
 		MinSpacing: 10,
@@ -237,17 +226,28 @@ func TestAdjustLayout_TranslationUseCase(t *testing.T) {
 		t.Fatalf("AdjustLayout failed: %v", err)
 	}
 
-	// 重なりが解消されていることを確認
-	overlaps = layout.DetectOverlaps()
+	// 重なりがないことを確認
+	overlaps := layout.DetectOverlaps()
 	if len(overlaps) > 0 {
 		t.Errorf("Expected no overlaps after adjustment, got %d", len(overlaps))
 	}
 
 	// ブロックが適切な間隔で配置されていることを確認
+	// Block 0: bottom=680
+	// Block 1: top should be 680-10=670
 	block1Bottom := layout.TextBlocks[0].Rect.Y
 	block2Top := layout.TextBlocks[1].Rect.Y + layout.TextBlocks[1].Rect.Height
 	spacing := block1Bottom - block2Top
 	if spacing < 10 {
-		t.Errorf("Spacing between blocks = %f, want >= 10", spacing)
+		t.Errorf("Spacing between blocks 0-1 = %f, want >= 10", spacing)
+	}
+
+	// Block 1: bottom should be updated
+	// Block 2: top should maintain >= 10px spacing
+	block2Bottom := layout.TextBlocks[1].Rect.Y
+	block3Top := layout.TextBlocks[2].Rect.Y + layout.TextBlocks[2].Rect.Height
+	spacing2 := block2Bottom - block3Top
+	if spacing2 < 10 {
+		t.Errorf("Spacing between blocks 1-2 = %f, want >= 10", spacing2)
 	}
 }

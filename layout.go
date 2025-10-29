@@ -364,16 +364,19 @@ func (pl *PageLayout) SortedContentBlocks() []ContentBlock {
 	blocks := pl.ContentBlocks()
 
 	sort.Slice(blocks, func(i, j int) bool {
-		xi, yi := blocks[i].Position()
-		xj, yj := blocks[j].Position()
+		boundsI := blocks[i].Bounds()
+		boundsJ := blocks[j].Bounds()
 
-		// Y座標で比較（上から下）
-		if math.Abs(yi-yj) > 1.0 {
-			return yi > yj
+		// 上端（Y+Height）で比較（上から下）
+		topI := boundsI.Y + boundsI.Height
+		topJ := boundsJ.Y + boundsJ.Height
+
+		if math.Abs(topI-topJ) > 1.0 {
+			return topI > topJ // 上端が高い方を先に
 		}
 
 		// X座標で比較（左から右）
-		return xi < xj
+		return boundsI.X < boundsJ.X
 	})
 
 	return blocks
@@ -598,34 +601,41 @@ func (pl *PageLayout) adjustLayoutFlowDown(opts LayoutAdjustmentOptions) error {
 		return nil
 	}
 
-	// 各ブロックを識別するためのマップ（位置とサイズで識別）
-	type blockKey struct {
-		x, y, width, height float64
-		blockType           ContentBlockType
+	// ブロックとインデックスのマッピングを保持
+	type blockInfo struct {
+		blockType ContentBlockType
+		index     int
 	}
 
-	findTextBlockIndex := func(bounds Rectangle) int {
-		for i := range pl.TextBlocks {
-			if pl.TextBlocks[i].Rect.X == bounds.X &&
-				pl.TextBlocks[i].Rect.Y == bounds.Y &&
-				pl.TextBlocks[i].Rect.Width == bounds.Width &&
-				pl.TextBlocks[i].Rect.Height == bounds.Height {
-				return i
-			}
-		}
-		return -1
+	blockIndexMap := make(map[interface{}]blockInfo)
+
+	// TextBlocksのマッピング
+	for i := range pl.TextBlocks {
+		// ポインタではなく、テキスト内容で識別
+		key := pl.TextBlocks[i].Text + fmt.Sprintf("_%f_%f", pl.TextBlocks[i].Rect.X, pl.TextBlocks[i].Rect.Width)
+		blockIndexMap[key] = blockInfo{ContentBlockTypeText, i}
 	}
 
-	findImageBlockIndex := func(bounds Rectangle) int {
-		for i := range pl.Images {
-			if pl.Images[i].X == bounds.X &&
-				pl.Images[i].Y == bounds.Y &&
-				pl.Images[i].PlacedWidth == bounds.Width &&
-				pl.Images[i].PlacedHeight == bounds.Height {
-				return i
-			}
+	// Imagesのマッピング
+	for i := range pl.Images {
+		key := fmt.Sprintf("img_%f_%f_%f", pl.Images[i].X, pl.Images[i].PlacedWidth, pl.Images[i].PlacedHeight)
+		blockIndexMap[key] = blockInfo{ContentBlockTypeImage, i}
+	}
+
+	getBlockInfo := func(block ContentBlock) (blockInfo, bool) {
+		switch block.Type() {
+		case ContentBlockTypeText:
+			tb := block.(TextBlock)
+			key := tb.Text + fmt.Sprintf("_%f_%f", tb.Rect.X, tb.Rect.Width)
+			info, ok := blockIndexMap[key]
+			return info, ok
+		case ContentBlockTypeImage:
+			ib := block.(ImageBlock)
+			key := fmt.Sprintf("img_%f_%f_%f", ib.X, ib.PlacedWidth, ib.PlacedHeight)
+			info, ok := blockIndexMap[key]
+			return info, ok
 		}
-		return -1
+		return blockInfo{}, false
 	}
 
 	// 前のブロックの下端を追跡
@@ -633,31 +643,31 @@ func (pl *PageLayout) adjustLayoutFlowDown(opts LayoutAdjustmentOptions) error {
 
 	for i := 1; i < len(blocks); i++ {
 		currentBounds := blocks[i].Bounds()
+
+		// 現在のブロックの理想的な上端位置（prevBottomの下、minSpacing分離す）
+		idealTop := prevBottom - opts.MinSpacing
+
+		// 現在のブロックの新しい下端位置
+		newY := idealTop - currentBounds.Height
+
+		// 現在の上端位置
 		currentTop := currentBounds.Y + currentBounds.Height
 
-		// 前のブロックとの間隔をチェック
-		spacing := currentTop - prevBottom
-		if spacing < opts.MinSpacing {
-			// 間隔が足りない場合、下に移動
-			offset := opts.MinSpacing - spacing
-			newY := currentBounds.Y - offset
-
+		// 移動が必要かチェック（現在の上端が理想位置より上にある場合）
+		if currentTop > idealTop {
 			// ブロックを移動
-			switch blocks[i].Type() {
-			case ContentBlockTypeText:
-				idx := findTextBlockIndex(currentBounds)
-				if idx >= 0 {
-					pl.TextBlocks[idx].Rect.Y = newY
-					prevBottom = newY
-				}
-			case ContentBlockTypeImage:
-				idx := findImageBlockIndex(currentBounds)
-				if idx >= 0 {
-					pl.Images[idx].Y = newY
-					prevBottom = newY
+			info, ok := getBlockInfo(blocks[i])
+			if ok {
+				switch info.blockType {
+				case ContentBlockTypeText:
+					pl.TextBlocks[info.index].Rect.Y = newY
+				case ContentBlockTypeImage:
+					pl.Images[info.index].Y = newY
 				}
 			}
+			prevBottom = newY
 		} else {
+			// 移動不要、現在の位置を使用
 			prevBottom = currentBounds.Y
 		}
 	}
