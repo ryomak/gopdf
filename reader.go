@@ -269,6 +269,26 @@ func (r *PDFReader) ExtractAllContentBlocks() (map[int][]ContentBlock, error) {
 	return result, nil
 }
 
+// ExtractAllContentBlocksFlattened はページを跨いでブロックを統合して返す
+// mergeAcrossPagesがtrueの場合、連続するテキストブロックでフォント属性が同じなら統合される
+// falseの場合、ページ境界を保持したまま単純にフラット化される
+// 設計書: docs/cross_page_block_merging_design.md
+func (r *PDFReader) ExtractAllContentBlocksFlattened(mergeAcrossPages bool) ([]ContentBlock, error) {
+	// 全ページのブロックを取得
+	pageBlocks, err := r.ExtractAllContentBlocks()
+	if err != nil {
+		return nil, err
+	}
+
+	if !mergeAcrossPages {
+		// ページ境界を保持したまま単純にフラット化
+		return flattenContentBlocks(pageBlocks), nil
+	}
+
+	// ページを跨いで統合
+	return mergeContentBlocksAcrossPages(pageBlocks), nil
+}
+
 // ExtractImages は指定されたページから画像を抽出する（0-indexed）
 func (r *PDFReader) ExtractImages(pageNum int) ([]ImageInfo, error) {
 	// ページを取得

@@ -637,3 +637,134 @@ func overlapsYRange(range1, range2 YRange) bool {
 	// range1.Max < range2.Min または range2.Max < range1.Min なら重なっていない
 	return !(range1.Max < range2.Min || range2.Max < range1.Min)
 }
+
+// flattenContentBlocks はページ境界を保持したままブロックをフラット化
+// ページを跨いだ統合は行わない
+func flattenContentBlocks(pageBlocks map[int][]layout.ContentBlock) []layout.ContentBlock {
+	if len(pageBlocks) == 0 {
+		return nil
+	}
+
+	// ページ順にソート
+	pageNums := make([]int, 0, len(pageBlocks))
+	for pageNum := range pageBlocks {
+		pageNums = append(pageNums, pageNum)
+	}
+	sort.Ints(pageNums)
+
+	// 単純に結合
+	var allBlocks []layout.ContentBlock
+	for _, pageNum := range pageNums {
+		allBlocks = append(allBlocks, pageBlocks[pageNum]...)
+	}
+
+	return allBlocks
+}
+
+// mergeContentBlocksAcrossPages はページを跨いでコンテンツブロックを統合
+// 設計書: docs/cross_page_block_merging_design.md
+func mergeContentBlocksAcrossPages(pageBlocks map[int][]layout.ContentBlock) []layout.ContentBlock {
+	if len(pageBlocks) == 0 {
+		return nil
+	}
+
+	// 1. ページ順にソートして統合リストを作成
+	var allBlocks []layout.ContentBlock
+	pageNums := make([]int, 0, len(pageBlocks))
+	for pageNum := range pageBlocks {
+		pageNums = append(pageNums, pageNum)
+	}
+	sort.Ints(pageNums)
+
+	for _, pageNum := range pageNums {
+		allBlocks = append(allBlocks, pageBlocks[pageNum]...)
+	}
+
+	if len(allBlocks) == 0 {
+		return nil
+	}
+
+	// 2. 連続するテキストブロックを統合
+	var merged []layout.ContentBlock
+	var currentTextBlock *layout.TextBlock
+
+	for _, block := range allBlocks {
+		switch block.Type() {
+		case layout.ContentBlockTypeText:
+			tb := block.(layout.TextBlock)
+
+			if currentTextBlock == nil {
+				// 新しいテキストブロック開始
+				currentTextBlock = &tb
+			} else if canMergeTextBlocks(*currentTextBlock, tb) {
+				// 前のブロックと統合可能
+				currentTextBlock.Text += "\n" + tb.Text
+				currentTextBlock.Elements = append(currentTextBlock.Elements, tb.Elements...)
+				// 境界を拡張
+				updateTextBlockBounds(currentTextBlock, tb)
+			} else {
+				// 統合できないので前のブロックを確定
+				merged = append(merged, *currentTextBlock)
+				currentTextBlock = &tb
+			}
+
+		case layout.ContentBlockTypeImage:
+			// 画像が来たらテキストブロックを確定
+			if currentTextBlock != nil {
+				merged = append(merged, *currentTextBlock)
+				currentTextBlock = nil
+			}
+			merged = append(merged, block)
+		}
+	}
+
+	// 最後のテキストブロックを追加
+	if currentTextBlock != nil {
+		merged = append(merged, *currentTextBlock)
+	}
+
+	return merged
+}
+
+// canMergeTextBlocks は2つのテキストブロックが統合可能か判定
+func canMergeTextBlocks(block1, block2 layout.TextBlock) bool {
+	// フォント名が同じ
+	if block1.Font != block2.Font {
+		return false
+	}
+
+	// フォントサイズが近い（±1ポイントの差は許容）
+	sizeDiff := math.Abs(block1.FontSize - block2.FontSize)
+	if sizeDiff > 1.0 {
+		return false
+	}
+
+	// 色が同じ
+	if block1.Color != block2.Color {
+		return false
+	}
+
+	return true
+}
+
+// updateTextBlockBounds はテキストブロックの境界を拡張
+func updateTextBlockBounds(target *layout.TextBlock, source layout.TextBlock) {
+	minX := math.Min(target.Rect.X, source.Rect.X)
+	minY := math.Min(target.Rect.Y, source.Rect.Y)
+
+	maxX := math.Max(
+		target.Rect.X+target.Rect.Width,
+		source.Rect.X+source.Rect.Width,
+	)
+	maxY := math.Max(
+		target.Rect.Y+target.Rect.Height,
+		source.Rect.Y+source.Rect.Height,
+	)
+
+	target.Rect = layout.Rectangle{
+		X:      minX,
+		Y:      minY,
+		Width:  maxX - minX,
+		Height: maxY - minY,
+	}
+}
