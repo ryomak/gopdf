@@ -635,15 +635,266 @@ func main() {
 - 大量のコンテンツブロックがある場合、処理時間がかかる
 - 画像の変換・再エンコードは重い処理
 
-## 7. 拡張性
+## 7. テキストはみ出し対策
+
+翻訳後のテキストが元の領域からはみ出る問題への対策：
+
+### 7.1. 既存の対策（実装済み）
+
+#### FitTextによる自動調整
+
+`text_fitting.go`の`FitText`関数を使用して、テキストを領域内に収める：
+
+```go
+// 既にtranslator.goで使用されている例
+fitted, err := FitText(block.Text, block.Rect, fontName, FitTextOptions{
+    MaxFontSize: 24.0,
+    MinFontSize: 6.0,
+    LineSpacing: 1.2,
+    AllowShrink: true,  // フォントサイズを縮小
+    AllowGrow:   false, // フォントサイズを拡大しない
+    Alignment:   AlignLeft,
+})
+```
+
+**動作:**
+- 2分探索でフォントサイズを自動調整
+- テキストを自動改行
+- 領域に収まる最大のフォントサイズを見つける
+
+**メリット:**
+- 既に実装済み
+- レイアウトを崩さない
+- 複数行対応
+
+**デメリット:**
+- フォントが小さくなりすぎる可能性
+- 元のフォントサイズから大きく変わる場合がある
+
+### 7.2. 新規対策（将来実装）
+
+#### オプション1: AutoLayoutモード
+
+はみ出したブロックを自動的に下にずらす：
+
+```go
+type AutoLayoutOptions struct {
+    EnableAutoShift bool    // 自動位置調整を有効化
+    MinSpacing      float64 // ブロック間の最小間隔
+    PageMargin      float64 // ページ下端からのマージン
+}
+
+// PageLayoutを自動調整
+func (pl *PageLayout) AutoAdjustLayout(opts AutoLayoutOptions) error {
+    // 上から順に処理
+    blocks := pl.SortedContentBlocks()
+
+    var currentY float64 = pl.Height - opts.PageMargin
+
+    for i, block := range blocks {
+        bounds := block.GetBounds()
+
+        // 前のブロックと重なる場合
+        if bounds.Y + bounds.Height > currentY {
+            // 位置を調整
+            newY := currentY - bounds.Height
+
+            // TextBlockの場合
+            if tb, ok := block.(TextBlock); ok {
+                tb.Rect.Y = newY
+                pl.TextBlocks[i] = tb
+            }
+            // ImageBlockの場合
+            if ib, ok := block.(ImageBlock); ok {
+                ib.Y = newY
+                pl.Images[i] = ib
+            }
+        }
+
+        // 次のブロックの配置位置を更新
+        currentY = block.GetBounds().Y - opts.MinSpacing
+    }
+
+    return nil
+}
+```
+
+**メリット:**
+- レイアウトの重なりを防ぐ
+- テキストが読みやすくなる
+
+**デメリット:**
+- 元のレイアウトから大きく変わる
+- ページをまたぐ処理が必要
+
+#### オプション2: 手動調整API
+
+ユーザーがブロック位置を手動で調整：
+
+```go
+// 特定のブロックを移動
+func (pl *PageLayout) MoveTextBlock(index int, offsetX, offsetY float64) {
+    if index < len(pl.TextBlocks) {
+        pl.TextBlocks[index].Rect.X += offsetX
+        pl.TextBlocks[index].Rect.Y += offsetY
+    }
+}
+
+// ブロックをリサイズ
+func (pl *PageLayout) ResizeTextBlock(index int, newWidth, newHeight float64) {
+    if index < len(pl.TextBlocks) {
+        pl.TextBlocks[index].Rect.Width = newWidth
+        pl.TextBlocks[index].Rect.Height = newHeight
+    }
+}
+```
+
+**使用例:**
+```go
+layout, _ := reader.ExtractPageLayout(0)
+
+// テキストを翻訳
+for i := range layout.TextBlocks {
+    layout.TextBlocks[i].Text = translate(layout.TextBlocks[i].Text)
+
+    // 翻訳後のテキストが長い場合、領域を拡大
+    if len(layout.TextBlocks[i].Text) > originalLength * 1.5 {
+        layout.ResizeTextBlock(i,
+            layout.TextBlocks[i].Rect.Width,
+            layout.TextBlocks[i].Rect.Height * 1.5)
+    }
+}
+
+// 自動レイアウト調整
+layout.AutoAdjustLayout(AutoLayoutOptions{
+    EnableAutoShift: true,
+    MinSpacing:      10.0,
+    PageMargin:      20.0,
+})
+
+// レンダリング
+page.RenderLayout(layout)
+```
+
+#### オプション3: 複数ページへの分割
+
+テキストが長すぎる場合、複数ページに分割：
+
+```go
+type PageSplitOptions struct {
+    MaxBlocksPerPage int     // 1ページあたりの最大ブロック数
+    PageHeight       float64 // ページ高さ
+}
+
+// レイアウトを複数ページに分割
+func (pl *PageLayout) SplitIntoPages(opts PageSplitOptions) ([]*PageLayout, error) {
+    var pages []*PageLayout
+    currentPage := &PageLayout{
+        Width:  pl.Width,
+        Height: opts.PageHeight,
+    }
+
+    currentY := opts.PageHeight
+
+    for _, block := range pl.TextBlocks {
+        blockHeight := block.Rect.Height
+
+        // 現在のページに収まらない場合
+        if currentY - blockHeight < 0 {
+            // 新しいページを作成
+            pages = append(pages, currentPage)
+            currentPage = &PageLayout{
+                Width:  pl.Width,
+                Height: opts.PageHeight,
+            }
+            currentY = opts.PageHeight
+        }
+
+        // ブロックを追加
+        block.Rect.Y = currentY - blockHeight
+        currentPage.TextBlocks = append(currentPage.TextBlocks, block)
+        currentY -= (blockHeight + 10) // 間隔
+    }
+
+    // 最後のページを追加
+    if len(currentPage.TextBlocks) > 0 {
+        pages = append(pages, currentPage)
+    }
+
+    return pages, nil
+}
+```
+
+### 7.3. 推奨される使い方
+
+```go
+// 1. 基本: FitTextで自動調整（既存機能）
+opts := DefaultPDFTranslatorOptions(targetFont, fontName)
+opts.FittingOptions.AllowShrink = true
+opts.FittingOptions.MinFontSize = 8.0 // 最小サイズを設定
+TranslatePDF("input.pdf", "output.pdf", opts)
+
+// 2. 高度: 手動でレイアウト調整（将来実装）
+layout, _ := reader.ExtractPageLayout(0)
+
+// 翻訳
+for i := range layout.TextBlocks {
+    layout.TextBlocks[i].Text = translate(layout.TextBlocks[i].Text)
+}
+
+// はみ出しチェックと調整
+for i := range layout.TextBlocks {
+    fitted, err := FitText(
+        layout.TextBlocks[i].Text,
+        layout.TextBlocks[i].Rect,
+        fontName,
+        opts.FittingOptions,
+    )
+
+    if err != nil {
+        // 収まらない場合、領域を拡大
+        estimatedHeight := EstimateTotalHeight(
+            layout.TextBlocks[i].Text,
+            layout.TextBlocks[i].Rect.Width,
+            fontName,
+            layout.TextBlocks[i].FontSize,
+            1.2,
+        )
+        layout.ResizeTextBlock(i,
+            layout.TextBlocks[i].Rect.Width,
+            estimatedHeight)
+    }
+}
+
+// 自動レイアウト調整でブロックをずらす
+layout.AutoAdjustLayout(AutoLayoutOptions{
+    EnableAutoShift: true,
+    MinSpacing:      10.0,
+})
+
+// 複数ページに分割
+pages, _ := layout.SplitIntoPages(PageSplitOptions{
+    PageHeight: 842.0, // A4
+})
+
+// 各ページをレンダリング
+for _, page := range pages {
+    p := doc.AddPage(A4, Portrait)
+    p.RenderLayout(page)
+}
+```
+
+## 8. 拡張性
 
 将来的な拡張：
 
 1. **フォント自動マッピング**: 近いフォントを自動選択
-2. **テキストフロー調整**: 幅に合わせて自動改行
+2. **テキストフロー調整**: 幅に合わせて自動改行（実装済み）
 3. **スタイル保持**: 太字、斜体などのスタイル情報
 4. **アノテーション**: リンク、注釈の保持
 5. **ベクター図形**: パスやシェイプの再構成
+6. **AutoLayoutモード**: ブロックの自動位置調整（上記参照）
+7. **複数ページ分割**: 長いコンテンツの自動ページ分割（上記参照）
 
 ## 8. 参考資料
 
