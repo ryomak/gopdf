@@ -80,7 +80,7 @@ func (pl *PageLayout) SortedContentBlocks() []ContentBlock {
 
 		const epsilon = 1.0
 		if topI-topJ > epsilon || topJ-topI > epsilon {
-			return topI > topJ // 上端が高い方を先に
+			return topI > topJ // 上端が高い方を先に（top-to-bottom order）
 		}
 
 		// X座標で比較（左から右）

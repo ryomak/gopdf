@@ -95,7 +95,15 @@ func (d *Document) WriteTo(w io.Writer) error {
 	// TTFフォントを埋め込み（Type0 + CIDFont + FontDescriptor + FontFile2 + ToUnicode = 5オブジェクト/フォント）
 	ttfEmbedder := writer.NewTTFFontEmbedder(pdfWriter)
 	for fontKey, ttfFont := range allTTFFonts {
-		fontRef, err := ttfEmbedder.EmbedTTFFont(ttfFont.internal)
+		// Copy usedGlyphs map to avoid concurrent access issues
+		ttfFont.glyphsMutex.Lock()
+		usedGlyphs := make(map[uint16]rune, len(ttfFont.usedGlyphs))
+		for k, v := range ttfFont.usedGlyphs {
+			usedGlyphs[k] = v
+		}
+		ttfFont.glyphsMutex.Unlock()
+
+		fontRef, err := ttfEmbedder.EmbedTTFFont(ttfFont.internal, usedGlyphs)
 		if err != nil {
 			return fmt.Errorf("failed to embed TTF font %s: %w", fontKey, err)
 		}

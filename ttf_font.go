@@ -14,7 +14,9 @@ var (
 
 // TTFFont represents a TrueType Font for use in PDF documents
 type TTFFont struct {
-	internal *font.TTFFont
+	internal    *font.TTFFont
+	usedGlyphs  map[uint16]rune // glyphIndex → Unicode rune mapping
+	glyphsMutex sync.Mutex       // Protect concurrent access to usedGlyphs
 }
 
 // LoadTTF loads a TrueType font from a file path
@@ -25,7 +27,8 @@ func LoadTTF(path string) (*TTFFont, error) {
 	}
 
 	return &TTFFont{
-		internal: internalFont,
+		internal:   internalFont,
+		usedGlyphs: make(map[uint16]rune),
 	}, nil
 }
 
@@ -37,7 +40,8 @@ func LoadTTFFromBytes(data []byte) (*TTFFont, error) {
 	}
 
 	return &TTFFont{
-		internal: internalFont,
+		internal:   internalFont,
+		usedGlyphs: make(map[uint16]rune),
 	}, nil
 }
 
@@ -76,7 +80,8 @@ func DefaultJapaneseFont() (*TTFFont, error) {
 			return
 		}
 		defaultJPFont = &TTFFont{
-			internal: internalFont,
+			internal:   internalFont,
+			usedGlyphs: make(map[uint16]rune),
 		}
 	})
 	return defaultJPFont, defaultJPFontErr

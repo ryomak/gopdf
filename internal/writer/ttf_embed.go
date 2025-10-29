@@ -3,6 +3,7 @@ package writer
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/ryomak/gopdf/internal/core"
 	"github.com/ryomak/gopdf/internal/font"
@@ -19,7 +20,7 @@ func NewTTFFontEmbedder(w *Writer) *TTFFontEmbedder {
 }
 
 // EmbedTTFFont embeds a TTF font into the PDF and returns a reference to the font object
-func (e *TTFFontEmbedder) EmbedTTFFont(ttfFont *font.TTFFont) (*core.Reference, error) {
+func (e *TTFFontEmbedder) EmbedTTFFont(ttfFont *font.TTFFont, usedGlyphs map[uint16]rune) (*core.Reference, error) {
 	// 1. Create FontFile2 stream (embedded TTF data)
 	fontFileRef, err := e.createFontFile2(ttfFont)
 	if err != nil {
@@ -39,7 +40,7 @@ func (e *TTFFontEmbedder) EmbedTTFFont(ttfFont *font.TTFFont) (*core.Reference, 
 	}
 
 	// 4. Create ToUnicode CMap
-	toUnicodeRef, err := e.createToUnicodeCMap(ttfFont)
+	toUnicodeRef, err := e.createToUnicodeCMap(ttfFont, usedGlyphs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ToUnicode CMap: %w", err)
 	}
@@ -148,9 +149,9 @@ func (e *TTFFontEmbedder) createCIDFont(ttfFont *font.TTFFont, fontDescriptorRef
 }
 
 // createToUnicodeCMap creates a ToUnicode CMap stream
-func (e *TTFFontEmbedder) createToUnicodeCMap(ttfFont *font.TTFFont) (*core.Reference, error) {
-	// Create a ToUnicode CMap with identity mapping
-	// This maps character codes directly to Unicode code points
+func (e *TTFFontEmbedder) createToUnicodeCMap(ttfFont *font.TTFFont, usedGlyphs map[uint16]rune) (*core.Reference, error) {
+	// Create a ToUnicode CMap with glyph-based mapping
+	// This maps glyph indices to Unicode code points
 	var buf bytes.Buffer
 
 	buf.WriteString(`/CIDInit /ProcSet findresource begin
@@ -168,19 +169,30 @@ begincmap
 endcodespacerange
 `)
 
-	// Add identity mapping for the entire BMP (Basic Multilingual Plane)
-	// This maps character code X to Unicode U+X
-	buf.WriteString(`100 beginbfrange
-`)
-	for start := 0x0000; start < 0x10000; start += 0x0100 {
-		end := start + 0x00FF
-		if end > 0xFFFF {
-			end = 0xFFFF
+	// Add glyph-to-Unicode mappings for actually used glyphs
+	if len(usedGlyphs) > 0 {
+		// Convert map to sorted slice for consistent output
+		type glyphMapping struct {
+			gid  uint16
+			rune rune
 		}
-		fmt.Fprintf(&buf, "<%04X> <%04X> <%04X>\n", start, end, start)
+		var mappings []glyphMapping
+		for gid, r := range usedGlyphs {
+			mappings = append(mappings, glyphMapping{gid: gid, rune: r})
+		}
+
+		// Sort by glyph ID for better readability
+		sort.Slice(mappings, func(i, j int) bool {
+			return mappings[i].gid < mappings[j].gid
+		})
+
+		// Write mappings as bfchar entries
+		fmt.Fprintf(&buf, "%d beginbfchar\n", len(mappings))
+		for _, m := range mappings {
+			fmt.Fprintf(&buf, "<%04X> <%04X>\n", m.gid, m.rune)
+		}
+		buf.WriteString("endbfchar\n")
 	}
-	buf.WriteString(`endbfrange
-`)
 
 	buf.WriteString(`endcmap
 CMapName currentdict /CMap defineresource pop

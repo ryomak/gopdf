@@ -390,6 +390,11 @@ func (p *Page) textToGlyphIndices(text string, ttfFont *TTFFont) (string, error)
 			return "", fmt.Errorf("failed to get glyph index for character %c (U+%04X): %w", r, r, err)
 		}
 
+		// Record glyph usage for ToUnicode CMap generation
+		ttfFont.glyphsMutex.Lock()
+		ttfFont.usedGlyphs[uint16(glyphIndex)] = r
+		ttfFont.glyphsMutex.Unlock()
+
 		// Convert glyph index to 4-digit hex string
 		result += fmt.Sprintf("%04X", glyphIndex)
 	}
