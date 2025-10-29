@@ -100,6 +100,16 @@ type ImageInfo struct {
 	Format      ImageFormat // 画像フォーマット
 }
 
+// EncryptionInfo はPDF暗号化の情報
+type EncryptionInfo struct {
+	Filter  string // 暗号化フィルター（通常は "Standard"）
+	V       int    // アルゴリズムバージョン（1 or 2）
+	R       int    // リビジョン番号（2 or 3）
+	Length  int    // 鍵長（ビット単位、40 or 128）
+	P       int32  // パーミッションフラグ
+	IsOwner bool   // オーナーとして認証されたか
+}
+
 // ExtractPageText は指定されたページのテキストを抽出する（0-indexed）
 func (r *PDFReader) ExtractPageText(pageNum int) (string, error) {
 	// ページを取得
@@ -222,6 +232,31 @@ func estimateTextWidth(text string, fontSize float64, font string) float64 {
 	return float64(len(text)) * avgCharWidth
 }
 
+// ExtractPageTextBlocks はテキストブロックを抽出する（0-indexed）
+func (r *PDFReader) ExtractPageTextBlocks(pageNum int) ([]TextBlock, error) {
+	elements, err := r.ExtractPageTextElements(pageNum)
+	if err != nil {
+		return nil, err
+	}
+	return r.groupTextElements(elements), nil
+}
+
+// ExtractAllTextBlocks は全ページのテキストブロックを抽出する
+func (r *PDFReader) ExtractAllTextBlocks() (map[int][]TextBlock, error) {
+	pageCount := r.PageCount()
+	result := make(map[int][]TextBlock)
+
+	for i := 0; i < pageCount; i++ {
+		blocks, err := r.ExtractPageTextBlocks(i)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = blocks
+	}
+
+	return result, nil
+}
+
 // ExtractImages は指定されたページから画像を抽出する（0-indexed）
 func (r *PDFReader) ExtractImages(pageNum int) ([]ImageInfo, error) {
 	// ページを取得
@@ -271,4 +306,34 @@ func (r *PDFReader) ExtractAllImages() (map[int][]ImageInfo, error) {
 	}
 
 	return result, nil
+}
+
+// IsEncrypted はPDFが暗号化されているかどうかを確認する
+func (r *PDFReader) IsEncrypted() bool {
+	return r.r.IsEncrypted()
+}
+
+// AuthenticateWithPassword はパスワードを使用してPDFを認証する
+// 認証に成功すると、暗号化されたコンテンツを読み取れるようになる
+func (r *PDFReader) AuthenticateWithPassword(password string) error {
+	return r.r.AuthenticateWithPassword(password)
+}
+
+// GetEncryptionInfo は暗号化情報を取得する
+// PDFが暗号化されていない場合はnilを返す
+func (r *PDFReader) GetEncryptionInfo() *EncryptionInfo {
+	internalInfo := r.r.GetEncryptionInfo()
+	if internalInfo == nil {
+		return nil
+	}
+
+	// 内部のEncryptionInfoから公開APIのEncryptionInfoに変換
+	return &EncryptionInfo{
+		Filter:  internalInfo.Filter,
+		V:       internalInfo.V,
+		R:       internalInfo.R,
+		Length:  internalInfo.Length,
+		P:       internalInfo.P,
+		IsOwner: internalInfo.IsOwner,
+	}
 }
