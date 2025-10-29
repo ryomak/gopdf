@@ -381,9 +381,10 @@ func combineBlockText(lines [][]layout.TextElement) string {
 				prevElem := line[j-1]
 				gap := elem.X - (prevElem.X + prevElem.Width)
 
-				// 距離の閾値: フォントサイズの20%
+				// 距離の閾値: フォントサイズの35%
 				// これより大きい場合はスペースを入れる
-				threshold := prevElem.Size * 0.2
+				// 文字間のカーニングを考慮しつつ、単語間は分離
+				threshold := prevElem.Size * 0.35
 
 				if gap > threshold {
 					result.WriteString(" ")
@@ -462,8 +463,9 @@ func createTextBlock(elements []layout.TextElement) layout.TextBlock {
 			prevElem := elements[i-1]
 			gap := elem.X - (prevElem.X + prevElem.Width)
 
-			// 距離の閾値: フォントサイズの20%
-			threshold := prevElem.Size * 0.2
+			// 距離の閾値: フォントサイズの35%
+			// 文字間のカーニングを考慮しつつ、単語間は分離
+			threshold := prevElem.Size * 0.35
 
 			if gap > threshold {
 				text.WriteString(" ")
