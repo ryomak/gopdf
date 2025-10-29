@@ -1,11 +1,15 @@
 package layout
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/ryomak/gopdf/internal/model"
+)
 
 // ContentBlock はページ内のコンテンツブロックを表す統一インターフェース
 type ContentBlock interface {
 	// Bounds はブロックの境界矩形を返す
-	Bounds() Rectangle
+	Bounds() model.Rectangle
 
 	// Type はブロックの種類を返す
 	Type() ContentBlockType
@@ -33,13 +37,6 @@ type PageLayout struct {
 	Images     []ImageBlock // 画像ブロック
 }
 
-// Rectangle は矩形領域
-type Rectangle struct {
-	X      float64 // 左下X座標
-	Y      float64 // 左下Y座標
-	Width  float64 // 幅
-	Height float64 // 高さ
-}
 
 // ContentBlocks はページ内のすべてのコンテンツブロックをY座標順で返す
 func (pl *PageLayout) ContentBlocks() []ContentBlock {
@@ -138,37 +135,3 @@ func DefaultLayoutAdjustmentOptions() LayoutAdjustmentOptions {
 	}
 }
 
-// TextElement はテキスト要素（循環参照を避けるため独自に定義）
-type TextElement struct {
-	Text   string
-	X      float64
-	Y      float64
-	Width  float64
-	Height float64
-	Font   string
-	Size   float64
-}
-
-// ImageFormat は画像フォーマット
-type ImageFormat string
-
-const (
-	// ImageFormatJPEG はJPEG形式
-	ImageFormatJPEG ImageFormat = "jpeg"
-	// ImageFormatPNG はPNG形式
-	ImageFormatPNG ImageFormat = "png"
-	// ImageFormatUnknown は不明な形式
-	ImageFormatUnknown ImageFormat = "unknown"
-)
-
-// ImageInfo は画像情報
-type ImageInfo struct {
-	Name        string
-	Width       int
-	Height      int
-	ColorSpace  string
-	BitsPerComp int
-	Filter      string
-	Data        []byte
-	Format      ImageFormat
-}

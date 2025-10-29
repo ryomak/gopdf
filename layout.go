@@ -7,25 +7,33 @@ import (
 
 	"github.com/ryomak/gopdf/internal/content"
 	"github.com/ryomak/gopdf/internal/core"
+	"github.com/ryomak/gopdf/internal/model"
 	"github.com/ryomak/gopdf/internal/utils"
 	"github.com/ryomak/gopdf/layout"
 )
 
 // 型エイリアス（後方互換性のため、ユーザーは layout パッケージを直接使うことを推奨）
 type (
+	// layout パッケージの型
 	ContentBlock            = layout.ContentBlock
 	ContentBlockType        = layout.ContentBlockType
 	PageLayout              = layout.PageLayout
 	TextBlock               = layout.TextBlock
 	ImageBlock              = layout.ImageBlock
-	Rectangle               = layout.Rectangle
 	BlockOverlap            = layout.BlockOverlap
 	LayoutStrategy          = layout.LayoutStrategy
 	LayoutAdjustmentOptions = layout.LayoutAdjustmentOptions
+
+	// internal/model パッケージの型（ユーザーが直接使える）
+	Rectangle   = model.Rectangle
+	TextElement = model.TextElement
+	ImageInfo   = model.ImageInfo
+	ImageFormat = model.ImageFormat
 )
 
 // 定数エイリアス
 const (
+	// layout パッケージの定数
 	ContentBlockTypeText  = layout.ContentBlockTypeText
 	ContentBlockTypeImage = layout.ContentBlockTypeImage
 
@@ -34,6 +42,11 @@ const (
 	StrategyEvenSpacing      = layout.StrategyEvenSpacing
 	StrategyFlowDown         = layout.StrategyFlowDown
 	StrategyFitContent       = layout.StrategyFitContent
+
+	// internal/model パッケージの定数
+	ImageFormatJPEG    = model.ImageFormatJPEG
+	ImageFormatPNG     = model.ImageFormatPNG
+	ImageFormatUnknown = model.ImageFormatUnknown
 )
 
 // DefaultLayoutAdjustmentOptions はデフォルトのレイアウト調整オプションを返す
@@ -136,9 +149,9 @@ func (r *PDFReader) getPageSize(page core.Dictionary) (width, height float64) {
 }
 
 // convertTextElements は内部型から公開型に変換
-func convertTextElements(internalElements []content.TextElement) []layout.TextElement {
-	return utils.Map(internalElements, func(elem content.TextElement) layout.TextElement {
-		return layout.TextElement{
+func convertTextElements(internalElements []content.TextElement) []model.TextElement {
+	return utils.Map(internalElements, func(elem content.TextElement) model.TextElement {
+		return model.TextElement{
 			Text:   elem.Text,
 			X:      elem.X,
 			Y:      elem.Y,
@@ -154,7 +167,7 @@ func convertTextElements(internalElements []content.TextElement) []layout.TextEl
 func convertImageBlocks(internalBlocks []content.ImageBlock) []layout.ImageBlock {
 	return utils.Map(internalBlocks, func(block content.ImageBlock) layout.ImageBlock {
 		return layout.ImageBlock{
-			ImageInfo: layout.ImageInfo{
+			ImageInfo: model.ImageInfo{
 				Name:        block.Name,
 				Width:       block.Width,
 				Height:      block.Height,
@@ -162,7 +175,7 @@ func convertImageBlocks(internalBlocks []content.ImageBlock) []layout.ImageBlock
 				BitsPerComp: block.BitsPerComp,
 				Filter:      block.Filter,
 				Data:        block.Data,
-				Format:      layout.ImageFormat(block.Format),
+				Format:      model.ImageFormat(block.Format),
 			},
 			X:            block.X,
 			Y:            block.Y,
@@ -173,25 +186,25 @@ func convertImageBlocks(internalBlocks []content.ImageBlock) []layout.ImageBlock
 }
 
 // groupTextElements はTextElementsをTextBlocksにグループ化
-func (r *PDFReader) groupTextElements(elements []layout.TextElement) []layout.TextBlock {
+func (r *PDFReader) groupTextElements(elements []model.TextElement) []layout.TextBlock {
 	if len(elements) == 0 {
 		return nil
 	}
 
 	// 1. Y座標でソート（上から下）
-	sorted := make([]layout.TextElement, len(elements))
+	sorted := make([]model.TextElement, len(elements))
 	copy(sorted, elements)
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].Y > sorted[j].Y
 	})
 
 	var blocks []layout.TextBlock
-	var currentBlock []layout.TextElement
+	var currentBlock []model.TextElement
 	threshold := 5.0 // ピクセル単位の閾値
 
 	for i, elem := range sorted {
 		if i == 0 {
-			currentBlock = []layout.TextElement{elem}
+			currentBlock = []model.TextElement{elem}
 			continue
 		}
 
@@ -208,7 +221,7 @@ func (r *PDFReader) groupTextElements(elements []layout.TextElement) []layout.Te
 			if len(currentBlock) > 0 {
 				blocks = append(blocks, createTextBlock(currentBlock))
 			}
-			currentBlock = []layout.TextElement{elem}
+			currentBlock = []model.TextElement{elem}
 		}
 	}
 
@@ -221,7 +234,7 @@ func (r *PDFReader) groupTextElements(elements []layout.TextElement) []layout.Te
 }
 
 // createTextBlock はTextElementsからTextBlockを作成
-func createTextBlock(elements []layout.TextElement) layout.TextBlock {
+func createTextBlock(elements []model.TextElement) layout.TextBlock {
 	// バウンディングボックスを計算
 	minX, minY := elements[0].X, elements[0].Y
 	maxX, maxY := elements[0].X+elements[0].Width, elements[0].Y+elements[0].Height
@@ -248,7 +261,7 @@ func createTextBlock(elements []layout.TextElement) layout.TextBlock {
 	return layout.TextBlock{
 		Text:     text.String(),
 		Elements: elements,
-		Rect: layout.Rectangle{
+		Rect: model.Rectangle{
 			X:      minX,
 			Y:      minY,
 			Width:  maxX - minX,
@@ -256,7 +269,7 @@ func createTextBlock(elements []layout.TextElement) layout.TextBlock {
 		},
 		Font:     elements[0].Font,
 		FontSize: avgSize,
-		Color:    layout.Color{R: 0, G: 0, B: 0}, // デフォルト黒
+		Color:    model.Color{R: 0, G: 0, B: 0}, // デフォルト黒
 	}
 }
 
@@ -271,20 +284,10 @@ func toFloat64(obj core.Object) float64 {
 	}
 }
 
-// AdjustLayout はPageLayoutを自動調整する（gopdf固有の実装）
-// layout.PageLayout.AdjustLayout() をオーバーライドして、FitText等の機能を使う
-func AdjustLayout(pl *PageLayout, opts LayoutAdjustmentOptions) error {
-	// StrategyFitContent以外は layout パッケージの実装を使用
-	if opts.Strategy != StrategyFitContent {
-		return pl.AdjustLayout(opts)
-	}
-
-	// StrategyFitContent はgopdf固有の実装
-	return adjustLayoutFitContent(pl, opts)
-}
-
-// adjustLayoutFitContent はブロックサイズを変えず、コンテンツをブロックに収める
-func adjustLayoutFitContent(pl *PageLayout, opts LayoutAdjustmentOptions) error {
+// adjustLayoutFitContentWithFitting はFitTextを使った高度なフィッティング
+// layout.PageLayout.AdjustLayout() で StrategyFitContent を使うと簡易版が実行される
+// こちらの関数を直接呼ぶと、より正確なフィッティングが可能
+func adjustLayoutFitContentWithFitting(pl *PageLayout, opts LayoutAdjustmentOptions) error {
 	// TextBlocksを調整
 	for i := range pl.TextBlocks {
 		block := &pl.TextBlocks[i]

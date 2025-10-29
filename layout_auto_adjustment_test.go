@@ -231,7 +231,8 @@ func TestAdjustLayout_StrategyFitContent(t *testing.T) {
 	opts := LayoutAdjustmentOptions{
 		Strategy: StrategyFitContent,
 	}
-	err := AdjustLayout(layout, opts)
+	// gopdf固有の高度なフィッティングを使用
+	err := adjustLayoutFitContentWithFitting(layout, opts)
 	if err != nil {
 		t.Fatalf("AdjustLayout failed: %v", err)
 	}

@@ -190,10 +190,42 @@ func (pl *PageLayout) adjustLayoutEvenSpacing(opts LayoutAdjustmentOptions) erro
 }
 
 // adjustLayoutFitContent はブロックサイズを変えず、コンテンツをブロックに収める
-// 注: この機能はgopdf.FitText関数に依存するため、layout/パッケージでは簡易実装のみ提供
-// 完全な実装はgopdfパッケージ側で提供される
+// 注: この機能はテキストフィッティングに依存するため、基本実装のみ提供
+// より高度なフィッティングが必要な場合は、gopdfパッケージ側でオーバーライド可能
 func (pl *PageLayout) adjustLayoutFitContent(opts LayoutAdjustmentOptions) error {
-	// 基本的な実装はgopdfパッケージ側で提供
-	// ここでは何もしない（または簡易的なフォントサイズ調整のみ）
+	// TextBlocksを調整（簡易実装）
+	for i := range pl.TextBlocks {
+		block := &pl.TextBlocks[i]
+
+		// 空のテキストはスキップ
+		if block.Text == "" {
+			continue
+		}
+
+		// 簡易的なフォントサイズ調整
+		// テキストの長さとブロックサイズから推定
+		textLen := float64(len(block.Text))
+		if textLen == 0 {
+			continue
+		}
+
+		// 1文字あたりの幅を推定（fontSizeの60%と仮定）
+		charWidth := block.FontSize * 0.6
+		estimatedWidth := textLen * charWidth
+
+		// ブロック幅に収まらない場合、フォントサイズを縮小
+		if estimatedWidth > block.Rect.Width {
+			scaleFactor := block.Rect.Width / estimatedWidth
+			newFontSize := block.FontSize * scaleFactor
+
+			// 最小フォントサイズを6.0とする
+			if newFontSize < 6.0 {
+				newFontSize = 6.0
+			}
+
+			block.FontSize = newFontSize
+		}
+	}
+
 	return nil
 }
