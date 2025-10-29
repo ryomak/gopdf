@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/ryomak/gopdf/internal/reader"
+	"github.com/ryomak/gopdf"
 )
 
 func main() {
@@ -26,10 +26,11 @@ func main() {
 	defer file.Close()
 
 	// Create a new reader
-	r, err := reader.NewReader(file)
+	r, err := gopdf.OpenReader(file)
 	if err != nil {
 		log.Fatalf("Failed to create reader: %v", err)
 	}
+	defer r.Close()
 
 	// Check if the PDF is encrypted
 	if !r.IsEncrypted() {
@@ -88,55 +89,45 @@ func displayPermission(name string, allowed bool) {
 	fmt.Printf("   %s: %s\n", name, status)
 }
 
-func displayPDFInfo(r *reader.Reader) {
+func displayPDFInfo(r *gopdf.PDFReader) {
 	fmt.Println("\n📄 PDF Information:")
 
-	// Get catalog (just to verify it's readable)
-	_, err := r.GetCatalog()
-	if err != nil {
-		fmt.Printf("   Error reading catalog: %v\n", err)
-		return
-	}
-
 	// Get page count
-	pageCount, err := r.GetPageCount()
-	if err != nil {
-		fmt.Printf("   Error getting page count: %v\n", err)
-		return
-	}
+	pageCount := r.PageCount()
 	fmt.Printf("   Page Count: %d\n", pageCount)
 
-	// Get info dictionary
-	info, err := r.GetInfo()
-	if err != nil {
-		fmt.Printf("   Error reading info: %v\n", err)
-		return
+	// Get metadata
+	info := r.Info()
+	fmt.Println("\n📝 Metadata:")
+	if info.Title != "" {
+		fmt.Printf("   Title: %s\n", info.Title)
+	}
+	if info.Author != "" {
+		fmt.Printf("   Author: %s\n", info.Author)
+	}
+	if info.Subject != "" {
+		fmt.Printf("   Subject: %s\n", info.Subject)
+	}
+	if info.Creator != "" {
+		fmt.Printf("   Creator: %s\n", info.Creator)
 	}
 
-	// Display metadata
-	if len(info) > 0 {
-		fmt.Println("\n📝 Metadata:")
-		for key, value := range info {
-			// Try to convert to string
-			fmt.Printf("   %s: %v\n", key, value)
+	// Try to extract text from first page
+	if pageCount > 0 {
+		fmt.Println("\n📖 Reading First Page:")
+		text, err := r.ExtractPageText(0)
+		if err != nil {
+			fmt.Printf("   Error reading page text: %v\n", err)
+		} else {
+			fmt.Printf("   ✓ Successfully read page 1\n")
+			if len(text) > 100 {
+				fmt.Printf("   Text preview: %s...\n", text[:100])
+			} else if len(text) > 0 {
+				fmt.Printf("   Text: %s\n", text)
+			} else {
+				fmt.Println("   (No text found)")
+			}
 		}
-	}
-
-	// Try to read first page content
-	fmt.Println("\n📖 Reading First Page:")
-	page, err := r.GetPage(0)
-	if err != nil {
-		fmt.Printf("   Error reading page: %v\n", err)
-		return
-	}
-
-	fmt.Printf("   ✓ Successfully read page 1\n")
-	fmt.Printf("   Page object has %d keys\n", len(page))
-
-	// Check if page has content
-	if contentRef, ok := page["Contents"]; ok {
-		fmt.Printf("   ✓ Page has content stream\n")
-		_ = contentRef // Just verify it exists
 	}
 
 	fmt.Println("\n✅ Successfully decrypted and read encrypted PDF!")
