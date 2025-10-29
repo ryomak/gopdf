@@ -171,3 +171,65 @@ CIDFontとしてTTFフォントを扱い、CID = Unicodeとする方法。ただ
 3. Phase 2の実装（ToUnicode CMap修正）
 4. テストケースの追加
 5. ドキュメントの更新
+
+## ✅ 修正完了 (2025-10-29)
+
+### 実装された修正
+
+#### 1. TTFFontへのusedGlyphs追加 (ttf_font.go)
+```go
+type TTFFont struct {
+    internal    *font.TTFFont
+    usedGlyphs  map[uint16]rune // glyphIndex → Unicode rune mapping
+    glyphsMutex sync.Mutex       // Protect concurrent access
+}
+```
+
+#### 2. グリフ使用の記録 (page.go:393-396)
+```go
+// Record glyph usage for ToUnicode CMap generation
+ttfFont.glyphsMutex.Lock()
+ttfFont.usedGlyphs[uint16(glyphIndex)] = r
+ttfFont.glyphsMutex.Unlock()
+```
+
+#### 3. グリフベースのToUnicode CMap生成 (internal/writer/ttf_embed.go:151-194)
+```go
+// Add glyph-to-Unicode mappings for actually used glyphs
+if len(usedGlyphs) > 0 {
+    // Sort by glyph ID for consistency
+    sort.Slice(mappings, func(i, j int) bool {
+        return mappings[i].gid < mappings[j].gid
+    })
+
+    // Write mappings as bfchar entries
+    fmt.Fprintf(&buf, "%d beginbfchar\n", len(mappings))
+    for _, m := range mappings {
+        fmt.Fprintf(&buf, "<%04X> <%04X>\n", m.gid, m.rune)
+    }
+    buf.WriteString("endbfchar\n")
+}
+```
+
+### 検証結果
+
+テストコード:
+```go
+// 日本語テキストでPDF作成
+testText := "こんにちは世界"
+page.DrawText(testText, 100, 700)
+
+// 抽出して確認
+pageText, _ := reader.ExtractPageText(0)
+// 結果: "こんにちは世界" ✓ 正常に抽出
+```
+
+### 影響範囲
+- ✅ 日本語テキスト抽出（修正完了）
+- ✅ TTFフォントでのPDF生成（変更なし、正常動作継続）
+- ✅ PDF翻訳機能（修正完了）
+- ✅ PDF検索機能（修正完了）
+- ✅ すべての既存テストがパス
+
+### コミット
+- commit 583dd4d: fix: Implement glyph-based ToUnicode CMap for correct text extraction
