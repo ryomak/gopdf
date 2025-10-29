@@ -381,6 +381,73 @@ MIT License（予定）
 
 現在、このプロジェクトは開発初期段階です。
 
+### コミットメッセージ規約
+
+このプロジェクトでは [Conventional Commits](https://www.conventionalcommits.org/) を採用しています。
+コミットメッセージは以下のフォーマットに従ってください：
+
+```
+<type>: <description>
+
+[optional body]
+
+[optional footer]
+```
+
+#### Type一覧
+
+| Type | 説明 | バージョン |
+|------|------|------------|
+| `feat` | 新機能の追加 | MINOR (v0.1.0 → v0.2.0) |
+| `fix` | バグ修正 | PATCH (v0.2.0 → v0.2.1) |
+| `perf` | パフォーマンス改善 | PATCH |
+| `docs` | ドキュメントのみの変更 | なし |
+| `style` | コードの意味に影響しない変更（フォーマット等） | なし |
+| `refactor` | リファクタリング | なし |
+| `test` | テストの追加・修正 | なし |
+| `chore` | ビルドプロセスやツールの変更 | なし |
+| `ci` | CI設定の変更 | なし |
+
+#### 破壊的変更（BREAKING CHANGE）
+
+破壊的変更を含む場合は、typeの後に`!`を付けるか、フッターに`BREAKING CHANGE:`を記載します：
+
+```bash
+# 方法1: typeに!を付ける
+feat!: change API signature
+
+# 方法2: フッターに記載
+feat: add new feature
+
+BREAKING CHANGE: old API is removed
+```
+
+破壊的変更はMAJORバージョンを上げます（v0.x.x → v1.0.0）
+
+#### コミット例
+
+```bash
+# 新機能追加
+git commit -m "feat: add PDF encryption support"
+
+# バグ修正
+git commit -m "fix: correct text encoding in Japanese characters"
+
+# パフォーマンス改善
+git commit -m "perf: optimize image compression"
+
+# ドキュメント更新
+git commit -m "docs: update README with new examples"
+
+# 破壊的変更
+git commit -m "feat!: redesign font API"
+```
+
+### 自動バージョニング
+
+mainブランチへのpush時、Conventional Commitsに基づいて自動的にバージョンタグとGitHubリリースが作成されます。
+詳細は [docs/versioning_strategy.md](docs/versioning_strategy.md) を参照してください。
+
 ## 関連プロジェクト
 
 - [pdfcpu](https://github.com/pdfcpu/pdfcpu) - Go製PDFプロセッサ
