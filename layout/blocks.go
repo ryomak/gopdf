@@ -30,6 +30,11 @@ func (tb TextBlock) Position() (x, y float64) {
 	return tb.Rect.X, tb.Rect.Y
 }
 
+// Matrix は変換行列（CTM: Current Transformation Matrix）
+type Matrix struct {
+	A, B, C, D, E, F float64 // [a b c d e f]
+}
+
 // ImageBlock は画像の配置情報
 type ImageBlock struct {
 	ImageInfo              // 画像データ（埋め込み）
@@ -37,6 +42,7 @@ type ImageBlock struct {
 	Y            float64   // 配置Y座標
 	PlacedWidth  float64   // 表示幅
 	PlacedHeight float64   // 表示高さ
+	Transform    Matrix    // 変換行列（CTM）
 }
 
 // Bounds はブロックの境界矩形を返す（ContentBlockインターフェース実装）

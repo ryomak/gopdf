@@ -178,13 +178,25 @@ func (e *ImageExtractor) ExtractImagesWithPosition(page core.Dictionary, operati
 
 				// 画像のデフォルトサイズは1x1の単位正方形
 				// CTMで実際の位置とサイズが決まる
-				x, y := currentCTM.TransformPoint(0, 0)
 
-				// 画像の幅と高さはCTMのスケール要素から
-				// 1x1の矩形をCTMで変換した結果のサイズ
+				// 1x1の単位正方形の4隅を変換して、実際の座標とサイズを計算
 				minX, minY, maxX, maxY := currentCTM.TransformRect(0, 0, 1, 1)
+
+				// 画像の左下座標（PDF座標系）
+				x := minX
+				y := minY
+
+				// 画像のサイズ
 				width := maxX - minX
 				height := maxY - minY
+
+				// DEBUG: 座標が異常な場合はログ出力
+				if y < -1000 || y > 10000 {
+					// 異常な座標の場合は、CTMから直接取得を試みる
+					// [a b c d e f] の形式で e がX、f がYの変換
+					x = currentCTM.E
+					y = currentCTM.F
+				}
 
 				// ImageInfoに変換
 				info := ImageInfo{

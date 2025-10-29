@@ -173,6 +173,14 @@ func convertImageBlocks(internalBlocks []content.ImageBlock) []layout.ImageBlock
 			Y:            block.Y,
 			PlacedWidth:  block.PlacedWidth,
 			PlacedHeight: block.PlacedHeight,
+			Transform: layout.Matrix{
+				A: block.Transform.A,
+				B: block.Transform.B,
+				C: block.Transform.C,
+				D: block.Transform.D,
+				E: block.Transform.E,
+				F: block.Transform.F,
+			},
 		}
 	})
 }
