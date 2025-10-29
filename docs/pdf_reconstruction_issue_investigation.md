@@ -184,9 +184,25 @@ PDFの再構成を行う場合は、以下の点に注意：
 3. 座標系の変換は不要（どちらも左下原点のPDF座標系）
 4. 画像の座標値を検証し、異常値はスキップ
 
+## 既知の問題
+
+### TTFフォントの文字化け
+
+**問題**: TTFフォントで書き込まれたテキスト（日本語など）を抽出すると文字化けする。
+
+**原因**: ToUnicode CMapが、グリフインデックス→Unicodeのマッピングではなく、Identity Mapping（コード→Unicode）を使用しているため。
+
+詳細は `docs/tounicode_cmap_issue.md` を参照。
+
+**回避策**:
+- 現時点では、TTFフォントで書き込んだPDFから正しくテキストを抽出することはできません
+- 標準フォント（ASCII範囲）のみを使用するか、外部ツール（pdftotext等）で抽出してください
+
 ## 参考資料
 - PDF Reference 1.7, Section 8.3: Text Objects
 - PDF Reference 1.7, Section 8.4: Text Positioning
+- PDF Reference 1.7, Section 9.10: Extraction of Text Content
 - internal/content/extractor.go: TextElement抽出処理
 - layout.go: TextBlock生成処理
 - page.go: DrawText実装
+- docs/tounicode_cmap_issue.md: TTFフォント文字化け問題の詳細
