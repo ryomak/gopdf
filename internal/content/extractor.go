@@ -28,6 +28,11 @@ type TextExtractor struct {
 	fontManager     *FontManager
 	currentFontInfo *FontInfo
 
+	// グラフィックス状態
+	graphicsState      GraphicsState   // 現在のグラフィックス状態
+	graphicsStateStack []GraphicsState // グラフィックス状態のスタック (q/Q用)
+	pageLevelCTM       *Matrix         // ページレベルのCTM（最初のcmオペレータ）
+
 	// テキスト状態
 	textMatrix  [6]float64 // Current text matrix
 	lineMatrix  [6]float64 // Current line matrix
@@ -46,10 +51,11 @@ func NewTextExtractor(operations []Operation, r *reader.Reader, page core.Dictio
 	}
 
 	return &TextExtractor{
-		operations:  operations,
-		reader:      r,
-		page:        page,
-		fontManager: fontManager,
+		operations:     operations,
+		reader:         r,
+		page:           page,
+		fontManager:    fontManager,
+		graphicsState:  NewGraphicsState(), // CTMを単位行列で初期化
 	}
 }
 
@@ -62,6 +68,34 @@ func (e *TextExtractor) Extract() ([]TextElement, error) {
 
 	for _, op := range e.operations {
 		switch op.Operator {
+		case "q": // Save graphics state
+			e.graphicsStateStack = append(e.graphicsStateStack, e.graphicsState.Clone())
+
+		case "Q": // Restore graphics state
+			if len(e.graphicsStateStack) > 0 {
+				e.graphicsState = e.graphicsStateStack[len(e.graphicsStateStack)-1]
+				e.graphicsStateStack = e.graphicsStateStack[:len(e.graphicsStateStack)-1]
+			}
+
+		case "cm": // Modify current transformation matrix
+			if len(op.Operands) >= 6 {
+				a := getNumber(op.Operands[0])
+				b := getNumber(op.Operands[1])
+				c := getNumber(op.Operands[2])
+				d := getNumber(op.Operands[3])
+				e_ := getNumber(op.Operands[4])
+				f := getNumber(op.Operands[5])
+
+				// 新しい変換行列を現在のCTMに乗算
+				newMatrix := Matrix{A: a, B: b, C: c, D: d, E: e_, F: f}
+				e.graphicsState.CTM = e.graphicsState.CTM.Multiply(newMatrix)
+
+				// ページレベルのCTM（最初のcm）を記録
+				if e.pageLevelCTM == nil && len(e.graphicsStateStack) == 0 {
+					e.pageLevelCTM = &newMatrix
+				}
+			}
+
 		case "BT": // Begin text
 			e.resetTextMatrices()
 
@@ -224,10 +258,20 @@ func (e *TextExtractor) setTextMatrix(operands []core.Object) {
 
 // createTextElement はテキスト要素を作成する
 func (e *TextExtractor) createTextElement(text string) TextElement {
+	// テキストマトリックスから座標を取得
+	x := e.textMatrix[4] // e
+	y := e.textMatrix[5] // f
+
+	// Note: CTMの扱いは複雑です。
+	// 一部のPDFでは、Tmの座標が既に変換後の空間にあるため、
+	// CTMを適用すると二重変換になってしまいます。
+	// 現時点では、Tmの座標をそのまま使用します。
+	// 将来的には、より正確なCTM処理が必要かもしれません。
+
 	return TextElement{
 		Text: text,
-		X:    e.textMatrix[4], // e
-		Y:    e.textMatrix[5], // f
+		X:    x,
+		Y:    y,
 		Font: e.currentFont,
 		Size: e.fontSize,
 	}
@@ -428,4 +472,9 @@ func decodePDFDocEncoding(data []byte) string {
 	}
 
 	return string(runes)
+}
+
+// GetPageLevelCTM はページレベルのCTMを返す
+func (e *TextExtractor) GetPageLevelCTM() *Matrix {
+	return e.pageLevelCTM
 }

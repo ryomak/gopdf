@@ -45,6 +45,28 @@ func (m Matrix) TransformRect(x, y, width, height float64) (minX, minY, maxX, ma
 	return
 }
 
+// Inverse はマトリックスの逆行列を計算する
+// CTM適用後の座標を元の座標に戻すために使用
+func (m Matrix) Inverse() Matrix {
+	// 行列式を計算
+	det := m.A*m.D - m.B*m.C
+
+	// 行列式が0に近い場合は単位行列を返す
+	if det > -0.0001 && det < 0.0001 {
+		return Identity()
+	}
+
+	// 逆行列を計算
+	return Matrix{
+		A: m.D / det,
+		B: -m.B / det,
+		C: -m.C / det,
+		D: m.A / det,
+		E: (m.C*m.F - m.D*m.E) / det,
+		F: (m.B*m.E - m.A*m.F) / det,
+	}
+}
+
 // GraphicsState は現在のグラフィックス状態
 type GraphicsState struct {
 	CTM         Matrix      // Current Transformation Matrix

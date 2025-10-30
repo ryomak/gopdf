@@ -72,6 +72,19 @@ func (r *PDFReader) ExtractPageLayout(pageNum int) (*PageLayout, error) {
 		return nil, err
 	}
 
+	// ページレベルのCTMを取得
+	var pageCTM *layout.Matrix
+	if ctm := textExtractor.GetPageLevelCTM(); ctm != nil {
+		pageCTM = &layout.Matrix{
+			A: ctm.A,
+			B: ctm.B,
+			C: ctm.C,
+			D: ctm.D,
+			E: ctm.E,
+			F: ctm.F,
+		}
+	}
+
 	// 画像を抽出（位置情報付き）
 	imageExtractor := content.NewImageExtractor(r.r)
 	imageBlocks, err := imageExtractor.ExtractImagesWithPosition(page, operations)
@@ -93,6 +106,7 @@ func (r *PDFReader) ExtractPageLayout(pageNum int) (*PageLayout, error) {
 		Height:     height,
 		TextBlocks: textBlocks,
 		Images:     convertedImageBlocks,
+		PageCTM:    pageCTM,
 	}, nil
 }
 

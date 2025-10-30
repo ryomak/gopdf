@@ -31,6 +31,7 @@ type PageLayout struct {
 	Height     float64      // ページ高さ
 	TextBlocks []TextBlock  // テキストブロック
 	Images     []ImageBlock // 画像ブロック
+	PageCTM    *Matrix      // ページレベルのCTM（座標系変換情報）
 }
 
 // Rectangle は矩形領域
@@ -70,6 +71,12 @@ func (pl *PageLayout) ContentBlocks() []ContentBlock {
 func (pl *PageLayout) SortedContentBlocks() []ContentBlock {
 	blocks := pl.ContentBlocks()
 
+	// Y軸が反転しているかチェック（CTMのd成分が負の場合）
+	yAxisFlipped := false
+	if pl.PageCTM != nil && pl.PageCTM.D < 0 {
+		yAxisFlipped = true
+	}
+
 	sort.Slice(blocks, func(i, j int) bool {
 		boundsI := blocks[i].Bounds()
 		boundsJ := blocks[j].Bounds()
@@ -80,7 +87,11 @@ func (pl *PageLayout) SortedContentBlocks() []ContentBlock {
 
 		const epsilon = 1.0
 		if topI-topJ > epsilon || topJ-topI > epsilon {
-			return topI > topJ // 上端が高い方を先に（top-to-bottom order）
+			if yAxisFlipped {
+				// Y軸が反転している場合、ソート順も反転
+				return topI < topJ // 上端が低い方を先に
+			}
+			return topI > topJ // 標準：上端が高い方を先に（top-to-bottom order）
 		}
 
 		// X座標で比較（左から右）
