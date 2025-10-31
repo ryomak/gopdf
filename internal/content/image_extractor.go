@@ -190,12 +190,30 @@ func (e *ImageExtractor) ExtractImagesWithPosition(page core.Dictionary, operati
 				width := maxX - minX
 				height := maxY - minY
 
-				// DEBUG: 座標が異常な場合はログ出力
-				if y < -1000 || y > 10000 {
-					// 異常な座標の場合は、CTMから直接取得を試みる
-					// [a b c d e f] の形式で e がX、f がYの変換
-					x = currentCTM.E
-					y = currentCTM.F
+				// 異常な座標値の検出
+				// PDFページサイズの妥当な範囲を超える場合は異常と判定
+				// 一般的なPDFページサイズは最大でも数千ポイント程度
+				const maxReasonableCoordinate = 10000.0
+				isAbnormal := false
+
+				// CTM自体の異常値チェック
+				if currentCTM.E < -maxReasonableCoordinate || currentCTM.E > maxReasonableCoordinate ||
+					currentCTM.F < -maxReasonableCoordinate || currentCTM.F > maxReasonableCoordinate {
+					isAbnormal = true
+				}
+
+				// 計算された座標の異常値チェック
+				if x < -maxReasonableCoordinate || x > maxReasonableCoordinate ||
+					y < -maxReasonableCoordinate || y > maxReasonableCoordinate {
+					isAbnormal = true
+				}
+
+				// 異常な座標の場合はスキップ
+				// 注: 異常な座標の画像は元PDFの問題であり、正しく表示できない
+				if isAbnormal {
+					// デバッグ情報として記録（将来的にはloggerを使用）
+					// fmt.Printf("Warning: Abnormal image coordinates detected: X=%.2f, Y=%.2f, CTM.F=%.2f\n", x, y, currentCTM.F)
+					continue // この画像をスキップ
 				}
 
 				// ImageInfoに変換

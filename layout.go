@@ -431,7 +431,9 @@ func combineBlockText(lines [][]layout.TextElement) string {
 					result.WriteString(" ")
 				}
 			}
-			result.WriteString(elem.Text)
+			// 制御文字をクリーンアップしてから追加
+			cleanText := utils.CleanControlCharacters(elem.Text)
+			result.WriteString(cleanText)
 		}
 	}
 
@@ -512,7 +514,9 @@ func createTextBlock(elements []layout.TextElement) layout.TextBlock {
 				text.WriteString(" ")
 			}
 		}
-		text.WriteString(elem.Text)
+		// 制御文字をクリーンアップしてから追加
+		cleanText := utils.CleanControlCharacters(elem.Text)
+		text.WriteString(cleanText)
 
 		totalSize += elem.Size
 
