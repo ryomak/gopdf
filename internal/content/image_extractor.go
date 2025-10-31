@@ -212,8 +212,11 @@ func (e *ImageExtractor) ExtractImagesWithPosition(page core.Dictionary, operati
 				// 注: 異常な座標の画像は元PDFの問題であり、正しく表示できない
 				if isAbnormal {
 					// デバッグ情報として記録（将来的にはloggerを使用）
+					// TODO: ロガーを使用する
 					// fmt.Printf("Warning: Abnormal image coordinates detected: X=%.2f, Y=%.2f, CTM.F=%.2f\n", x, y, currentCTM.F)
-					continue // この画像をスキップ
+
+					// 一旦、異常な座標でも画像を含める（デバッグ用）
+					// continue // この画像をスキップ
 				}
 
 				// ImageInfoに変換

@@ -156,6 +156,35 @@ func main() {
 		if !hasControlChars && !hasUnusualChars {
 			fmt.Println("✓ No obvious character encoding issues")
 		}
+
+		// 7. Show problematic text samples
+		fmt.Println("\n--- Problematic Text Samples ---")
+		problemCount := 0
+		for i, elem := range elements {
+			hasProblem := false
+			for _, r := range elem.Text {
+				// Check for unusual characters
+				if (r < 32 && r != '\n' && r != '\r' && r != '\t') || (r > 127 && r < 160) || r > 0xFFFF {
+					hasProblem = true
+					break
+				}
+			}
+
+			if hasProblem && problemCount < 10 {
+				fmt.Printf("  Element[%d]: %q (Font=%s, Hex=", i, elem.Text, elem.Font)
+				for _, r := range elem.Text {
+					fmt.Printf("U+%04X ", r)
+				}
+				fmt.Println(")")
+				problemCount++
+			}
+		}
+
+		if problemCount == 0 {
+			fmt.Println("  No problematic text found")
+		} else if problemCount >= 10 {
+			fmt.Printf("  ... and more (showing first 10)\n")
+		}
 	}
 
 	fmt.Println("\n\n=== Extraction Test Complete ===")
