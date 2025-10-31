@@ -225,12 +225,18 @@ func (pl *PageLayout) SortedContentBlocks() []ContentBlock {
 - [x] `SortedContentBlocks()`でY軸反転を検出
 - [x] Y軸反転時にソート順序を反転
 
-### 6.5 ステップ5: テスト
-- [ ] Receipt-2021-3422.pdfで動作確認
-- [ ] 既存のテストが全て通ることを確認
-- [ ] 標準座標系のPDFでも正しく動作することを確認
+### 6.5 ステップ5: RenderLayoutでの座標変換
+- [x] `RenderLayout()`でY軸反転を検出
+- [x] Y軸反転時に座標を標準座標系に変換
+- [x] 変換式: `newY = pageHeight - oldY - blockHeight`
+- [x] `setPageFont()`の型アサーション修正（font.StandardFont → StandardFont）
 
-### 6.6 ステップ6: ドキュメント更新
+### 6.6 ステップ6: テスト
+- [x] Receipt-2021-3422.pdfで動作確認 ✅
+- [x] 既存のテストが全て通ることを確認 ✅
+- [x] 標準座標系のPDFでも正しく動作することを確認 ✅
+
+### 6.7 ステップ7: ドキュメント更新
 - [ ] coordinate_system.mdを更新
 - [ ] 変更内容をcommit
 

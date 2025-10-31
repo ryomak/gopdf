@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-
-	"github.com/ryomak/gopdf/internal/font"
 )
 
 // Translator はテキスト翻訳のインターフェース
@@ -141,6 +139,12 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 	customSize := PageSize{Width: layout.Width, Height: layout.Height}
 	page := doc.AddPage(customSize, Portrait)
 
+	// Y軸が反転しているかチェック
+	yAxisFlipped := false
+	if layout.PageCTM != nil && layout.PageCTM.D < 0 {
+		yAxisFlipped = true
+	}
+
 	// ContentBlocksを使用して、画像とテキストを正しい順序で描画
 	// 設計書: docs/render_layout_order_issue.md
 	contentBlocks := layout.SortedContentBlocks()
@@ -159,7 +163,14 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 					// 画像の読み込みに失敗しても続行
 					continue
 				}
-				if err := page.DrawImage(pdfImage, img.X, img.Y, img.PlacedWidth, img.PlacedHeight); err != nil {
+
+				// Y座標を変換（Y軸反転の場合）
+				imgY := img.Y
+				if yAxisFlipped {
+					imgY = layout.Height - img.Y - img.PlacedHeight
+				}
+
+				if err := page.DrawImage(pdfImage, img.X, imgY, img.PlacedWidth, img.PlacedHeight); err != nil {
 					// 画像の描画に失敗しても続行
 					continue
 				}
@@ -176,6 +187,12 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 					continue
 				}
 
+				// Y座標を変換（Y軸反転の場合）
+				textY := textBlock.Rect.Y
+				if yAxisFlipped {
+					textY = layout.Height - textBlock.Rect.Y - textBlock.Rect.Height
+				}
+
 				// テキストをフィッティング
 				fitted, err := FitText(textBlock.Text, textBlock.Rect, opts.TargetFontName, opts.FittingOptions)
 				if err != nil {
@@ -184,7 +201,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 						continue
 					}
 					// 適切な描画メソッドを使用
-					_ = drawPageText(page, opts.TargetFont, textBlock.Text, textBlock.Rect.X, textBlock.Rect.Y)
+					_ = drawPageText(page, opts.TargetFont, textBlock.Text, textBlock.Rect.X, textY)
 					continue
 				}
 
@@ -193,7 +210,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 					continue
 				}
 				// 上から下に描画（Y座標が大きい方から小さい方へ）
-				y := textBlock.Rect.Y + textBlock.Rect.Height - fitted.LineHeight
+				y := textY + textBlock.Rect.Height - fitted.LineHeight
 				for _, line := range fitted.Lines {
 					if line != "" {
 						x := textBlock.Rect.X
@@ -219,15 +236,15 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 
 // setPageFont はページにフォントを設定する（型アサーション対応）
 func setPageFont(page *Page, fontInterface interface{}, size float64) error {
-	// font.StandardFontの場合
-	if stdFont, ok := fontInterface.(font.StandardFont); ok {
-		return page.SetFont(StandardFont(stdFont.Name()), size)
+	// gopdf.StandardFontの場合
+	if stdFont, ok := fontInterface.(StandardFont); ok {
+		return page.SetFont(stdFont, size)
 	}
 	// *TTFFontの場合
 	if ttfFont, ok := fontInterface.(*TTFFont); ok {
 		return page.SetTTFFont(ttfFont, size)
 	}
-	return fmt.Errorf("unsupported font type")
+	return fmt.Errorf("unsupported font type: %T", fontInterface)
 }
 
 // drawPageText はページにテキストを描画する
