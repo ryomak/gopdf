@@ -139,14 +139,9 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 	customSize := PageSize{Width: layout.Width, Height: layout.Height}
 	page := doc.AddPage(customSize, Portrait)
 
-	// Y軸が反転しているかチェック
-	yAxisFlipped := false
-	if layout.PageCTM != nil && layout.PageCTM.D < 0 {
-		yAxisFlipped = true
-	}
-
 	// ContentBlocksを使用して、画像とテキストを正しい順序で描画
 	// 設計書: docs/render_layout_order_issue.md
+	// 注: 座標はExtractPageLayoutで既に標準座標系に変換済み
 	contentBlocks := layout.SortedContentBlocks()
 
 	for _, block := range contentBlocks {
@@ -164,13 +159,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 					continue
 				}
 
-				// Y座標を変換（Y軸反転の場合）
-				imgY := img.Y
-				if yAxisFlipped {
-					imgY = layout.Height - img.Y - img.PlacedHeight
-				}
-
-				if err := page.DrawImage(pdfImage, img.X, imgY, img.PlacedWidth, img.PlacedHeight); err != nil {
+				if err := page.DrawImage(pdfImage, img.X, img.Y, img.PlacedWidth, img.PlacedHeight); err != nil {
 					// 画像の描画に失敗しても続行
 					continue
 				}
@@ -187,12 +176,6 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 					continue
 				}
 
-				// Y座標を変換（Y軸反転の場合）
-				textY := textBlock.Rect.Y
-				if yAxisFlipped {
-					textY = layout.Height - textBlock.Rect.Y - textBlock.Rect.Height
-				}
-
 				// テキストをフィッティング
 				fitted, err := FitText(textBlock.Text, textBlock.Rect, opts.TargetFontName, opts.FittingOptions)
 				if err != nil {
@@ -201,7 +184,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 						continue
 					}
 					// 適切な描画メソッドを使用
-					_ = drawPageText(page, opts.TargetFont, textBlock.Text, textBlock.Rect.X, textY)
+					_ = drawPageText(page, opts.TargetFont, textBlock.Text, textBlock.Rect.X, textBlock.Rect.Y)
 					continue
 				}
 
@@ -210,7 +193,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 					continue
 				}
 				// 上から下に描画（Y座標が大きい方から小さい方へ）
-				y := textY + textBlock.Rect.Height - fitted.LineHeight
+				y := textBlock.Rect.Y + textBlock.Rect.Height - fitted.LineHeight
 				for _, line := range fitted.Lines {
 					if line != "" {
 						x := textBlock.Rect.X

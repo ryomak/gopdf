@@ -56,22 +56,12 @@ func (pl *PageLayout) ContentBlocks() []ContentBlock {
 		blocks = append(blocks, ib)
 	}
 
-	// Y軸が反転しているかチェック（CTMのd成分が負の場合）
-	yAxisFlipped := false
-	if pl.PageCTM != nil && pl.PageCTM.D < 0 {
-		yAxisFlipped = true
-	}
-
 	// Y座標でソート（上から下）
+	// 注: 座標は既に標準座標系に変換済み（Y値が大きいほど上）
 	sort.Slice(blocks, func(i, j int) bool {
 		_, yi := blocks[i].Position()
 		_, yj := blocks[j].Position()
-		if yAxisFlipped {
-			// Y軸が反転している場合：高いY値が視覚的に下なので、大きい方を先に
-			return yi > yj
-		}
-		// 標準座標系：高いY値が視覚的に上なので、大きい方を先に
-		return yi > yj
+		return yi > yj // 大きい方を先に（上から下）
 	})
 
 	return blocks
@@ -79,7 +69,7 @@ func (pl *PageLayout) ContentBlocks() []ContentBlock {
 
 // SortedContentBlocks はコンテンツブロックをソート順で返す
 // ソート順: Y座標（上から下）、同じY座標ならX座標（左から右）
-// 注: 抽出された座標は既に標準PDF座標系（左下原点、Y軸上向き）に変換済み
+// 注: 座標は既に標準PDF座標系（左下原点、Y軸上向き）に変換済み
 func (pl *PageLayout) SortedContentBlocks() []ContentBlock {
 	blocks := pl.ContentBlocks()
 
@@ -88,7 +78,7 @@ func (pl *PageLayout) SortedContentBlocks() []ContentBlock {
 		boundsJ := blocks[j].Bounds()
 
 		// 上端（Y+Height）で比較（上から下）
-		// PDF座標系: Y値が大きいほど上にある
+		// 座標は標準PDF座標系: Y値が大きいほど上にある
 		// 読む順序: 上から下なので、Y値が大きい方を先に
 		topI := boundsI.Y + boundsI.Height
 		topJ := boundsJ.Y + boundsJ.Height

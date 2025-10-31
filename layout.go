@@ -100,6 +100,25 @@ func (r *PDFReader) ExtractPageLayout(pageNum int) (*PageLayout, error) {
 		convertedImageBlocks,
 	)
 
+	// Y軸が反転している場合、座標を標準座標系に変換
+	if pageCTM != nil && pageCTM.D < 0 {
+		// TextBlocksの座標を変換
+		for i := range textBlocks {
+			// TextBlockのRect座標を変換
+			textBlocks[i].Rect.Y = height - textBlocks[i].Rect.Y - textBlocks[i].Rect.Height
+
+			// 各TextElementの座標も変換
+			for j := range textBlocks[i].Elements {
+				textBlocks[i].Elements[j].Y = height - textBlocks[i].Elements[j].Y
+			}
+		}
+
+		// ImageBlocksの座標を変換
+		for i := range convertedImageBlocks {
+			convertedImageBlocks[i].Y = height - convertedImageBlocks[i].Y - convertedImageBlocks[i].PlacedHeight
+		}
+	}
+
 	return &PageLayout{
 		PageNum:    pageNum,
 		Width:      width,
