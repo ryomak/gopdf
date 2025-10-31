@@ -67,9 +67,10 @@ func (pl *PageLayout) ContentBlocks() []ContentBlock {
 		_, yi := blocks[i].Position()
 		_, yj := blocks[j].Position()
 		if yAxisFlipped {
-			// Y軸が反転している場合、ソート順も反転
-			return yi < yj
+			// Y軸が反転している場合：高いY値が視覚的に下なので、大きい方を先に
+			return yi > yj
 		}
+		// 標準座標系：高いY値が視覚的に上なので、大きい方を先に
 		return yi > yj
 	})
 
@@ -78,30 +79,23 @@ func (pl *PageLayout) ContentBlocks() []ContentBlock {
 
 // SortedContentBlocks はコンテンツブロックをソート順で返す
 // ソート順: Y座標（上から下）、同じY座標ならX座標（左から右）
+// 注: 抽出された座標は既に標準PDF座標系（左下原点、Y軸上向き）に変換済み
 func (pl *PageLayout) SortedContentBlocks() []ContentBlock {
 	blocks := pl.ContentBlocks()
-
-	// Y軸が反転しているかチェック（CTMのd成分が負の場合）
-	yAxisFlipped := false
-	if pl.PageCTM != nil && pl.PageCTM.D < 0 {
-		yAxisFlipped = true
-	}
 
 	sort.Slice(blocks, func(i, j int) bool {
 		boundsI := blocks[i].Bounds()
 		boundsJ := blocks[j].Bounds()
 
 		// 上端（Y+Height）で比較（上から下）
+		// PDF座標系: Y値が大きいほど上にある
+		// 読む順序: 上から下なので、Y値が大きい方を先に
 		topI := boundsI.Y + boundsI.Height
 		topJ := boundsJ.Y + boundsJ.Height
 
 		const epsilon = 1.0
 		if topI-topJ > epsilon || topJ-topI > epsilon {
-			if yAxisFlipped {
-				// Y軸が反転している場合、ソート順も反転
-				return topI < topJ // 上端が低い方を先に
-			}
-			return topI > topJ // 標準：上端が高い方を先に（top-to-bottom order）
+			return topI > topJ // 上端が高い方（Y値が大きい方）を先に
 		}
 
 		// X座標で比較（左から右）
