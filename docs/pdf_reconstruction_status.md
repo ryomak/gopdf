@@ -16,6 +16,22 @@
 - 抽出と描画で座標系は一致
 - テストで検証済み
 
+### 3. ✅ ブロックソート順序の修正（完了）
+**問題:** SortedContentBlocks()がブロックを逆順でソートしていた
+**現象:** "Page 1 of 1" (Y=754.0) が "Receipt" (Y=13.0) より後に表示される
+**原因:** PageCTM.D < 0 のチェックで不要なソート反転を行っていた
+**修正:**
+- 抽出された座標は既に標準PDF座標系（左下原点、Y軸上向き）に変換済み
+- PageCTMによる座標系反転チェックを削除
+- 常に topI > topJ で上から下へソート
+**コミット:** 6688ac1
+**検証結果:**
+```
+✓ Block[0]: Y=754.0 (Page 1 of 1) - 最上部
+✓ Block[11]: Y=13.0 (Receipt) - 最下部
+✓ 読み順序が正しく上から下になった
+```
+
 ## 未解決の問題
 
 ### 1. ⚠️ 標準フォントの文字化け（元のPDFの問題）
@@ -162,4 +178,5 @@ if strings.Contains(elem.Font, "Bold") {
 
 ## 関連コミット
 - 583dd4d: fix: Implement glyph-based ToUnicode CMap
+- 6688ac1: fix: Remove incorrect PageCTM Y-axis flip logic in SortedContentBlocks
 - 57f1980: docs: Update tounicode_cmap_issue.md
