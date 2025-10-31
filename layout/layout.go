@@ -56,10 +56,20 @@ func (pl *PageLayout) ContentBlocks() []ContentBlock {
 		blocks = append(blocks, ib)
 	}
 
+	// Y軸が反転しているかチェック（CTMのd成分が負の場合）
+	yAxisFlipped := false
+	if pl.PageCTM != nil && pl.PageCTM.D < 0 {
+		yAxisFlipped = true
+	}
+
 	// Y座標でソート（上から下）
 	sort.Slice(blocks, func(i, j int) bool {
 		_, yi := blocks[i].Position()
 		_, yj := blocks[j].Position()
+		if yAxisFlipped {
+			// Y軸が反転している場合、ソート順も反転
+			return yi < yj
+		}
 		return yi > yj
 	})
 
