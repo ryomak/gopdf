@@ -123,8 +123,39 @@ func (s *Serializer) escapeString(str string) string {
 }
 
 func (s *Serializer) serializeName(v string) error {
-	// TODO: 特殊文字のエスケープ処理
-	return s.writeString("/" + v)
+	// PDF Name オブジェクトの特殊文字をエスケープ
+	// PDF 1.7 仕様: #00-#20, #7F-#FF, および区切り文字 (, ), <, >, [, ], {, }, /, % は #XX 形式でエスケープ
+	escaped := s.escapeName(v)
+	return s.writeString("/" + escaped)
+}
+
+// escapeName escapes special characters in PDF Name objects using #XX format.
+func (s *Serializer) escapeName(name string) string {
+	var result []byte
+	for _, b := range []byte(name) {
+		if s.needsNameEscape(b) {
+			// #XX 形式でエスケープ
+			result = append(result, '#')
+			result = append(result, fmt.Sprintf("%02X", b)...)
+		} else {
+			result = append(result, b)
+		}
+	}
+	return string(result)
+}
+
+// needsNameEscape checks if a byte needs to be escaped in a PDF Name.
+func (s *Serializer) needsNameEscape(b byte) bool {
+	// 制御文字 (0x00-0x20) とDEL (0x7F) 以上
+	if b <= 0x20 || b >= 0x7F {
+		return true
+	}
+	// PDF区切り文字
+	switch b {
+	case '(', ')', '<', '>', '[', ']', '{', '}', '/', '%', '#':
+		return true
+	}
+	return false
 }
 
 func (s *Serializer) serializeArray(arr core.Array) error {

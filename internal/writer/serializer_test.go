@@ -155,6 +155,15 @@ func TestSerializeName(t *testing.T) {
 		{"simple", core.Name("Type"), "/Type"},
 		{"with number", core.Name("F1"), "/F1"},
 		{"camelCase", core.Name("MediaBox"), "/MediaBox"},
+		// 特殊文字のエスケープテスト
+		{"with space", core.Name("Name With Space"), "/Name#20With#20Space"},
+		{"with hash", core.Name("Name#1"), "/Name#231"},
+		{"with parentheses", core.Name("A(B)C"), "/A#28B#29C"},
+		{"with slash", core.Name("A/B"), "/A#2FB"},
+		{"with percent", core.Name("100%"), "/100#25"},
+		{"with brackets", core.Name("[array]"), "/#5Barray#5D"},
+		{"with angle brackets", core.Name("<tag>"), "/#3Ctag#3E"},
+		{"with braces", core.Name("{dict}"), "/#7Bdict#7D"},
 	}
 
 	for _, tt := range tests {

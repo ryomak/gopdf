@@ -115,8 +115,8 @@ func NewMarkdownDocument(markdownText string, opts *MarkdownOptions) (*Document,
 		renderer := newDocumentRenderer(opts.PageSize, opts.Orientation, style, opts.ImageBasePath)
 		doc, err = renderer.render(ast)
 	case MarkdownModeSlide:
-		// TODO: Implement slide renderer
-		return nil, fmt.Errorf("slide mode not yet implemented")
+		renderer := newSlideRenderer(opts.PageSize, opts.Orientation, style, opts.ImageBasePath)
+		doc, err = renderer.render(ast)
 	default:
 		return nil, fmt.Errorf("unknown markdown mode: %s", opts.Mode)
 	}
