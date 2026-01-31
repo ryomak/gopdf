@@ -153,7 +153,7 @@ func TestPage_SetTTFFont(t *testing.T) {
 	}
 }
 
-func TestPage_DrawTextUTF8(t *testing.T) {
+func TestPage_DrawText(t *testing.T) {
 	fontPath := getTestTTFPath()
 	if fontPath == "" {
 		t.Skip("No test font available on this system")
@@ -172,9 +172,9 @@ func TestPage_DrawTextUTF8(t *testing.T) {
 		t.Fatalf("SetTTFFont failed: %v", err)
 	}
 
-	err = page.DrawTextUTF8("Hello, World!", 100, 700)
+	err = page.DrawText("Hello, World!", 100, 700)
 	if err != nil {
-		t.Fatalf("DrawTextUTF8 failed: %v", err)
+		t.Fatalf("DrawText failed: %v", err)
 	}
 
 	// Check that content was written
@@ -217,14 +217,14 @@ func TestTTFFont_PDFGeneration(t *testing.T) {
 		t.Fatalf("SetTTFFont failed: %v", err)
 	}
 
-	err = page.DrawTextUTF8("Hello, World!", 100, 750)
+	err = page.DrawText("Hello, World!", 100, 750)
 	if err != nil {
-		t.Fatalf("DrawTextUTF8 failed: %v", err)
+		t.Fatalf("DrawText failed: %v", err)
 	}
 
-	err = page.DrawTextUTF8("Unicode: € £ ¥", 100, 720)
+	err = page.DrawText("Unicode: € £ ¥", 100, 720)
 	if err != nil {
-		t.Fatalf("DrawTextUTF8 failed: %v", err)
+		t.Fatalf("DrawText failed: %v", err)
 	}
 
 	// Write to buffer
@@ -288,9 +288,9 @@ func TestTTFFont_UnicodeText(t *testing.T) {
 
 	y := 750.0
 	for _, text := range tests {
-		err = page.DrawTextUTF8(text, 100, y)
+		err = page.DrawText(text, 100, y)
 		if err != nil {
-			t.Errorf("DrawTextUTF8(%q) failed: %v", text, err)
+			t.Errorf("DrawText(%q) failed: %v", text, err)
 		}
 		y -= 30
 	}

@@ -200,14 +200,6 @@ func (p *Page) SetTTFFont(f *TTFFont, size float64) error {
 	return nil
 }
 
-// DrawTextUTF8 draws UTF-8 encoded text at the specified position using the current TTF font.
-// This method supports Unicode characters including Japanese, Chinese, Korean, etc.
-//
-// Deprecated: Use DrawText instead. DrawText now automatically handles both standard and TTF fonts.
-func (p *Page) DrawTextUTF8(text string, x, y float64) error {
-	return p.DrawText(text, x, y)
-}
-
 // getTTFFontKey returns the font resource name for a TTF font.
 func (p *Page) getTTFFontKey(f *TTFFont) string {
 	// Check if this font is already registered and return its key
@@ -298,16 +290,13 @@ func (p *Page) DrawRuby(rubyText RubyText, x, y float64, style RubyStyle) (float
 		if err := p.SetTTFFont(p.currentTTFFont, rubyFontSize); err != nil {
 			return 0, err
 		}
-		if err := p.DrawTextUTF8(rubyText.Ruby, rubyX, rubyY); err != nil {
-			return 0, err
-		}
 	} else {
 		if err := p.SetFont(StandardFont(p.currentFont.Name()), rubyFontSize); err != nil {
 			return 0, err
 		}
-		if err := p.DrawText(rubyText.Ruby, rubyX, rubyY); err != nil {
-			return 0, err
-		}
+	}
+	if err := p.DrawText(rubyText.Ruby, rubyX, rubyY); err != nil {
+		return 0, err
 	}
 
 	// フォントサイズを元に戻す
@@ -322,14 +311,8 @@ func (p *Page) DrawRuby(rubyText RubyText, x, y float64, style RubyStyle) (float
 	}
 
 	// 親文字を描画
-	if p.currentTTFFont != nil {
-		if err := p.DrawTextUTF8(rubyText.Base, x, y); err != nil {
-			return 0, err
-		}
-	} else {
-		if err := p.DrawText(rubyText.Base, x, y); err != nil {
-			return 0, err
-		}
+	if err := p.DrawText(rubyText.Base, x, y); err != nil {
+		return 0, err
 	}
 
 	return maxWidth, nil
