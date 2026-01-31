@@ -6,6 +6,8 @@ import (
 	image_color "image/color"
 	image_jpeg "image/jpeg"
 	"testing"
+
+	contentimage "github.com/ryomak/gopdf/internal/content/image"
 )
 
 // createValidJPEG は有効なJPEGデータを生成する
@@ -74,7 +76,7 @@ func TestImageInfo_ToImage_FlateDecode_RGB(t *testing.T) {
 	}
 
 	// Zlib圧縮
-	compressedData, err := compressWithZlib(rawData)
+	compressedData, err := contentimage.CompressWithZlib(rawData)
 	if err != nil {
 		t.Fatalf("Failed to compress data: %v", err)
 	}
@@ -128,7 +130,7 @@ func TestImageInfo_ToImage_FlateDecode_Gray(t *testing.T) {
 	}
 
 	// Zlib圧縮
-	compressedData, err := compressWithZlib(rawData)
+	compressedData, err := contentimage.CompressWithZlib(rawData)
 	if err != nil {
 		t.Fatalf("Failed to compress data: %v", err)
 	}
@@ -190,7 +192,7 @@ func TestImageInfo_ToImage_FlateDecode_CMYK(t *testing.T) {
 	}
 
 	// Zlib圧縮
-	compressedData, err := compressWithZlib(rawData)
+	compressedData, err := contentimage.CompressWithZlib(rawData)
 	if err != nil {
 		t.Fatalf("Failed to compress data: %v", err)
 	}

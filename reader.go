@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ryomak/gopdf/internal/content"
+	contentlayout "github.com/ryomak/gopdf/internal/content/layout"
 	"github.com/ryomak/gopdf/internal/reader"
 	"github.com/ryomak/gopdf/layout"
 )
@@ -221,7 +222,7 @@ func (r *PDFReader) ExtractPageTextBlocks(pageNum int) ([]TextBlock, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.groupTextElements(elements), nil
+	return contentlayout.GroupTextElements(elements), nil
 }
 
 // ExtractAllTextBlocks は全ページのテキストブロックを抽出する

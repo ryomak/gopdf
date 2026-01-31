@@ -15,11 +15,6 @@ func SortTextElements(elements []TextElement) []TextElement {
 	return text.SortByReadingOrder(elements)
 }
 
-// groupByLine は同じ行のテキスト要素をグループ化する
-func groupByLine(elements []TextElement) [][]TextElement {
-	return text.GroupByLine(elements)
-}
-
 // TextElementsToString はテキスト要素を文字列に変換する
 // 読み順序でソートされていることを前提とする
 func TextElementsToString(elements []TextElement) string {

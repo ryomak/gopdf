@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	internalpage "github.com/ryomak/gopdf/internal/page"
 )
 
 // TestPageSetFont はフォント設定をテストする
@@ -245,13 +246,10 @@ func TestPage_drawTextInternal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			doc := New()
-			page := doc.AddPage(PageSizeA4, Portrait)
-			page.fontSize = tt.fontSize
+			var buf bytes.Buffer
+			internalpage.DrawTextInternal(&buf, tt.x, tt.y, tt.fontKey, tt.fontSize, tt.encodedText, tt.useBrackets)
 
-			page.drawTextInternal(tt.x, tt.y, tt.fontKey, tt.encodedText, tt.useBrackets)
-
-			content := page.content.String()
+			content := buf.String()
 
 			// 各期待される部分文字列が含まれているか確認
 			for _, part := range tt.expectedParts {
@@ -313,13 +311,11 @@ func TestPage_textEncodings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			page := &Page{}
-
 			var result string
 			if tt.method == "escape" {
-				result = page.escapeString(tt.input)
+				result = internalpage.EscapeString(tt.input)
 			} else {
-				result = page.textToHexString(tt.input)
+				result = internalpage.TextToHexString(tt.input)
 			}
 
 			if result != tt.expected {

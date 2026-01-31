@@ -2,6 +2,8 @@ package gopdf
 
 import (
 	"testing"
+
+	"github.com/ryomak/gopdf/internal/content/text"
 )
 
 // TestSortTextElements_SingleLine は同じ行のテキストのソートをテストする
@@ -107,7 +109,7 @@ func TestGroupByLine(t *testing.T) {
 		{Text: "d", X: 100, Y: 650, Size: 12}, // 別の行
 	}
 
-	lines := groupByLine(elements)
+	lines := text.GroupByLine(elements)
 
 	// 2行に分かれるはず
 	if len(lines) != 2 {

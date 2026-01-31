@@ -43,21 +43,10 @@ func (p *Page) SetFont(f StandardFont, size float64) error {
 	if p.fonts == nil {
 		p.fonts = make(map[string]font.StandardFont)
 	}
-	fontKey := p.getFontKey(internalFont)
+	fontKey := page.GetFontKey(internalFont)
 	p.fonts[fontKey] = internalFont
 
 	return nil
-}
-
-// drawTextInternal は DrawText と DrawTextUTF8 の共通ロジック
-// このメソッドは内部実装用であり、外部から直接呼び出すべきではない
-func (p *Page) drawTextInternal(
-	x, y float64,
-	fontKey string,
-	encodedText string,
-	useBrackets bool,
-) {
-	page.DrawTextInternal(&p.content, x, y, fontKey, p.fontSize, encodedText, useBrackets)
 }
 
 // DrawText draws text at the specified position.
@@ -71,29 +60,19 @@ func (p *Page) DrawText(text string, x, y float64) error {
 		if err != nil {
 			return fmt.Errorf("failed to convert text to glyph indices: %w", err)
 		}
-		p.drawTextInternal(x, y, fontKey, encodedText, false)
+		page.DrawTextInternal(&p.content, x, y, fontKey, p.fontSize, encodedText, false)
 		return nil
 	}
 
 	if p.currentFont != nil {
 		// Use standard font (ASCII/Latin-1 only)
-		fontKey := p.getFontKey(*p.currentFont)
-		encodedText := p.escapeString(text)
-		p.drawTextInternal(x, y, fontKey, encodedText, true)
+		fontKey := page.GetFontKey(*p.currentFont)
+		encodedText := page.EscapeString(text)
+		page.DrawTextInternal(&p.content, x, y, fontKey, p.fontSize, encodedText, true)
 		return nil
 	}
 
 	return fmt.Errorf("no font set; call SetFont or SetTTFFont before DrawText")
-}
-
-// getFontKey returns the font resource name (e.g., "F1", "F2") for a given font.
-func (p *Page) getFontKey(f font.StandardFont) string {
-	return page.GetFontKey(f)
-}
-
-// escapeString escapes special characters in PDF strings.
-func (p *Page) escapeString(s string) string {
-	return page.EscapeString(s)
 }
 
 // SetLineWidth sets the line width for subsequent drawing operations.
@@ -146,27 +125,21 @@ func (p *Page) DrawAndFillRectangle(x, y, width, height float64) {
 	fmt.Fprintf(&p.content, "B\n")
 }
 
-// drawCirclePath draws a circle path using 4 Bézier curves.
-// κ = 4 * (√2 - 1) / 3 ≈ 0.5522847498
-func (p *Page) drawCirclePath(centerX, centerY, radius float64) {
-	page.DrawCirclePath(&p.content, centerX, centerY, radius)
-}
-
 // DrawCircle draws a circle outline with the specified center and radius.
 func (p *Page) DrawCircle(centerX, centerY, radius float64) {
-	p.drawCirclePath(centerX, centerY, radius)
+	page.DrawCirclePath(&p.content, centerX, centerY, radius)
 	fmt.Fprintf(&p.content, "S\n")
 }
 
 // FillCircle draws a filled circle with the specified center and radius.
 func (p *Page) FillCircle(centerX, centerY, radius float64) {
-	p.drawCirclePath(centerX, centerY, radius)
+	page.DrawCirclePath(&p.content, centerX, centerY, radius)
 	fmt.Fprintf(&p.content, "f\n")
 }
 
 // DrawAndFillCircle draws a filled circle with an outline with the specified center and radius.
 func (p *Page) DrawAndFillCircle(centerX, centerY, radius float64) {
-	p.drawCirclePath(centerX, centerY, radius)
+	page.DrawCirclePath(&p.content, centerX, centerY, radius)
 	fmt.Fprintf(&p.content, "B\n")
 }
 
@@ -253,11 +226,6 @@ func (p *Page) getTTFFontKey(f *TTFFont) string {
 	return fmt.Sprintf("F%d", 15+len(p.ttfFonts))
 }
 
-// textToHexString converts UTF-8 text to hex string for PDF
-// For Type0 fonts, we use UTF-16BE encoding
-func (p *Page) textToHexString(text string) string {
-	return page.TextToHexString(text)
-}
 
 // textToGlyphIndices converts UTF-8 text to glyph indices for TTF fonts
 // This ensures proper rendering by using actual glyph IDs from the font
@@ -388,7 +356,7 @@ func (p *Page) DrawRubyWithActualText(rubyText RubyText, x, y float64, style Rub
 	}
 
 	// Begin marked content with ActualText
-	fmt.Fprintf(&p.content, "/Span <</ActualText (%s)>> BDC\n", p.escapeString(actualText))
+	fmt.Fprintf(&p.content, "/Span <</ActualText (%s)>> BDC\n", page.EscapeString(actualText))
 
 	// ルビを描画
 	width, err := p.DrawRuby(rubyText, x, y, style)
@@ -435,7 +403,7 @@ func (p *Page) getCurrentFontName() string {
 		return p.getTTFFontKey(p.currentTTFFont)
 	}
 	if p.currentFont != nil {
-		return p.getFontKey(*p.currentFont)
+		return page.GetFontKey(*p.currentFont)
 	}
 	return "F1" // デフォルト
 }
@@ -480,7 +448,7 @@ func (p *Page) AddTextLayer(layer TextLayer) error {
 			fontKey := p.getTTFFontKey(p.currentTTFFont)
 			fmt.Fprintf(&p.content, "/%s %.2f Tf\n", fontKey, fontSize)
 		} else if p.currentFont != nil {
-			fontKey := p.getFontKey(*p.currentFont)
+			fontKey := page.GetFontKey(*p.currentFont)
 			fmt.Fprintf(&p.content, "/%s %.2f Tf\n", fontKey, fontSize)
 		}
 
@@ -492,10 +460,10 @@ func (p *Page) AddTextLayer(layer TextLayer) error {
 
 		// テキストを描画
 		if p.currentTTFFont != nil {
-			hexString := p.textToHexString(word.Text)
+			hexString := page.TextToHexString(word.Text)
 			fmt.Fprintf(&p.content, "<%s> Tj\n", hexString)
 		} else {
-			fmt.Fprintf(&p.content, "(%s) Tj\n", p.escapeString(word.Text))
+			fmt.Fprintf(&p.content, "(%s) Tj\n", page.EscapeString(word.Text))
 		}
 
 		fmt.Fprintf(&p.content, "ET\n") // End Text

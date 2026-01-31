@@ -176,7 +176,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 				}
 
 				// 画像座標を検証し、異常な場合はフォールバック
-				drawX, drawY := validateImagePosition(
+				drawX, drawY := translate.ValidateImagePosition(
 					img.X, img.Y,
 					img.PlacedWidth, img.PlacedHeight,
 					layout.Width, layout.Height,
@@ -201,7 +201,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 				var targetFont Font
 				var fontName string
 
-				if isASCIIOnly(textBlock.Text) {
+				if translate.IsASCIIOnly(textBlock.Text) {
 					// 元のフォントをStandardFontにマッピング
 					if stdFont, ok := mapToStandardFont(textBlock.Font, textBlock.IsBold); ok {
 						targetFont = stdFont
@@ -264,16 +264,6 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 	}
 
 	return page, nil
-}
-
-// validateImagePosition は画像座標を検証し、異常な場合はフォールバック位置を返す
-func validateImagePosition(x, y, width, height, pageWidth, pageHeight float64) (newX, newY float64) {
-	return translate.ValidateImagePosition(x, y, width, height, pageWidth, pageHeight)
-}
-
-// isASCIIOnly はテキストがASCII文字のみかどうかを判定
-func isASCIIOnly(s string) bool {
-	return translate.IsASCIIOnly(s)
 }
 
 // mapToStandardFont はPDFフォント名をStandardFontにマッピング

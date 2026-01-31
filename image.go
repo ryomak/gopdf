@@ -75,7 +75,7 @@ func LoadPNG(r io.Reader) (*Image, error) {
 	if len(pixelData.RGBData) > 0 {
 		// RGB or RGBA image
 		colorSpace = "DeviceRGB"
-		compressedData, err = compressWithZlib(pixelData.RGBData)
+		compressedData, err = image.CompressWithZlib(pixelData.RGBData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to compress RGB data: %w", err)
 		}
@@ -83,7 +83,7 @@ func LoadPNG(r io.Reader) (*Image, error) {
 		// Check for alpha channel
 		if len(pixelData.AlphaData) > 0 {
 			// Create SMask (soft mask) for alpha channel
-			alphaCompressed, err := compressWithZlib(pixelData.AlphaData)
+			alphaCompressed, err := image.CompressWithZlib(pixelData.AlphaData)
 			if err != nil {
 				return nil, fmt.Errorf("failed to compress alpha data: %w", err)
 			}
@@ -100,7 +100,7 @@ func LoadPNG(r io.Reader) (*Image, error) {
 	} else if len(pixelData.GrayData) > 0 {
 		// Grayscale image
 		colorSpace = "DeviceGray"
-		compressedData, err = compressWithZlib(pixelData.GrayData)
+		compressedData, err = image.CompressWithZlib(pixelData.GrayData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to compress grayscale data: %w", err)
 		}
@@ -130,7 +130,3 @@ func LoadPNGFile(path string) (*Image, error) {
 	return LoadPNG(file)
 }
 
-// compressWithZlib compresses data using Zlib/Deflate compression
-func compressWithZlib(data []byte) ([]byte, error) {
-	return image.CompressWithZlib(data)
-}

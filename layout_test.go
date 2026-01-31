@@ -127,8 +127,6 @@ func TestExtractAllLayouts(t *testing.T) {
 }
 
 func TestGroupTextElements(t *testing.T) {
-	reader := &PDFReader{}
-
 	// テスト用TextElements
 	elements := []TextElement{
 		{Text: "Hello", X: 100, Y: 700, Width: 30, Height: 12, Size: 12},
@@ -136,7 +134,7 @@ func TestGroupTextElements(t *testing.T) {
 		{Text: "Line2", X: 100, Y: 680, Width: 30, Height: 12, Size: 12},
 	}
 
-	blocks := reader.groupTextElements(elements)
+	blocks := contentlayout.GroupTextElements(elements)
 
 	// 少なくとも1つのブロックが作成されることを検証
 	if len(blocks) == 0 {

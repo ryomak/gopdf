@@ -95,7 +95,7 @@ func (r *PDFReader) ExtractPageLayout(pageNum int) (*PageLayout, error) {
 	convertedImageBlocks := convertImageBlocks(imageBlocks)
 
 	// TextElementsをTextBlocksにグループ化（画像を考慮）
-	textBlocks := r.groupTextElementsWithImages(
+	textBlocks := contentlayout.GroupTextElementsWithImages(
 		convertTextElements(textElements),
 		convertedImageBlocks,
 	)
@@ -216,21 +216,6 @@ func convertImageBlocks(internalBlocks []content.ImageBlock) []layout.ImageBlock
 			},
 		}
 	})
-}
-
-// groupTextElements はTextElementsをTextBlocksにグループ化
-// 設計書: docs/text_block_grouping_design.md
-func (r *PDFReader) groupTextElements(elements []layout.TextElement) []layout.TextBlock {
-	return contentlayout.GroupTextElements(elements)
-}
-
-// groupTextElementsWithImages は画像の位置を考慮してTextElementsをグループ化
-// 設計書: docs/unified_content_grouping_design.md
-func (r *PDFReader) groupTextElementsWithImages(
-	elements []layout.TextElement,
-	images []layout.ImageBlock,
-) []layout.TextBlock {
-	return contentlayout.GroupTextElementsWithImages(elements, images)
 }
 
 func toFloat64(obj core.Object) float64 {
