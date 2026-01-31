@@ -18,6 +18,7 @@ Pure GoでPDF生成・解析・翻訳を行う高機能ライブラリ
 - **型安全**: Goの型システムを活用した安全な設計
 - **PDF翻訳**: レイアウトを保持したままテキストを翻訳
 - **日本語対応**: システムフォントまたは任意のTTFフォントを使用可能
+- **CLIツール**: コマンドラインから直接PDF操作が可能
 
 ## 主な機能
 
@@ -40,9 +41,51 @@ Pure GoでPDF生成・解析・翻訳を行う高機能ライブラリ
 
 ## インストール
 
+### ライブラリとして使用
+
 ```bash
 go get github.com/ryomak/gopdf
 ```
+
+### CLIツールとして使用
+
+```bash
+go install github.com/ryomak/gopdf/cmd/gopdf@latest
+```
+
+## CLIツール
+
+コマンドラインからPDF操作ができるCLIツールを提供しています。
+
+### 主なコマンド
+
+```bash
+# PDF情報表示
+gopdf info document.pdf
+gopdf info document.pdf --json
+
+# テキスト抽出
+gopdf extract text document.pdf
+gopdf extract text document.pdf --format json
+
+# 画像抽出
+gopdf extract images document.pdf --output ./images/
+
+# PDF暗号化
+gopdf encrypt input.pdf output.pdf --user-password "secret"
+
+# PDF復号
+gopdf decrypt protected.pdf decrypted.pdf --password "secret"
+
+# Markdown → PDF変換
+gopdf markdown README.md output.pdf
+gopdf markdown slides.md presentation.pdf --mode slide
+
+# PDF翻訳（外部翻訳コマンド使用）
+gopdf translate input.pdf output.pdf --font japanese.ttf --command "trans -b :ja"
+```
+
+詳細は [CLIドキュメント](docs/cli.md) を参照してください。
 
 ## クイックスタート
 
