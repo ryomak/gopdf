@@ -19,6 +19,7 @@ type Page struct {
 	fonts          map[string]font.StandardFont // fontKey -> font
 	ttfFonts       map[string]*TTFFont          // fontKey -> TTF font
 	images         []*Image                     // images used in this page
+	graphicsStates map[string]float64           // graphics state name -> opacity (for ExtGState)
 }
 
 // Width returns the page width in points.
@@ -424,6 +425,12 @@ func (p *Page) AddTextLayer(layer TextLayer) error {
 
 	// Graphics state for opacity
 	if layer.Opacity < 1.0 {
+		// Register graphics state for ExtGState resource
+		if p.graphicsStates == nil {
+			p.graphicsStates = make(map[string]float64)
+		}
+		p.graphicsStates["GS1"] = layer.Opacity
+
 		fmt.Fprintf(&p.content, "q\n") // Save graphics state
 		fmt.Fprintf(&p.content, "/GS1 gs\n")
 	}
@@ -442,6 +449,13 @@ func (p *Page) AddTextLayer(layer TextLayer) error {
 
 		// テキストを描画
 		fmt.Fprintf(&p.content, "BT\n") // Begin Text
+
+		// テキストの色を設定（黒）
+		// Invisible モード以外では色の設定が必要
+		if layer.RenderMode != TextRenderInvisible {
+			fmt.Fprintf(&p.content, "0 0 0 rg\n")  // fill color (black)
+			fmt.Fprintf(&p.content, "0 0 0 RG\n")  // stroke color (black)
+		}
 
 		// フォントとサイズを設定
 		if p.currentTTFFont != nil {

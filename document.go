@@ -254,6 +254,21 @@ func (d *Document) WriteTo(w io.Writer) error {
 			resourcesDict[core.Name("XObject")] = xobjectResources
 		}
 
+		// このページで使用されているGraphics StateをResourcesに追加
+		if len(page.graphicsStates) > 0 {
+			extGStateResources := core.Dictionary{}
+			for gsName, opacity := range page.graphicsStates {
+				// ExtGState辞書を作成（ca=fill alpha, CA=stroke alpha）
+				gsDict := core.Dictionary{
+					core.Name("Type"): core.Name("ExtGState"),
+					core.Name("ca"):   core.Real(opacity), // fill alpha
+					core.Name("CA"):   core.Real(opacity), // stroke alpha
+				}
+				extGStateResources[core.Name(gsName)] = gsDict
+			}
+			resourcesDict[core.Name("ExtGState")] = extGStateResources
+		}
+
 		// Pageオブジェクトを作成（ParentにPagesへの参照を設定）
 		pageDict := core.Dictionary{
 			core.Name("Type"): core.Name("Page"),
