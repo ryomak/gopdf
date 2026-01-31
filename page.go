@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ryomak/gopdf/internal/font"
+	"github.com/ryomak/gopdf/internal/page"
 )
 
 // Page represents a single page in a PDF document.
@@ -56,19 +57,7 @@ func (p *Page) drawTextInternal(
 	encodedText string,
 	useBrackets bool,
 ) {
-	fmt.Fprintf(&p.content, "BT\n")
-	// Set text color to black (RGB: 0, 0, 0)
-	fmt.Fprintf(&p.content, "0 0 0 rg\n")
-	fmt.Fprintf(&p.content, "/%s %.2f Tf\n", fontKey, p.fontSize)
-	fmt.Fprintf(&p.content, "%.2f %.2f Td\n", x, y)
-
-	if useBrackets {
-		fmt.Fprintf(&p.content, "(%s) Tj\n", encodedText)
-	} else {
-		fmt.Fprintf(&p.content, "<%s> Tj\n", encodedText)
-	}
-
-	fmt.Fprintf(&p.content, "ET\n")
+	page.DrawTextInternal(&p.content, x, y, fontKey, p.fontSize, encodedText, useBrackets)
 }
 
 // DrawText draws text at the specified position.
@@ -99,65 +88,12 @@ func (p *Page) DrawText(text string, x, y float64) error {
 
 // getFontKey returns the font resource name (e.g., "F1", "F2") for a given font.
 func (p *Page) getFontKey(f font.StandardFont) string {
-	// 簡易的な実装: フォント名のハッシュ値を使用
-	// 実際には、ドキュメント全体でユニークなキーを管理する必要がある
-	switch f {
-	case font.Helvetica:
-		return "F1"
-	case font.HelveticaBold:
-		return "F2"
-	case font.HelveticaOblique:
-		return "F3"
-	case font.HelveticaBoldOblique:
-		return "F4"
-	case font.TimesRoman:
-		return "F5"
-	case font.TimesBold:
-		return "F6"
-	case font.TimesItalic:
-		return "F7"
-	case font.TimesBoldItalic:
-		return "F8"
-	case font.Courier:
-		return "F9"
-	case font.CourierBold:
-		return "F10"
-	case font.CourierOblique:
-		return "F11"
-	case font.CourierBoldOblique:
-		return "F12"
-	case font.Symbol:
-		return "F13"
-	case font.ZapfDingbats:
-		return "F14"
-	default:
-		return "F1"
-	}
+	return page.GetFontKey(f)
 }
 
 // escapeString escapes special characters in PDF strings.
 func (p *Page) escapeString(s string) string {
-	// TODO: 完全なエスケープ処理の実装
-	// 現在は基本的な文字のみ対応
-	result := s
-	result = replaceAll(result, "\\", "\\\\")
-	result = replaceAll(result, "(", "\\(")
-	result = replaceAll(result, ")", "\\)")
-	return result
-}
-
-// replaceAll is a helper function to replace all occurrences of old with new.
-func replaceAll(s, old, new string) string {
-	result := ""
-	for i := 0; i < len(s); i++ {
-		if i <= len(s)-len(old) && s[i:i+len(old)] == old {
-			result += new
-			i += len(old) - 1
-		} else {
-			result += string(s[i])
-		}
-	}
-	return result
+	return page.EscapeString(s)
 }
 
 // SetLineWidth sets the line width for subsequent drawing operations.
@@ -213,49 +149,7 @@ func (p *Page) DrawAndFillRectangle(x, y, width, height float64) {
 // drawCirclePath draws a circle path using 4 Bézier curves.
 // κ = 4 * (√2 - 1) / 3 ≈ 0.5522847498
 func (p *Page) drawCirclePath(centerX, centerY, radius float64) {
-	// Magic constant for circle approximation using Bézier curves
-	const kappa = 0.5522847498
-
-	// Calculate control point offset
-	offset := radius * kappa
-
-	// Calculate key points on the circle
-	x0 := centerX + radius // Right
-	y0 := centerY
-	x1 := centerX          // Left
-	y1 := centerY
-	x2 := centerX          // Center X
-	y2 := centerY + radius // Top
-	x3 := centerX          // Center X
-	y3 := centerY - radius // Bottom
-
-	// Start at the right point (3 o'clock position)
-	fmt.Fprintf(&p.content, "%.2f %.2f m\n", x0, y0)
-
-	// Draw 4 Bézier curves to approximate a circle
-	// Curve 1: Right to Top (3 o'clock to 12 o'clock)
-	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f %.2f %.2f c\n",
-		x0, y0+offset,        // Control point 1
-		x2+offset, y2,        // Control point 2
-		x2, y2)               // End point
-
-	// Curve 2: Top to Left (12 o'clock to 9 o'clock)
-	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f %.2f %.2f c\n",
-		x2-offset, y2,        // Control point 1
-		x1, y1+offset,        // Control point 2
-		x1, y1)               // End point
-
-	// Curve 3: Left to Bottom (9 o'clock to 6 o'clock)
-	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f %.2f %.2f c\n",
-		x1, y1-offset,        // Control point 1
-		x3-offset, y3,        // Control point 2
-		x3, y3)               // End point
-
-	// Curve 4: Bottom to Right (6 o'clock to 3 o'clock)
-	fmt.Fprintf(&p.content, "%.2f %.2f %.2f %.2f %.2f %.2f c\n",
-		x3+offset, y3,        // Control point 1
-		x0, y0-offset,        // Control point 2
-		x0, y0)               // End point
+	page.DrawCirclePath(&p.content, centerX, centerY, radius)
 }
 
 // DrawCircle draws a circle outline with the specified center and radius.
@@ -362,20 +256,7 @@ func (p *Page) getTTFFontKey(f *TTFFont) string {
 // textToHexString converts UTF-8 text to hex string for PDF
 // For Type0 fonts, we use UTF-16BE encoding
 func (p *Page) textToHexString(text string) string {
-	result := ""
-
-	for _, r := range text {
-		// Convert rune to UTF-16BE (simplified: only BMP characters)
-		if r <= 0xFFFF {
-			result += fmt.Sprintf("%04X", r)
-		} else {
-			// For characters outside BMP, use surrogate pairs
-			// This is a simplified implementation
-			result += fmt.Sprintf("%04X", r)
-		}
-	}
-
-	return result
+	return page.TextToHexString(text)
 }
 
 // textToGlyphIndices converts UTF-8 text to glyph indices for TTF fonts

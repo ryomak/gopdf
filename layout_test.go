@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	contentlayout "github.com/ryomak/gopdf/internal/content/layout"
 )
 
 func TestExtractPageLayout(t *testing.T) {
@@ -155,7 +156,7 @@ func TestCreateTextBlock(t *testing.T) {
 		{Text: "World", X: 135, Y: 700, Width: 30, Height: 12, Font: "Helvetica", Size: 12},
 	}
 
-	block := createTextBlock(elements)
+	block := contentlayout.CreateTextBlock(elements)
 
 	// テキストが結合されていることを検証
 	expectedText := "Hello World"

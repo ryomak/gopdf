@@ -2,11 +2,11 @@ package gopdf
 
 import (
 	"bytes"
-	"compress/zlib"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/ryomak/gopdf/internal/content/image"
 	"github.com/ryomak/gopdf/internal/content/image/jpeg"
 	"github.com/ryomak/gopdf/internal/content/image/png"
 )
@@ -32,7 +32,7 @@ func LoadJPEG(r io.Reader) (*Image, error) {
 	}
 
 	// Parse JPEG header from a new reader
-	info, err := jpeg.DecodeInfo(io.NopCloser(newBytesReader(data)))
+	info, err := jpeg.DecodeInfo(io.NopCloser(bytes.NewReader(data)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode JPEG info: %w", err)
 	}
@@ -132,35 +132,5 @@ func LoadPNGFile(path string) (*Image, error) {
 
 // compressWithZlib compresses data using Zlib/Deflate compression
 func compressWithZlib(data []byte) ([]byte, error) {
-	var buf bytes.Buffer
-	w := zlib.NewWriter(&buf)
-
-	if _, err := w.Write(data); err != nil {
-		return nil, err
-	}
-
-	if err := w.Close(); err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
-}
-
-// bytesReader wraps a byte slice to implement io.Reader
-type bytesReader struct {
-	data []byte
-	pos  int
-}
-
-func newBytesReader(data []byte) *bytesReader {
-	return &bytesReader{data: data}
-}
-
-func (r *bytesReader) Read(p []byte) (int, error) {
-	if r.pos >= len(r.data) {
-		return 0, io.EOF
-	}
-	n := copy(p, r.data[r.pos:])
-	r.pos += n
-	return n, nil
+	return image.CompressWithZlib(data)
 }

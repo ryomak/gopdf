@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
-	"strings"
 
 	"github.com/ryomak/gopdf/internal/content/text"
+	"github.com/ryomak/gopdf/internal/content/translate"
+	"github.com/ryomak/gopdf/internal/font"
 )
 
 // TranslateUnit は翻訳の単位を指定する
@@ -268,125 +268,22 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 
 // validateImagePosition は画像座標を検証し、異常な場合はフォールバック位置を返す
 func validateImagePosition(x, y, width, height, pageWidth, pageHeight float64) (newX, newY float64) {
-	const maxOffset = 10000.0
-
-	// 異常値の検出
-	if x < -maxOffset || x > pageWidth+maxOffset ||
-		y < -maxOffset || y > pageHeight+maxOffset {
-		// フォールバック: ページ中央上部に配置
-		newX = (pageWidth - width) / 2
-		if newX < 0 {
-			newX = 0
-		}
-		newY = pageHeight - height - 50
-		if newY < 0 {
-			newY = 0
-		}
-		return newX, newY
-	}
-
-	return x, y
+	return translate.ValidateImagePosition(x, y, width, height, pageWidth, pageHeight)
 }
 
 // isASCIIOnly はテキストがASCII文字のみかどうかを判定
 func isASCIIOnly(s string) bool {
-	for _, r := range s {
-		if r > 127 {
-			return false
-		}
-	}
-	return true
-}
-
-// standardFontMap はPDFフォント名からStandardFontへのマッピング
-var standardFontMap = map[string]StandardFont{
-	// Helvetica variants
-	"Helvetica":            FontHelvetica,
-	"Helvetica-Bold":       FontHelveticaBold,
-	"Helvetica-Oblique":    FontHelveticaOblique,
-	"Helvetica-BoldOblique": FontHelveticaBoldOblique,
-	// Times variants
-	"Times-Roman":      FontTimesRoman,
-	"Times-Bold":       FontTimesBold,
-	"Times-Italic":     FontTimesItalic,
-	"Times-BoldItalic": FontTimesBoldItalic,
-	// Courier variants
-	"Courier":            FontCourier,
-	"Courier-Bold":       FontCourierBold,
-	"Courier-Oblique":    FontCourierOblique,
-	"Courier-BoldOblique": FontCourierBoldOblique,
-	// Symbol fonts
-	"Symbol":       FontSymbol,
-	"ZapfDingbats": FontZapfDingbats,
+	return translate.IsASCIIOnly(s)
 }
 
 // mapToStandardFont はPDFフォント名をStandardFontにマッピング
-// マッピングできない場合はnilを返す
+// マッピングできない場合は空文字列とfalseを返す
 func mapToStandardFont(fontName string, isBold bool) (StandardFont, bool) {
-	// 直接マッチ
-	if stdFont, ok := standardFontMap[fontName]; ok {
-		return stdFont, true
+	stdFont, ok := font.MapToStandardFont(fontName, isBold)
+	if ok {
+		return StandardFont(stdFont), true
 	}
-
-	// 部分マッチでフォントファミリーを推測
-	// 例: "BCDEEE+Helvetica-Bold" -> "Helvetica-Bold"
-	for name, stdFont := range standardFontMap {
-		if len(fontName) >= len(name) && fontName[len(fontName)-len(name):] == name {
-			return stdFont, true
-		}
-	}
-
-	// フォント名からファミリーを推測
-	switch {
-	case containsFont(fontName, "Helvetica"):
-		if isBold {
-			return FontHelveticaBold, true
-		}
-		return FontHelvetica, true
-	case containsFont(fontName, "Times"):
-		if isBold {
-			return FontTimesBold, true
-		}
-		return FontTimesRoman, true
-	case containsFont(fontName, "Courier"):
-		if isBold {
-			return FontCourierBold, true
-		}
-		return FontCourier, true
-	case containsFont(fontName, "Symbol"):
-		return FontSymbol, true
-	case containsFont(fontName, "ZapfDingbats"), containsFont(fontName, "Dingbats"):
-		return FontZapfDingbats, true
-	}
-
 	return "", false
-}
-
-// containsFont はフォント名に指定された名前が含まれているかチェック
-func containsFont(fontName, target string) bool {
-	// 大文字小文字を無視して部分一致を確認
-	for i := 0; i <= len(fontName)-len(target); i++ {
-		match := true
-		for j := 0; j < len(target); j++ {
-			c1 := fontName[i+j]
-			c2 := target[j]
-			// 大文字小文字を無視
-			if c1 >= 'A' && c1 <= 'Z' {
-				c1 += 'a' - 'A'
-			}
-			if c2 >= 'A' && c2 <= 'Z' {
-				c2 += 'a' - 'A'
-			}
-			if c1 != c2 {
-				match = false
-				break
-			}
-		}
-		if match {
-			return true
-		}
-	}
-	return false
 }
 
 // setPageFont はページにフォントを設定する
@@ -445,89 +342,9 @@ func loadImageFromImageInfo(info ImageInfo) (*Image, error) {
 // translateText はテキストを翻訳する
 // translateByLine が true の場合、テキストを行単位で分割して翻訳し、再結合する
 func translateText(text string, translator Translator, unit TranslateUnit) (string, error) {
-	switch unit {
-	case TranslateUnitBlock:
-		// ブロック全体を翻訳
-		return translator.Translate(text)
-
-	case TranslateUnitLine:
-		// 行単位で翻訳
-		return translateByDelimiter(text, translator, "\n", "\n")
-
-	case TranslateUnitSentence:
-		// 文単位で翻訳
-		// 改行を一時的にスペースに変換して文を連結
-		normalized := strings.ReplaceAll(text, "\n", " ")
-		// 文末記号で分割して翻訳
-		translated, err := translateBySentence(normalized, translator)
-		if err != nil {
-			return "", err
-		}
-		return translated, nil
-
-	default:
-		return translator.Translate(text)
-	}
-}
-
-// translateByDelimiter は指定した区切り文字で分割して翻訳
-func translateByDelimiter(text string, translator Translator, splitDelim, joinDelim string) (string, error) {
-	parts := strings.Split(text, splitDelim)
-	translatedParts := make([]string, len(parts))
-
-	for i, part := range parts {
-		if part == "" {
-			translatedParts[i] = ""
-			continue
-		}
-		translated, err := translator.Translate(part)
-		if err != nil {
-			return "", err
-		}
-		translatedParts[i] = translated
-	}
-
-	return strings.Join(translatedParts, joinDelim), nil
-}
-
-// sentenceEndPattern は文末を検出する正規表現
-var sentenceEndPattern = regexp.MustCompile(`([.!?。！？]+)\s*`)
-
-// translateBySentence は文単位で翻訳
-func translateBySentence(text string, translator Translator) (string, error) {
-	// 文末記号で分割（記号も保持）
-	// "Hello. World!" -> ["Hello", ".", " ", "World", "!"]
-	parts := sentenceEndPattern.Split(text, -1)
-	delimiters := sentenceEndPattern.FindAllString(text, -1)
-
-	if len(parts) == 0 {
-		return translator.Translate(text)
-	}
-
-	var result strings.Builder
-	for i, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			if i < len(delimiters) {
-				result.WriteString(delimiters[i])
-			}
-			continue
-		}
-
-		// 文を翻訳
-		translated, err := translator.Translate(part)
-		if err != nil {
-			return "", err
-		}
-		result.WriteString(translated)
-
-		// 区切り文字を追加
-		if i < len(delimiters) {
-			result.WriteString(delimiters[i])
-		}
-	}
-
-	return result.String(), nil
+	// TranslateUnitをinternal packageの型に変換
+	internalUnit := translate.TranslateUnit(unit)
+	return translate.TranslateText(text, translator, internalUnit)
 }
 
 // TranslateTextBlocks はTextBlocksのテキストを翻訳

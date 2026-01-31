@@ -160,6 +160,21 @@ type TextElement struct {
 	Size   float64
 }
 
+// GetX returns the X coordinate (implements SortableTextElement interface)
+func (e TextElement) GetX() float64 {
+	return e.X
+}
+
+// GetY returns the Y coordinate (implements SortableTextElement interface)
+func (e TextElement) GetY() float64 {
+	return e.Y
+}
+
+// GetSize returns the font size (implements SortableTextElement interface)
+func (e TextElement) GetSize() float64 {
+	return e.Size
+}
+
 // ImageFormat は画像フォーマット
 type ImageFormat string
 
