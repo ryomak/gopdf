@@ -31,6 +31,67 @@ func DefaultFitOptions() FitOptions {
 	}
 }
 
+// FitOptionFunc is a function that modifies FitOptions.
+type FitOptionFunc func(*FitOptions)
+
+// NewFitOptions creates FitOptions with the given options.
+func NewFitOptions(opts ...FitOptionFunc) FitOptions {
+	options := DefaultFitOptions()
+	for _, opt := range opts {
+		opt(&options)
+	}
+	return options
+}
+
+// WithFitMaxFontSize sets the maximum font size.
+func WithFitMaxFontSize(size float64) FitOptionFunc {
+	return func(o *FitOptions) {
+		o.MaxFontSize = size
+	}
+}
+
+// WithFitMinFontSize sets the minimum font size.
+func WithFitMinFontSize(size float64) FitOptionFunc {
+	return func(o *FitOptions) {
+		o.MinFontSize = size
+	}
+}
+
+// WithFitLineSpacing sets the line spacing multiplier.
+func WithFitLineSpacing(spacing float64) FitOptionFunc {
+	return func(o *FitOptions) {
+		o.LineSpacing = spacing
+	}
+}
+
+// WithFitPadding sets the padding.
+func WithFitPadding(padding float64) FitOptionFunc {
+	return func(o *FitOptions) {
+		o.Padding = padding
+	}
+}
+
+// WithFitAllowShrink sets whether shrinking is allowed.
+func WithFitAllowShrink(allow bool) FitOptionFunc {
+	return func(o *FitOptions) {
+		o.AllowShrink = allow
+	}
+}
+
+// WithFitAllowGrow sets whether growing is allowed.
+func WithFitAllowGrow(allow bool) FitOptionFunc {
+	return func(o *FitOptions) {
+		o.AllowGrow = allow
+	}
+}
+
+// WithFitAlignment sets the text alignment.
+func WithFitAlignment(align Align) FitOptionFunc {
+	return func(o *FitOptions) {
+		o.Alignment = align
+	}
+}
+
 // FittedText はフィッティング結果
 type FittedText struct {
 	Lines      []string // 改行されたテキスト

@@ -32,6 +32,19 @@ func (p *Page) Height() float64 {
 	return p.height
 }
 
+// SetCurrentFont sets the current font and size for subsequent text operations.
+// This is a unified method that works with both StandardFont and *TTFFont.
+func (p *Page) SetCurrentFont(f Font, size float64) error {
+	switch font := f.(type) {
+	case StandardFont:
+		return p.SetFont(font, size)
+	case *TTFFont:
+		return p.SetTTFFont(font, size)
+	default:
+		return fmt.Errorf("unsupported font type: %T", f)
+	}
+}
+
 // SetFont sets the current font and size for subsequent text operations.
 func (p *Page) SetFont(f StandardFont, size float64) error {
 	// 公開APIの型を内部実装の型に変換

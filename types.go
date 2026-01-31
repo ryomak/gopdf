@@ -7,9 +7,26 @@ import (
 
 // text パッケージの再エクスポート
 type (
-	Align      = text.Align
-	FitOptions = text.FitOptions
-	FittedText = text.FittedText
+	Align         = text.Align
+	FitOptions    = text.FitOptions
+	FitOptionFunc = text.FitOptionFunc
+	FittedText    = text.FittedText
+)
+
+// NewFitOptions creates FitOptions with the given functional options.
+func NewFitOptions(opts ...FitOptionFunc) FitOptions {
+	return text.NewFitOptions(opts...)
+}
+
+// FitOption functional options with WithFit prefix
+var (
+	WithFitMaxFontSize  = text.WithFitMaxFontSize
+	WithFitMinFontSize  = text.WithFitMinFontSize
+	WithFitLineSpacing  = text.WithFitLineSpacing
+	WithFitPadding      = text.WithFitPadding
+	WithFitAllowShrink  = text.WithFitAllowShrink
+	WithFitAllowGrow    = text.WithFitAllowGrow
+	WithFitAlignment    = text.WithFitAlignment
 )
 
 const (

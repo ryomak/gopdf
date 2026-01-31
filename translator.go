@@ -72,6 +72,78 @@ func DefaultPDFTranslatorOptions(targetFont Font) PDFTranslatorOptions {
 	}
 }
 
+// TranslatorOption is a function that modifies PDFTranslatorOptions.
+type TranslatorOption func(*PDFTranslatorOptions)
+
+// NewTranslatorOptions creates PDFTranslatorOptions with the given options.
+func NewTranslatorOptions(opts ...TranslatorOption) PDFTranslatorOptions {
+	options := PDFTranslatorOptions{
+		FittingOptions: DefaultFitOptions(),
+		KeepImages:     true,
+		KeepLayout:     true,
+	}
+	for _, opt := range opts {
+		opt(&options)
+	}
+	return options
+}
+
+// WithTranslatorFunc sets the translator function.
+func WithTranslatorFunc(t Translator) TranslatorOption {
+	return func(o *PDFTranslatorOptions) {
+		o.Translator = t
+	}
+}
+
+// WithTranslatorTargetFont sets the target font for non-ASCII text.
+func WithTranslatorTargetFont(f Font) TranslatorOption {
+	return func(o *PDFTranslatorOptions) {
+		o.TargetFont = f
+	}
+}
+
+// WithTranslatorTargetBoldFont sets the target bold font.
+func WithTranslatorTargetBoldFont(f Font) TranslatorOption {
+	return func(o *PDFTranslatorOptions) {
+		o.TargetBoldFont = f
+	}
+}
+
+// WithTranslatorTargetFontName sets the target font name explicitly.
+func WithTranslatorTargetFontName(name string) TranslatorOption {
+	return func(o *PDFTranslatorOptions) {
+		o.TargetFontName = name
+	}
+}
+
+// WithTranslatorFittingOptions sets the text fitting options.
+func WithTranslatorFittingOptions(fo FitOptions) TranslatorOption {
+	return func(o *PDFTranslatorOptions) {
+		o.FittingOptions = fo
+	}
+}
+
+// WithTranslatorKeepImages sets whether to preserve images.
+func WithTranslatorKeepImages(keep bool) TranslatorOption {
+	return func(o *PDFTranslatorOptions) {
+		o.KeepImages = keep
+	}
+}
+
+// WithTranslatorKeepLayout sets whether to preserve layout.
+func WithTranslatorKeepLayout(keep bool) TranslatorOption {
+	return func(o *PDFTranslatorOptions) {
+		o.KeepLayout = keep
+	}
+}
+
+// WithTranslatorUnit sets the translation unit (block, line, or sentence).
+func WithTranslatorUnit(unit TranslateUnit) TranslatorOption {
+	return func(o *PDFTranslatorOptions) {
+		o.TranslateUnit = unit
+	}
+}
+
 // TranslatePDF はPDFを翻訳して新しいPDFを生成
 func TranslatePDF(inputPath string, outputPath string, opts PDFTranslatorOptions) error {
 	// 1. 元PDFを読み込み
@@ -248,7 +320,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 				fitted, err := text.Fit(textBlock.Text, textBlock.Rect, fontName, opts.FittingOptions, text.DefaultWidthEstimator)
 				if err != nil {
 					// フィッティングできない場合は元のサイズを使用
-					if err := setPageFont(page, targetFont, textBlock.FontSize); err != nil {
+					if err := page.SetCurrentFont(targetFont, textBlock.FontSize); err != nil {
 						continue
 					}
 					// 適切な描画メソッドを使用
@@ -257,7 +329,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 				}
 
 				// 複数行を描画
-				if err := setPageFont(page, targetFont, fitted.FontSize); err != nil {
+				if err := page.SetCurrentFont(targetFont, fitted.FontSize); err != nil {
 					continue
 				}
 				// 上から下に描画（Y座標が大きい方から小さい方へ）
@@ -293,18 +365,6 @@ func mapToStandardFont(fontName string, isBold bool) (StandardFont, bool) {
 		return StandardFont(stdFont), true
 	}
 	return "", false
-}
-
-// setPageFont はページにフォントを設定する
-func setPageFont(page *Page, f Font, size float64) error {
-	switch font := f.(type) {
-	case StandardFont:
-		return page.SetFont(font, size)
-	case *TTFFont:
-		return page.SetTTFFont(font, size)
-	default:
-		return fmt.Errorf("unsupported font type: %T", f)
-	}
 }
 
 // drawPageText はページにテキストを描画する
