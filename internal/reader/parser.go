@@ -188,8 +188,8 @@ func (p *Parser) ParseStream(dict core.Dictionary) (*core.Stream, error) {
 		// \r の後に \n が続く可能性がある
 		_, _ = p.lexer.ReadBytes(1) // \nを読む（エラーは無視）
 	}
-	// \r\n, \n, その他いずれの場合も、改行として処理を続行
-	// TODO: より厳密には、改行でない文字をunreadする必要がある
+	// \r\n, \n いずれの場合も、改行として処理を続行
+	// NOTE: PDF仕様では stream キーワードの後は必ず改行が来る
 
 	// Lengthを取得
 	lengthObj, ok := dict[core.Name("Length")]

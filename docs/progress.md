@@ -435,10 +435,6 @@ Phase 12（暗号化機能）は一部実装済み、Phase 14（Markdown変換�
 - 大容量PDF処理のパフォーマンス最適化
 - 画像座標計算の安定化（image_extractor.goのTODO）
 
-### コード内のTODO
-- [ ] `image_extractor.go:199` - 正しい座標計算の再有効化
-- [ ] `parser.go:192` - 改行文字のunread処理
-
 ### 今後の検討事項
 - [ ] デフォルト日本語フォントの選定とライセンス確認（Phase 13）
 - [ ] AES暗号化の実装（Phase 12拡張）

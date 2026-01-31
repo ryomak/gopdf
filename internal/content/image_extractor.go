@@ -195,12 +195,6 @@ func (e *ImageExtractor) ExtractImagesWithPosition(page core.Dictionary, operati
 				width := maxX - minX
 				height := maxY - minY
 
-				// 異常な座標値の検出は一旦無効化（座標変換の問題を修正中）
-				// TODO: 正しい座標計算が確立されたら、再度有効化する
-				// const maxReasonableCoordinate = 10000.0
-				// isAbnormal := false
-				// ...
-
 				// ImageInfoに変換
 				info := ImageInfo{
 					Name:        string(name),
