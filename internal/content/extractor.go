@@ -2,6 +2,7 @@ package content
 
 import (
 	"strings"
+	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
 
@@ -188,23 +189,29 @@ func (e *TextExtractor) Extract() ([]TextElement, error) {
 					startX := e.textMatrix[4]
 					startY := e.textMatrix[5]
 					hasText := false
+					var lastRune rune
 
 					for _, item := range array {
 						if str, ok := utils.ExtractAs[core.String](item); ok {
 							text := e.getTextString(core.String(str))
 							combinedText.WriteString(text)
 							hasText = true
+							// 最後の文字を記録
+							if runes := []rune(text); len(runes) > 0 {
+								lastRune = runes[len(runes)-1]
+							}
 						}
 						// 数値の場合は位置調整
 						// 大きな負の値（例: -250以下）はスペースを意味することがある
+						// ただし、CJK文字の後ではスペースを挿入しない
 						if num, ok := item.(core.Integer); ok {
 							// -250以下（つまりスペース幅程度）の場合はスペースを挿入
 							// 1000単位でフォントサイズの1/1000を表す
-							if int(num) <= -250 {
+							if int(num) <= -250 && !isCJKRune(lastRune) {
 								combinedText.WriteString(" ")
 							}
 						} else if num, ok := item.(core.Real); ok {
-							if float64(num) <= -250 {
+							if float64(num) <= -250 && !isCJKRune(lastRune) {
 								combinedText.WriteString(" ")
 							}
 						}
@@ -531,4 +538,14 @@ func decodePDFDocEncoding(data []byte) string {
 // GetPageLevelCTM はページレベルのCTMを返す
 func (e *TextExtractor) GetPageLevelCTM() *Matrix {
 	return e.pageLevelCTM
+}
+
+// isCJKRune は文字がCJK（中国語、日本語、韓国語）文字かを判定する
+func isCJKRune(r rune) bool {
+	return unicode.Is(unicode.Han, r) || // 漢字
+		unicode.Is(unicode.Hiragana, r) || // ひらがな
+		unicode.Is(unicode.Katakana, r) || // カタカナ
+		unicode.Is(unicode.Hangul, r) || // ハングル
+		(r >= 0x3000 && r <= 0x303F) || // CJK句読点
+		(r >= 0xFF00 && r <= 0xFFEF) // 全角英数字・記号
 }

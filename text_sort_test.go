@@ -165,3 +165,74 @@ func TestEstimateTextWidth(t *testing.T) {
 		t.Errorf("Width = %f, want %f", width, expected)
 	}
 }
+
+// TestTextElementsToString_Japanese は日本語テキストの結合をテストする
+func TestTextElementsToString_Japanese(t *testing.T) {
+	elements := []TextElement{
+		{Text: "こんにちは", X: 100, Y: 700, Size: 12},
+		{Text: "世界", X: 200, Y: 700, Size: 12},
+		{Text: "です", X: 250, Y: 700, Size: 12},
+	}
+
+	// ソート済みと仮定
+	sorted := SortTextElements(elements)
+	text := TextElementsToString(sorted)
+
+	// 日本語同士ではスペースなし
+	if text != "こんにちは世界です" {
+		t.Errorf("Text = %q, want %q", text, "こんにちは世界です")
+	}
+}
+
+// TestTextElementsToString_MixedLanguage は日本語と英語の混在をテストする
+func TestTextElementsToString_MixedLanguage(t *testing.T) {
+	tests := []struct {
+		name     string
+		elements []TextElement
+		expected string
+	}{
+		{
+			name: "英語の後に日本語",
+			elements: []TextElement{
+				{Text: "Hello", X: 100, Y: 700, Size: 12},
+				{Text: "世界", X: 200, Y: 700, Size: 12},
+			},
+			expected: "Hello世界",
+		},
+		{
+			name: "日本語の後に英語",
+			elements: []TextElement{
+				{Text: "こんにちは", X: 100, Y: 700, Size: 12},
+				{Text: "World", X: 200, Y: 700, Size: 12},
+			},
+			expected: "こんにちはWorld",
+		},
+		{
+			name: "英語同士",
+			elements: []TextElement{
+				{Text: "Hello", X: 100, Y: 700, Size: 12},
+				{Text: "World", X: 200, Y: 700, Size: 12},
+			},
+			expected: "Hello World",
+		},
+		{
+			name: "複数行の日本語",
+			elements: []TextElement{
+				{Text: "1行目", X: 100, Y: 700, Size: 12},
+				{Text: "です", X: 200, Y: 700, Size: 12},
+				{Text: "2行目", X: 100, Y: 650, Size: 12},
+			},
+			expected: "1行目です\n2行目",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sorted := SortTextElements(tt.elements)
+			text := TextElementsToString(sorted)
+			if text != tt.expected {
+				t.Errorf("Text = %q, want %q", text, tt.expected)
+			}
+		})
+	}
+}
