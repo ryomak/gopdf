@@ -82,6 +82,7 @@ func TestTextExtractor_MultipleTexts(t *testing.T) {
 }
 
 // TestTextExtractor_TJ はTJオペレーターをテストする
+// TJ配列内のテキストは1つのTextElementとして結合される
 func TestTextExtractor_TJ(t *testing.T) {
 	operations := []Operation{
 		{Operator: "BT"},
@@ -100,15 +101,44 @@ func TestTextExtractor_TJ(t *testing.T) {
 		t.Fatalf("Extract failed: %v", err)
 	}
 
-	if len(elements) != 2 {
-		t.Fatalf("Expected 2 elements, got %d", len(elements))
+	// TJ配列は1つのTextElementとして結合される
+	if len(elements) != 1 {
+		t.Fatalf("Expected 1 element, got %d", len(elements))
 	}
 
-	if elements[0].Text != "Hello" {
-		t.Errorf("First text = %q, want %q", elements[0].Text, "Hello")
+	// -50は小さな位置調整なのでスペースは挿入されない（-250以下でスペース挿入）
+	if elements[0].Text != "HelloWorld" {
+		t.Errorf("Text = %q, want %q", elements[0].Text, "HelloWorld")
 	}
-	if elements[1].Text != "World" {
-		t.Errorf("Second text = %q, want %q", elements[1].Text, "World")
+}
+
+// TestTextExtractor_TJ_WithSpace はTJオペレーターでスペース挿入をテストする
+func TestTextExtractor_TJ_WithSpace(t *testing.T) {
+	operations := []Operation{
+		{Operator: "BT"},
+		{Operator: "Tf", Operands: []core.Object{core.Name("F1"), core.Real(12)}},
+		{Operator: "Td", Operands: []core.Object{core.Real(100), core.Real(700)}},
+		{Operator: "TJ", Operands: []core.Object{
+			// -300は十分大きいのでスペースとして扱われる（-250以下でスペース挿入）
+			core.Array{core.String("Hello"), core.Integer(-300), core.String("World")},
+		}},
+		{Operator: "ET"},
+	}
+
+	extractor := NewTextExtractor(operations, nil, nil)
+	elements, err := extractor.Extract()
+
+	if err != nil {
+		t.Fatalf("Extract failed: %v", err)
+	}
+
+	if len(elements) != 1 {
+		t.Fatalf("Expected 1 element, got %d", len(elements))
+	}
+
+	// -300は大きな位置調整なのでスペースが挿入される
+	if elements[0].Text != "Hello World" {
+		t.Errorf("Text = %q, want %q", elements[0].Text, "Hello World")
 	}
 }
 

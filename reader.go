@@ -2,7 +2,9 @@ package gopdf
 
 import (
 	"io"
+	"math"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/ryomak/gopdf/internal/content"
@@ -107,13 +109,143 @@ func (r *PDFReader) ExtractPageText(pageNum int) (string, error) {
 		return "", err
 	}
 
-	// テキスト要素を結合
-	var texts []string
-	for _, elem := range elements {
-		texts = append(texts, elem.Text)
+	// テキスト要素を読み順にソートして結合
+	return joinTextElements(elements), nil
+}
+
+// joinTextElements はテキスト要素を読み順に結合する
+// 同じ行の要素は賢くスペースを挿入し、行が変わる場合は改行を挿入する
+func joinTextElements(elements []content.TextElement) string {
+	if len(elements) == 0 {
+		return ""
 	}
 
-	return strings.Join(texts, " "), nil
+	// Y座標でグループ化（行ごと）
+	lines := groupContentElementsByLine(elements)
+
+	// 各行をY座標の降順（上から下）でソート
+	sort.Slice(lines, func(i, j int) bool {
+		return lines[i][0].Y > lines[j][0].Y
+	})
+
+	var result strings.Builder
+	for i, line := range lines {
+		// 行内をX座標でソート
+		sort.Slice(line, func(a, b int) bool {
+			return line[a].X < line[b].X
+		})
+
+		// 行内のテキストを結合
+		lineText := joinContentLineElements(line)
+		result.WriteString(lineText)
+
+		// 最後の行でなければ改行を追加
+		if i < len(lines)-1 {
+			result.WriteString("\n")
+		}
+	}
+
+	return result.String()
+}
+
+// groupContentElementsByLine はテキスト要素をY座標で行ごとにグループ化する
+func groupContentElementsByLine(elements []content.TextElement) [][]content.TextElement {
+	if len(elements) == 0 {
+		return nil
+	}
+
+	// Y座標でソート
+	sorted := make([]content.TextElement, len(elements))
+	copy(sorted, elements)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Y > sorted[j].Y
+	})
+
+	var lines [][]content.TextElement
+	currentLine := []content.TextElement{sorted[0]}
+	currentY := sorted[0].Y
+	// しきい値: フォントサイズの50%以内なら同じ行とみなす
+	threshold := sorted[0].Size * 0.5
+	if threshold < 1 {
+		threshold = 3 // 最小しきい値
+	}
+
+	for i := 1; i < len(sorted); i++ {
+		elem := sorted[i]
+		if math.Abs(elem.Y-currentY) <= threshold {
+			currentLine = append(currentLine, elem)
+		} else {
+			lines = append(lines, currentLine)
+			currentLine = []content.TextElement{elem}
+			currentY = elem.Y
+			threshold = elem.Size * 0.5
+			if threshold < 1 {
+				threshold = 3
+			}
+		}
+	}
+	lines = append(lines, currentLine)
+
+	return lines
+}
+
+// joinContentLineElements は同じ行のテキスト要素を結合する
+// X座標の距離に基づいてスペースを挿入するかどうかを判断する
+func joinContentLineElements(elements []content.TextElement) string {
+	if len(elements) == 0 {
+		return ""
+	}
+
+	var result strings.Builder
+	var lastEndX float64
+	var lastSize float64 = 10 // デフォルトサイズ
+
+	for i, elem := range elements {
+		text := elem.Text
+		if text == "" {
+			continue
+		}
+
+		if i > 0 && result.Len() > 0 {
+			// 現在の要素との間隔を計算
+			gap := elem.X - lastEndX
+
+			// スペース幅の目安（フォントサイズの約40%）
+			// PDFでは文字間調整で微妙な間隔が生じるため、余裕を持たせる
+			// 典型的なスペース幅はフォントサイズの約25-30%だが、
+			// カーニングなどで間隔が生じることがあるため、少し大きめに設定
+			spaceWidth := lastSize * 0.4
+			if spaceWidth < 2.5 {
+				spaceWidth = 2.5
+			}
+
+			// 間隔がスペース幅より大きければスペースを挿入
+			// ただし、前の文字または現在の文字がスペースで終わる/始まる場合は挿入しない
+			resultStr := result.String()
+			endsWithSpace := len(resultStr) > 0 && resultStr[len(resultStr)-1] == ' '
+			startsWithSpace := len(text) > 0 && text[0] == ' '
+
+			if gap > spaceWidth && !endsWithSpace && !startsWithSpace {
+				result.WriteString(" ")
+			}
+		}
+
+		result.WriteString(text)
+
+		// 終端位置を更新（文字幅を概算）
+		// フォントサイズの約60%を1文字の平均幅とする
+		avgCharWidth := elem.Size * 0.6
+		if avgCharWidth < 1 {
+			avgCharWidth = 5 // デフォルト幅
+		}
+		lastEndX = elem.X + float64(len(text))*avgCharWidth
+		lastSize = elem.Size
+		if lastSize < 1 {
+			lastSize = 10
+		}
+	}
+
+	return result.String()
 }
 
 // ExtractText は全ページのテキストを抽出する

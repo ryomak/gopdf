@@ -1,6 +1,7 @@
 package content
 
 import (
+	"strings"
 	"unicode/utf16"
 	"unicode/utf8"
 
@@ -16,6 +17,21 @@ type TextElement struct {
 	Y    float64 // Y座標
 	Font string  // フォント名
 	Size float64 // フォントサイズ
+}
+
+// GetX はX座標を返す（SortableTextElementインターフェース実装）
+func (e TextElement) GetX() float64 {
+	return e.X
+}
+
+// GetY はY座標を返す（SortableTextElementインターフェース実装）
+func (e TextElement) GetY() float64 {
+	return e.Y
+}
+
+// GetSize はフォントサイズを返す（SortableTextElementインターフェース実装）
+func (e TextElement) GetSize() float64 {
+	return e.Size
 }
 
 // TextExtractor はテキストを抽出する
@@ -167,13 +183,45 @@ func (e *TextExtractor) Extract() ([]TextElement, error) {
 		case "TJ": // Show text with positioning
 			if len(op.Operands) >= 1 {
 				if array, ok := utils.ExtractAs[core.Array](op.Operands[0]); ok {
+					// TJ配列内のすべての文字列を結合して1つのTextElementにする
+					var combinedText strings.Builder
+					startX := e.textMatrix[4]
+					startY := e.textMatrix[5]
+					hasText := false
+
 					for _, item := range array {
 						if str, ok := utils.ExtractAs[core.String](item); ok {
 							text := e.getTextString(core.String(str))
-							elem := e.createTextElement(text)
-							elements = append(elements, elem)
+							combinedText.WriteString(text)
+							hasText = true
 						}
-						// 数値の場合は位置調整（今は無視）
+						// 数値の場合は位置調整
+						// 大きな負の値（例: -250以下）はスペースを意味することがある
+						if num, ok := item.(core.Integer); ok {
+							// -250以下（つまりスペース幅程度）の場合はスペースを挿入
+							// 1000単位でフォントサイズの1/1000を表す
+							if int(num) <= -250 {
+								combinedText.WriteString(" ")
+							}
+						} else if num, ok := item.(core.Real); ok {
+							if float64(num) <= -250 {
+								combinedText.WriteString(" ")
+							}
+						}
+					}
+
+					if hasText {
+						elem := TextElement{
+							Text: combinedText.String(),
+							X:    startX,
+							Y:    startY,
+							Font: e.currentFont,
+							Size: e.fontSize,
+						}
+						if e.currentFontInfo != nil && e.currentFontInfo.BaseFont != "" {
+							elem.Font = e.currentFontInfo.BaseFont
+						}
+						elements = append(elements, elem)
 					}
 				}
 			}
