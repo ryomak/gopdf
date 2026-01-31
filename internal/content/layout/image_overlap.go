@@ -1,9 +1,5 @@
 package layout
 
-import (
-	"github.com/ryomak/gopdf/layout"
-)
-
 // YRange represents a Y coordinate range (PDF origin is at bottom).
 type YRange struct {
 	Min float64 // Bottom edge
@@ -11,7 +7,7 @@ type YRange struct {
 }
 
 // GetImageYRanges returns a list of Y coordinate ranges from image blocks.
-func GetImageYRanges(images []layout.ImageBlock) []YRange {
+func GetImageYRanges(images []ImageBlock) []YRange {
 	if len(images) == 0 {
 		return nil
 	}
@@ -27,7 +23,7 @@ func GetImageYRanges(images []layout.ImageBlock) []YRange {
 }
 
 // HasImageBetween checks if there's an image between two lines.
-func HasImageBetween(prevLine, currLine []layout.TextElement, imageRanges []YRange) bool {
+func HasImageBetween(prevLine, currLine []TextElement, imageRanges []YRange) bool {
 	if len(prevLine) == 0 || len(currLine) == 0 || len(imageRanges) == 0 {
 		return false
 	}

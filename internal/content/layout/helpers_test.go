@@ -4,13 +4,12 @@ import (
 	"testing"
 
 	"github.com/ryomak/gopdf/internal/core"
-	"github.com/ryomak/gopdf/layout"
 )
 
 func TestMinY(t *testing.T) {
 	tests := []struct {
 		name     string
-		elements []layout.TextElement
+		elements []TextElement
 		want     float64
 	}{
 		{
@@ -20,14 +19,14 @@ func TestMinY(t *testing.T) {
 		},
 		{
 			name: "single element",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{Y: 100},
 			},
 			want: 100,
 		},
 		{
 			name: "multiple elements",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{Y: 100},
 				{Y: 50},
 				{Y: 150},
@@ -49,7 +48,7 @@ func TestMinY(t *testing.T) {
 func TestMaxY(t *testing.T) {
 	tests := []struct {
 		name     string
-		elements []layout.TextElement
+		elements []TextElement
 		want     float64
 	}{
 		{
@@ -59,14 +58,14 @@ func TestMaxY(t *testing.T) {
 		},
 		{
 			name: "single element",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{Y: 100, Height: 10},
 			},
 			want: 110,
 		},
 		{
 			name: "multiple elements",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{Y: 100, Height: 10},
 				{Y: 50, Height: 20},
 				{Y: 150, Height: 5},
@@ -88,7 +87,7 @@ func TestMaxY(t *testing.T) {
 func TestMinX(t *testing.T) {
 	tests := []struct {
 		name     string
-		elements []layout.TextElement
+		elements []TextElement
 		want     float64
 	}{
 		{
@@ -98,7 +97,7 @@ func TestMinX(t *testing.T) {
 		},
 		{
 			name: "multiple elements",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{X: 100},
 				{X: 50},
 				{X: 150},
@@ -120,7 +119,7 @@ func TestMinX(t *testing.T) {
 func TestAvgFontSize(t *testing.T) {
 	tests := []struct {
 		name     string
-		elements []layout.TextElement
+		elements []TextElement
 		want     float64
 	}{
 		{
@@ -130,14 +129,14 @@ func TestAvgFontSize(t *testing.T) {
 		},
 		{
 			name: "single element",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{Size: 12},
 			},
 			want: 12,
 		},
 		{
 			name: "multiple elements",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{Size: 10},
 				{Size: 12},
 				{Size: 14},

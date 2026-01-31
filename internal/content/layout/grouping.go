@@ -1,21 +1,17 @@
 package layout
 
-import (
-	"github.com/ryomak/gopdf/layout"
-)
-
 // GroupTextElements groups TextElements into TextBlocks.
 // Design doc: docs/text_block_grouping_design.md
-func GroupTextElements(elements []layout.TextElement) []layout.TextBlock {
+func GroupTextElements(elements []TextElement) []TextBlock {
 	return GroupTextElementsWithImages(elements, nil)
 }
 
 // GroupTextElementsWithImages groups TextElements into TextBlocks, considering image positions.
 // Design doc: docs/unified_content_grouping_design.md
 func GroupTextElementsWithImages(
-	elements []layout.TextElement,
-	images []layout.ImageBlock,
-) []layout.TextBlock {
+	elements []TextElement,
+	images []ImageBlock,
+) []TextBlock {
 	if len(elements) == 0 {
 		return nil
 	}
@@ -30,8 +26,8 @@ func GroupTextElementsWithImages(
 	imageRanges := GetImageYRanges(images)
 
 	// 3. Group into blocks (considering images)
-	var blocks []layout.TextBlock
-	currentBlock := [][]layout.TextElement{lines[0]}
+	var blocks []TextBlock
+	currentBlock := [][]TextElement{lines[0]}
 
 	for i := 1; i < len(lines); i++ {
 		prevLine := lines[i-1]
@@ -44,14 +40,14 @@ func GroupTextElementsWithImages(
 		if hasImage {
 			// Image is between lines, split the block
 			blocks = append(blocks, CreateTextBlockFromLines(currentBlock))
-			currentBlock = [][]layout.TextElement{currLine}
+			currentBlock = [][]TextElement{currLine}
 		} else if ShouldMergeLines(prevLine, currLine) {
 			// Normal judgment: same block
 			currentBlock = append(currentBlock, currLine)
 		} else {
 			// Line spacing is large, new block
 			blocks = append(blocks, CreateTextBlockFromLines(currentBlock))
-			currentBlock = [][]layout.TextElement{currLine}
+			currentBlock = [][]TextElement{currLine}
 		}
 	}
 

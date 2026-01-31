@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ryomak/gopdf/layout"
+	"github.com/ryomak/gopdf/internal/content/layout"
 )
 
 // FitOptions はテキストフィッティングのオプション
@@ -42,7 +42,7 @@ type FittedText struct {
 type WidthEstimator func(text string, fontSize float64, fontName string) float64
 
 // DefaultWidthEstimator はデフォルトのテキスト幅推定関数
-func DefaultWidthEstimator(text string, fontSize float64, fontName string) float64 {
+func DefaultWidthEstimator(text string, fontSize float64, _ string) float64 {
 	// 簡易的な幅計算
 	// 英数字の平均幅は fontSizeの約60%
 	avgCharWidth := fontSize * 0.6

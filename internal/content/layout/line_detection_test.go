@@ -2,14 +2,12 @@ package layout
 
 import (
 	"testing"
-
-	"github.com/ryomak/gopdf/layout"
 )
 
 func TestGroupElementsByLine(t *testing.T) {
 	tests := []struct {
 		name         string
-		elements     []layout.TextElement
+		elements     []TextElement
 		wantNumLines int
 	}{
 		{
@@ -19,14 +17,14 @@ func TestGroupElementsByLine(t *testing.T) {
 		},
 		{
 			name: "single element",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{X: 0, Y: 100, Size: 12, Font: "Helvetica"},
 			},
 			wantNumLines: 1,
 		},
 		{
 			name: "same line elements",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{X: 0, Y: 100, Size: 12, Font: "Helvetica"},
 				{X: 50, Y: 100, Size: 12, Font: "Helvetica"},
 				{X: 100, Y: 100, Size: 12, Font: "Helvetica"},
@@ -35,7 +33,7 @@ func TestGroupElementsByLine(t *testing.T) {
 		},
 		{
 			name: "different lines by Y",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{X: 0, Y: 100, Size: 12, Font: "Helvetica"},
 				{X: 0, Y: 80, Size: 12, Font: "Helvetica"},
 			},
@@ -43,7 +41,7 @@ func TestGroupElementsByLine(t *testing.T) {
 		},
 		{
 			name: "different lines by font",
-			elements: []layout.TextElement{
+			elements: []TextElement{
 				{X: 0, Y: 100, Size: 12, Font: "Helvetica"},
 				{X: 50, Y: 100, Size: 12, Font: "Times-Roman"},
 			},
@@ -64,38 +62,38 @@ func TestGroupElementsByLine(t *testing.T) {
 func TestShouldMergeLines(t *testing.T) {
 	tests := []struct {
 		name     string
-		prevLine []layout.TextElement
-		currLine []layout.TextElement
+		prevLine []TextElement
+		currLine []TextElement
 		want     bool
 	}{
 		{
 			name:     "empty prev line",
 			prevLine: nil,
-			currLine: []layout.TextElement{{Y: 100, Size: 12, Font: "Helvetica"}},
+			currLine: []TextElement{{Y: 100, Size: 12, Font: "Helvetica"}},
 			want:     false,
 		},
 		{
 			name:     "empty curr line",
-			prevLine: []layout.TextElement{{Y: 100, Size: 12, Font: "Helvetica"}},
+			prevLine: []TextElement{{Y: 100, Size: 12, Font: "Helvetica"}},
 			currLine: nil,
 			want:     false,
 		},
 		{
-			name: "same font and close spacing",
-			prevLine: []layout.TextElement{{X: 0, Y: 100, Height: 12, Size: 12, Font: "Helvetica"}},
-			currLine: []layout.TextElement{{X: 0, Y: 85, Height: 12, Size: 12, Font: "Helvetica"}},
+			name:     "same font and close spacing",
+			prevLine: []TextElement{{X: 0, Y: 100, Height: 12, Size: 12, Font: "Helvetica"}},
+			currLine: []TextElement{{X: 0, Y: 85, Height: 12, Size: 12, Font: "Helvetica"}},
 			want:     true,
 		},
 		{
-			name: "different font",
-			prevLine: []layout.TextElement{{X: 0, Y: 100, Size: 12, Font: "Helvetica"}},
-			currLine: []layout.TextElement{{X: 0, Y: 85, Size: 12, Font: "Times-Roman"}},
+			name:     "different font",
+			prevLine: []TextElement{{X: 0, Y: 100, Size: 12, Font: "Helvetica"}},
+			currLine: []TextElement{{X: 0, Y: 85, Size: 12, Font: "Times-Roman"}},
 			want:     false,
 		},
 		{
-			name: "large line spacing",
-			prevLine: []layout.TextElement{{X: 0, Y: 100, Height: 12, Size: 12, Font: "Helvetica"}},
-			currLine: []layout.TextElement{{X: 0, Y: 50, Height: 12, Size: 12, Font: "Helvetica"}},
+			name:     "large line spacing",
+			prevLine: []TextElement{{X: 0, Y: 100, Height: 12, Size: 12, Font: "Helvetica"}},
+			currLine: []TextElement{{X: 0, Y: 50, Height: 12, Size: 12, Font: "Helvetica"}},
 			want:     false,
 		},
 	}
@@ -113,8 +111,8 @@ func TestShouldMergeLines(t *testing.T) {
 func TestHaveSameFont(t *testing.T) {
 	tests := []struct {
 		name  string
-		line1 []layout.TextElement
-		line2 []layout.TextElement
+		line1 []TextElement
+		line2 []TextElement
 		want  bool
 	}{
 		{
@@ -125,26 +123,26 @@ func TestHaveSameFont(t *testing.T) {
 		},
 		{
 			name:  "one empty",
-			line1: []layout.TextElement{{Font: "Helvetica", Size: 12}},
+			line1: []TextElement{{Font: "Helvetica", Size: 12}},
 			line2: nil,
 			want:  true,
 		},
 		{
 			name:  "same font and size",
-			line1: []layout.TextElement{{Font: "Helvetica", Size: 12}},
-			line2: []layout.TextElement{{Font: "Helvetica", Size: 12}},
+			line1: []TextElement{{Font: "Helvetica", Size: 12}},
+			line2: []TextElement{{Font: "Helvetica", Size: 12}},
 			want:  true,
 		},
 		{
 			name:  "different font",
-			line1: []layout.TextElement{{Font: "Helvetica", Size: 12}},
-			line2: []layout.TextElement{{Font: "Times-Roman", Size: 12}},
+			line1: []TextElement{{Font: "Helvetica", Size: 12}},
+			line2: []TextElement{{Font: "Times-Roman", Size: 12}},
 			want:  false,
 		},
 		{
 			name:  "different size",
-			line1: []layout.TextElement{{Font: "Helvetica", Size: 12}},
-			line2: []layout.TextElement{{Font: "Helvetica", Size: 14}},
+			line1: []TextElement{{Font: "Helvetica", Size: 12}},
+			line2: []TextElement{{Font: "Helvetica", Size: 14}},
 			want:  false,
 		},
 	}

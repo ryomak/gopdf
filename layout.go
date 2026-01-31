@@ -6,37 +6,45 @@ import (
 	"github.com/ryomak/gopdf/internal/content/text"
 	"github.com/ryomak/gopdf/internal/core"
 	"github.com/ryomak/gopdf/internal/utils"
-	"github.com/ryomak/gopdf/layout"
 )
 
-// 型エイリアス（後方互換性のため、ユーザーは layout パッケージを直接使うことを推奨）
+// 型エイリアス（internal/content/layout パッケージから公開）
 type (
-	ContentBlock            = layout.ContentBlock
-	ContentBlockType        = layout.ContentBlockType
-	PageLayout              = layout.PageLayout
-	TextBlock               = layout.TextBlock
-	ImageBlock              = layout.ImageBlock
-	Rectangle               = layout.Rectangle
-	BlockOverlap            = layout.BlockOverlap
-	LayoutStrategy          = layout.LayoutStrategy
-	LayoutAdjustmentOptions = layout.LayoutAdjustmentOptions
+	ContentBlock            = contentlayout.ContentBlock
+	ContentBlockType        = contentlayout.ContentBlockType
+	PageLayout              = contentlayout.PageLayout
+	TextBlock               = contentlayout.TextBlock
+	ImageBlock              = contentlayout.ImageBlock
+	Rectangle               = contentlayout.Rectangle
+	BlockOverlap            = contentlayout.BlockOverlap
+	LayoutStrategy          = contentlayout.LayoutStrategy
+	LayoutAdjustmentOptions = contentlayout.LayoutAdjustmentOptions
+	TextElement             = contentlayout.TextElement
+	ImageInfo               = contentlayout.ImageInfo
+	ImageFormat             = contentlayout.ImageFormat
+	Matrix                  = contentlayout.Matrix
+	// Color は graphics.go で定義
 )
 
 // 定数エイリアス
 const (
-	ContentBlockTypeText  = layout.ContentBlockTypeText
-	ContentBlockTypeImage = layout.ContentBlockTypeImage
+	ContentBlockTypeText  = contentlayout.ContentBlockTypeText
+	ContentBlockTypeImage = contentlayout.ContentBlockTypeImage
 
-	StrategyPreservePosition = layout.StrategyPreservePosition
-	StrategyCompact          = layout.StrategyCompact
-	StrategyEvenSpacing      = layout.StrategyEvenSpacing
-	StrategyFlowDown         = layout.StrategyFlowDown
-	StrategyFitContent       = layout.StrategyFitContent
+	StrategyPreservePosition = contentlayout.StrategyPreservePosition
+	StrategyCompact          = contentlayout.StrategyCompact
+	StrategyEvenSpacing      = contentlayout.StrategyEvenSpacing
+	StrategyFlowDown         = contentlayout.StrategyFlowDown
+	StrategyFitContent       = contentlayout.StrategyFitContent
+
+	ImageFormatJPEG    = contentlayout.ImageFormatJPEG
+	ImageFormatPNG     = contentlayout.ImageFormatPNG
+	ImageFormatUnknown = contentlayout.ImageFormatUnknown
 )
 
 // DefaultLayoutAdjustmentOptions はデフォルトのレイアウト調整オプションを返す
 func DefaultLayoutAdjustmentOptions() LayoutAdjustmentOptions {
-	return layout.DefaultLayoutAdjustmentOptions()
+	return contentlayout.DefaultLayoutAdjustmentOptions()
 }
 
 // ExtractPageLayout はページの完全なレイアウト情報を抽出
@@ -71,10 +79,10 @@ func (r *PDFReader) ExtractPageLayout(pageNum int) (*PageLayout, error) {
 	}
 
 	// ページレベルのCTMを取得
-	var pageCTM *layout.Matrix
+	var pageCTM *Matrix
 	var pageLevelCTM *content.Matrix
 	if ctm := textExtractor.GetPageLevelCTM(); ctm != nil {
-		pageCTM = &layout.Matrix{
+		pageCTM = &Matrix{
 			A: ctm.A,
 			B: ctm.B,
 			C: ctm.C,
@@ -174,9 +182,9 @@ func (r *PDFReader) getPageSize(page core.Dictionary) (width, height float64) {
 }
 
 // convertTextElements は内部型から公開型に変換
-func convertTextElements(internalElements []content.TextElement) []layout.TextElement {
-	return utils.Map(internalElements, func(elem content.TextElement) layout.TextElement {
-		return layout.TextElement{
+func convertTextElements(internalElements []content.TextElement) []TextElement {
+	return utils.Map(internalElements, func(elem content.TextElement) TextElement {
+		return TextElement{
 			Text:   elem.Text,
 			X:      elem.X,
 			Y:      elem.Y,
@@ -189,10 +197,10 @@ func convertTextElements(internalElements []content.TextElement) []layout.TextEl
 }
 
 // convertImageBlocks は内部型から公開型に変換
-func convertImageBlocks(internalBlocks []content.ImageBlock) []layout.ImageBlock {
-	return utils.Map(internalBlocks, func(block content.ImageBlock) layout.ImageBlock {
-		return layout.ImageBlock{
-			ImageInfo: layout.ImageInfo{
+func convertImageBlocks(internalBlocks []content.ImageBlock) []ImageBlock {
+	return utils.Map(internalBlocks, func(block content.ImageBlock) ImageBlock {
+		return ImageBlock{
+			ImageInfo: ImageInfo{
 				Name:        block.Name,
 				Width:       block.Width,
 				Height:      block.Height,
@@ -200,13 +208,13 @@ func convertImageBlocks(internalBlocks []content.ImageBlock) []layout.ImageBlock
 				BitsPerComp: block.BitsPerComp,
 				Filter:      block.Filter,
 				Data:        block.Data,
-				Format:      layout.ImageFormat(block.Format),
+				Format:      ImageFormat(block.Format),
 			},
 			X:            block.X,
 			Y:            block.Y,
 			PlacedWidth:  block.PlacedWidth,
 			PlacedHeight: block.PlacedHeight,
-			Transform: layout.Matrix{
+			Transform: Matrix{
 				A: block.Transform.A,
 				B: block.Transform.B,
 				C: block.Transform.C,
@@ -230,9 +238,9 @@ func toFloat64(obj core.Object) float64 {
 }
 
 // AdjustLayout はPageLayoutを自動調整する（gopdf固有の実装）
-// layout.PageLayout.AdjustLayout() をオーバーライドして、FitText等の機能を使う
+// PageLayout.AdjustLayout() をオーバーライドして、FitText等の機能を使う
 func AdjustLayout(pl *PageLayout, opts LayoutAdjustmentOptions) error {
-	// StrategyFitContent以外は layout パッケージの実装を使用
+	// StrategyFitContent以外は内部パッケージの実装を使用
 	if opts.Strategy != StrategyFitContent {
 		return pl.AdjustLayout(opts)
 	}
@@ -242,7 +250,7 @@ func AdjustLayout(pl *PageLayout, opts LayoutAdjustmentOptions) error {
 }
 
 // adjustLayoutFitContent はブロックサイズを変えず、コンテンツをブロックに収める
-func adjustLayoutFitContent(pl *PageLayout, opts LayoutAdjustmentOptions) error {
+func adjustLayoutFitContent(pl *PageLayout, _ LayoutAdjustmentOptions) error {
 	// TextBlocksを調整
 	for i := range pl.TextBlocks {
 		block := &pl.TextBlocks[i]
@@ -272,7 +280,7 @@ func adjustLayoutFitContent(pl *PageLayout, opts LayoutAdjustmentOptions) error 
 		// 収まらない場合のみフィット
 		result, err := text.Fit(
 			block.Text,
-			block.Rect,
+			contentlayout.Rectangle(block.Rect),
 			fontName,
 			text.FitOptions{
 				MaxFontSize: block.FontSize, // 現在のフォントサイズを最大とする
@@ -306,12 +314,12 @@ func adjustLayoutFitContent(pl *PageLayout, opts LayoutAdjustmentOptions) error 
 
 // flattenContentBlocks はページ境界を保持したままブロックをフラット化
 // ページを跨いだ統合は行わない
-func flattenContentBlocks(pageBlocks map[int][]layout.ContentBlock) []layout.ContentBlock {
+func flattenContentBlocks(pageBlocks map[int][]ContentBlock) []ContentBlock {
 	return contentlayout.FlattenContentBlocks(pageBlocks)
 }
 
 // mergeContentBlocksAcrossPages はページを跨いでコンテンツブロックを統合
 // 設計書: docs/cross_page_block_merging_design.md
-func mergeContentBlocksAcrossPages(pageBlocks map[int][]layout.ContentBlock) []layout.ContentBlock {
+func mergeContentBlocksAcrossPages(pageBlocks map[int][]ContentBlock) []ContentBlock {
 	return contentlayout.MergeContentBlocksAcrossPages(pageBlocks)
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/ryomak/gopdf/internal/content"
 	contentlayout "github.com/ryomak/gopdf/internal/content/layout"
 	"github.com/ryomak/gopdf/internal/reader"
-	"github.com/ryomak/gopdf/layout"
 )
 
 // PDFReader はPDFを読み込むための構造体
@@ -69,20 +68,6 @@ func (r *PDFReader) Info() Metadata {
 
 	return parseInfoDict(infoDict)
 }
-
-// 型エイリアス（layout パッケージから）
-type (
-	TextElement = layout.TextElement
-	ImageFormat = layout.ImageFormat
-	ImageInfo   = layout.ImageInfo
-)
-
-// 定数エイリアス
-const (
-	ImageFormatJPEG    = layout.ImageFormatJPEG
-	ImageFormatPNG     = layout.ImageFormatPNG
-	ImageFormatUnknown = layout.ImageFormatUnknown
-)
 
 // EncryptionInfo はPDF暗号化の情報
 type EncryptionInfo struct {

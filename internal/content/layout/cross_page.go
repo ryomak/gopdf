@@ -3,13 +3,11 @@ package layout
 import (
 	"math"
 	"sort"
-
-	"github.com/ryomak/gopdf/layout"
 )
 
 // FlattenContentBlocks flattens page blocks while preserving page boundaries.
 // Does not merge blocks across pages.
-func FlattenContentBlocks(pageBlocks map[int][]layout.ContentBlock) []layout.ContentBlock {
+func FlattenContentBlocks(pageBlocks map[int][]ContentBlock) []ContentBlock {
 	if len(pageBlocks) == 0 {
 		return nil
 	}
@@ -22,7 +20,7 @@ func FlattenContentBlocks(pageBlocks map[int][]layout.ContentBlock) []layout.Con
 	sort.Ints(pageNums)
 
 	// Simply concatenate
-	var allBlocks []layout.ContentBlock
+	var allBlocks []ContentBlock
 	for _, pageNum := range pageNums {
 		allBlocks = append(allBlocks, pageBlocks[pageNum]...)
 	}
@@ -32,13 +30,13 @@ func FlattenContentBlocks(pageBlocks map[int][]layout.ContentBlock) []layout.Con
 
 // MergeContentBlocksAcrossPages merges content blocks across pages.
 // Design doc: docs/cross_page_block_merging_design.md
-func MergeContentBlocksAcrossPages(pageBlocks map[int][]layout.ContentBlock) []layout.ContentBlock {
+func MergeContentBlocksAcrossPages(pageBlocks map[int][]ContentBlock) []ContentBlock {
 	if len(pageBlocks) == 0 {
 		return nil
 	}
 
 	// 1. Sort by page number and create merged list
-	var allBlocks []layout.ContentBlock
+	var allBlocks []ContentBlock
 	pageNums := make([]int, 0, len(pageBlocks))
 	for pageNum := range pageBlocks {
 		pageNums = append(pageNums, pageNum)
@@ -54,13 +52,13 @@ func MergeContentBlocksAcrossPages(pageBlocks map[int][]layout.ContentBlock) []l
 	}
 
 	// 2. Merge consecutive text blocks
-	var merged []layout.ContentBlock
-	var currentTextBlock *layout.TextBlock
+	var merged []ContentBlock
+	var currentTextBlock *TextBlock
 
 	for _, block := range allBlocks {
 		switch block.Type() {
-		case layout.ContentBlockTypeText:
-			tb := block.(layout.TextBlock)
+		case ContentBlockTypeText:
+			tb := block.(TextBlock)
 
 			if currentTextBlock == nil {
 				// Start new text block
@@ -77,7 +75,7 @@ func MergeContentBlocksAcrossPages(pageBlocks map[int][]layout.ContentBlock) []l
 				currentTextBlock = &tb
 			}
 
-		case layout.ContentBlockTypeImage:
+		case ContentBlockTypeImage:
 			// Finalize text block when image appears
 			if currentTextBlock != nil {
 				merged = append(merged, *currentTextBlock)
@@ -96,7 +94,7 @@ func MergeContentBlocksAcrossPages(pageBlocks map[int][]layout.ContentBlock) []l
 }
 
 // CanMergeTextBlocks determines if two text blocks can be merged.
-func CanMergeTextBlocks(block1, block2 layout.TextBlock) bool {
+func CanMergeTextBlocks(block1, block2 TextBlock) bool {
 	// Same font name
 	if block1.Font != block2.Font {
 		return false
@@ -117,7 +115,7 @@ func CanMergeTextBlocks(block1, block2 layout.TextBlock) bool {
 }
 
 // UpdateTextBlockBounds expands the bounds of target to include source.
-func UpdateTextBlockBounds(target *layout.TextBlock, source layout.TextBlock) {
+func UpdateTextBlockBounds(target *TextBlock, source TextBlock) {
 	minX := math.Min(target.Rect.X, source.Rect.X)
 	minY := math.Min(target.Rect.Y, source.Rect.Y)
 
@@ -130,7 +128,7 @@ func UpdateTextBlockBounds(target *layout.TextBlock, source layout.TextBlock) {
 		source.Rect.Y+source.Rect.Height,
 	)
 
-	target.Rect = layout.Rectangle{
+	target.Rect = Rectangle{
 		X:      minX,
 		Y:      minY,
 		Width:  maxX - minX,

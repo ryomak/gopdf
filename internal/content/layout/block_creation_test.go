@@ -2,8 +2,6 @@ package layout
 
 import (
 	"testing"
-
-	"github.com/ryomak/gopdf/layout"
 )
 
 func TestDetectFontStyle(t *testing.T) {
@@ -67,7 +65,7 @@ func TestDetectFontStyle(t *testing.T) {
 func TestCombineBlockText(t *testing.T) {
 	tests := []struct {
 		name  string
-		lines [][]layout.TextElement
+		lines [][]TextElement
 		want  string
 	}{
 		{
@@ -77,14 +75,14 @@ func TestCombineBlockText(t *testing.T) {
 		},
 		{
 			name: "single line single element",
-			lines: [][]layout.TextElement{
+			lines: [][]TextElement{
 				{{Text: "Hello", X: 0, Size: 12}},
 			},
 			want: "Hello",
 		},
 		{
 			name: "single line multiple elements close together",
-			lines: [][]layout.TextElement{
+			lines: [][]TextElement{
 				{
 					{Text: "Hello", X: 0, Width: 30, Size: 12},
 					{Text: "World", X: 32, Size: 12}, // Gap < threshold
@@ -94,7 +92,7 @@ func TestCombineBlockText(t *testing.T) {
 		},
 		{
 			name: "single line multiple elements with space",
-			lines: [][]layout.TextElement{
+			lines: [][]TextElement{
 				{
 					{Text: "Hello", X: 0, Width: 30, Size: 12},
 					{Text: "World", X: 40, Size: 12}, // Gap > threshold (0.35 * 12 = 4.2)
@@ -104,7 +102,7 @@ func TestCombineBlockText(t *testing.T) {
 		},
 		{
 			name: "multiple lines",
-			lines: [][]layout.TextElement{
+			lines: [][]TextElement{
 				{{Text: "Line1", X: 0, Size: 12}},
 				{{Text: "Line2", X: 0, Size: 12}},
 			},
@@ -125,7 +123,7 @@ func TestCombineBlockText(t *testing.T) {
 func TestCreateTextBlockFromLines(t *testing.T) {
 	tests := []struct {
 		name         string
-		lines        [][]layout.TextElement
+		lines        [][]TextElement
 		wantText     string
 		wantFont     string
 		wantElements int
@@ -139,7 +137,7 @@ func TestCreateTextBlockFromLines(t *testing.T) {
 		},
 		{
 			name: "single line",
-			lines: [][]layout.TextElement{
+			lines: [][]TextElement{
 				{
 					{Text: "Hello", X: 0, Y: 100, Width: 30, Height: 12, Font: "Helvetica", Size: 12},
 				},
@@ -150,7 +148,7 @@ func TestCreateTextBlockFromLines(t *testing.T) {
 		},
 		{
 			name: "multiple lines",
-			lines: [][]layout.TextElement{
+			lines: [][]TextElement{
 				{
 					{Text: "Line1", X: 0, Y: 100, Width: 30, Height: 12, Font: "Helvetica", Size: 12},
 				},

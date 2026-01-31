@@ -3,19 +3,17 @@ package layout
 import (
 	"math"
 	"sort"
-
-	"github.com/ryomak/gopdf/layout"
 )
 
 // GroupElementsByLine groups text elements into lines based on Y coordinates and font.
 // Elements on the same Y coordinate with the same font are grouped together.
-func GroupElementsByLine(elements []layout.TextElement) [][]layout.TextElement {
+func GroupElementsByLine(elements []TextElement) [][]TextElement {
 	if len(elements) == 0 {
 		return nil
 	}
 
 	// Sort by Y coordinate (descending), then by X coordinate (ascending)
-	sorted := make([]layout.TextElement, len(elements))
+	sorted := make([]TextElement, len(elements))
 	copy(sorted, elements)
 	sort.Slice(sorted, func(i, j int) bool {
 		if math.Abs(sorted[i].Y-sorted[j].Y) < 1.0 {
@@ -24,8 +22,8 @@ func GroupElementsByLine(elements []layout.TextElement) [][]layout.TextElement {
 		return sorted[i].Y > sorted[j].Y
 	})
 
-	var lines [][]layout.TextElement
-	currentLine := []layout.TextElement{sorted[0]}
+	var lines [][]TextElement
+	currentLine := []TextElement{sorted[0]}
 
 	for i := 1; i < len(sorted); i++ {
 		elem := sorted[i]
@@ -48,7 +46,7 @@ func GroupElementsByLine(elements []layout.TextElement) [][]layout.TextElement {
 		} else {
 			// New line (different Y, font, or size)
 			lines = append(lines, currentLine)
-			currentLine = []layout.TextElement{elem}
+			currentLine = []TextElement{elem}
 		}
 	}
 
@@ -59,7 +57,7 @@ func GroupElementsByLine(elements []layout.TextElement) [][]layout.TextElement {
 }
 
 // ShouldMergeLines determines if two lines should be merged into the same block.
-func ShouldMergeLines(prevLine, currLine []layout.TextElement) bool {
+func ShouldMergeLines(prevLine, currLine []TextElement) bool {
 	if len(prevLine) == 0 || len(currLine) == 0 {
 		return false
 	}
@@ -94,7 +92,7 @@ func ShouldMergeLines(prevLine, currLine []layout.TextElement) bool {
 }
 
 // HaveSameFont checks if two lines have the same font and size.
-func HaveSameFont(line1, line2 []layout.TextElement) bool {
+func HaveSameFont(line1, line2 []TextElement) bool {
 	if len(line1) == 0 || len(line2) == 0 {
 		return true
 	}

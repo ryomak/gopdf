@@ -2,14 +2,12 @@ package layout
 
 import (
 	"testing"
-
-	"github.com/ryomak/gopdf/layout"
 )
 
 func TestGetImageYRanges(t *testing.T) {
 	tests := []struct {
 		name   string
-		images []layout.ImageBlock
+		images []ImageBlock
 		want   []YRange
 	}{
 		{
@@ -19,7 +17,7 @@ func TestGetImageYRanges(t *testing.T) {
 		},
 		{
 			name: "single image",
-			images: []layout.ImageBlock{
+			images: []ImageBlock{
 				{Y: 100, PlacedHeight: 50},
 			},
 			want: []YRange{
@@ -28,7 +26,7 @@ func TestGetImageYRanges(t *testing.T) {
 		},
 		{
 			name: "multiple images",
-			images: []layout.ImageBlock{
+			images: []ImageBlock{
 				{Y: 100, PlacedHeight: 50},
 				{Y: 200, PlacedHeight: 30},
 			},
@@ -101,43 +99,43 @@ func TestOverlapsYRange(t *testing.T) {
 func TestHasImageBetween(t *testing.T) {
 	tests := []struct {
 		name        string
-		prevLine    []layout.TextElement
-		currLine    []layout.TextElement
+		prevLine    []TextElement
+		currLine    []TextElement
 		imageRanges []YRange
 		want        bool
 	}{
 		{
 			name:        "empty prev line",
 			prevLine:    nil,
-			currLine:    []layout.TextElement{{Y: 50, Height: 12}},
+			currLine:    []TextElement{{Y: 50, Height: 12}},
 			imageRanges: []YRange{{Min: 60, Max: 80}},
 			want:        false,
 		},
 		{
 			name:        "empty curr line",
-			prevLine:    []layout.TextElement{{Y: 100, Height: 12}},
+			prevLine:    []TextElement{{Y: 100, Height: 12}},
 			currLine:    nil,
 			imageRanges: []YRange{{Min: 60, Max: 80}},
 			want:        false,
 		},
 		{
 			name:        "no images",
-			prevLine:    []layout.TextElement{{Y: 100, Height: 12}},
-			currLine:    []layout.TextElement{{Y: 50, Height: 12}},
+			prevLine:    []TextElement{{Y: 100, Height: 12}},
+			currLine:    []TextElement{{Y: 50, Height: 12}},
 			imageRanges: nil,
 			want:        false,
 		},
 		{
 			name:        "image between lines",
-			prevLine:    []layout.TextElement{{Y: 100, Height: 12}},
-			currLine:    []layout.TextElement{{Y: 50, Height: 12}},
+			prevLine:    []TextElement{{Y: 100, Height: 12}},
+			currLine:    []TextElement{{Y: 50, Height: 12}},
 			imageRanges: []YRange{{Min: 65, Max: 95}}, // Between 62 and 100
 			want:        true,
 		},
 		{
 			name:        "image not between lines",
-			prevLine:    []layout.TextElement{{Y: 100, Height: 12}},
-			currLine:    []layout.TextElement{{Y: 80, Height: 12}},
+			prevLine:    []TextElement{{Y: 100, Height: 12}},
+			currLine:    []TextElement{{Y: 80, Height: 12}},
 			imageRanges: []YRange{{Min: 10, Max: 20}},
 			want:        false,
 		},

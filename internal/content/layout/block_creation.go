@@ -5,17 +5,16 @@ import (
 	"strings"
 
 	"github.com/ryomak/gopdf/internal/utils"
-	"github.com/ryomak/gopdf/layout"
 )
 
 // CreateTextBlockFromLines creates a TextBlock from a list of lines.
-func CreateTextBlockFromLines(lines [][]layout.TextElement) layout.TextBlock {
+func CreateTextBlockFromLines(lines [][]TextElement) TextBlock {
 	if len(lines) == 0 {
-		return layout.TextBlock{}
+		return TextBlock{}
 	}
 
 	// Collect all elements
-	var allElements []layout.TextElement
+	var allElements []TextElement
 	for _, line := range lines {
 		allElements = append(allElements, line...)
 	}
@@ -41,10 +40,10 @@ func CreateTextBlockFromLines(lines [][]layout.TextElement) layout.TextBlock {
 	// Detect font style
 	isBold, isItalic := DetectFontStyle(allElements[0].Font)
 
-	return layout.TextBlock{
+	return TextBlock{
 		Text:     text,
 		Elements: allElements,
-		Rect: layout.Rectangle{
+		Rect: Rectangle{
 			X:      minX,
 			Y:      minY,
 			Width:  maxX - minX,
@@ -52,14 +51,14 @@ func CreateTextBlockFromLines(lines [][]layout.TextElement) layout.TextBlock {
 		},
 		Font:     allElements[0].Font,
 		FontSize: avgSize,
-		Color:    layout.Color{R: 0, G: 0, B: 0},
+		Color:    Color{R: 0, G: 0, B: 0},
 		IsBold:   isBold,
 		IsItalic: isItalic,
 	}
 }
 
 // CreateTextBlock creates a TextBlock from text elements.
-func CreateTextBlock(elements []layout.TextElement) layout.TextBlock {
+func CreateTextBlock(elements []TextElement) TextBlock {
 	// Calculate bounding box
 	minX, minY := elements[0].X, elements[0].Y
 	maxX, maxY := elements[0].X+elements[0].Width, elements[0].Y+elements[0].Height
@@ -97,10 +96,10 @@ func CreateTextBlock(elements []layout.TextElement) layout.TextBlock {
 	// Detect font style
 	isBold, isItalic := DetectFontStyle(elements[0].Font)
 
-	return layout.TextBlock{
+	return TextBlock{
 		Text:     text.String(),
 		Elements: elements,
-		Rect: layout.Rectangle{
+		Rect: Rectangle{
 			X:      minX,
 			Y:      minY,
 			Width:  maxX - minX,
@@ -108,14 +107,14 @@ func CreateTextBlock(elements []layout.TextElement) layout.TextBlock {
 		},
 		Font:     elements[0].Font,
 		FontSize: avgSize,
-		Color:    layout.Color{R: 0, G: 0, B: 0}, // Default black
+		Color:    Color{R: 0, G: 0, B: 0}, // Default black
 		IsBold:   isBold,
 		IsItalic: isItalic,
 	}
 }
 
 // CombineBlockText combines text in a block (preserving line breaks).
-func CombineBlockText(lines [][]layout.TextElement) string {
+func CombineBlockText(lines [][]TextElement) string {
 	var result strings.Builder
 
 	for i, line := range lines {

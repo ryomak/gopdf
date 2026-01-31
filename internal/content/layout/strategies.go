@@ -198,7 +198,7 @@ func (pl *PageLayout) adjustLayoutEvenSpacing(opts LayoutAdjustmentOptions) erro
 // adjustLayoutFitContent はブロックサイズを変えず、コンテンツをブロックに収める
 // 注: この機能はgopdf.FitText関数に依存するため、layout/パッケージでは簡易実装のみ提供
 // 完全な実装はgopdfパッケージ側で提供される
-func (pl *PageLayout) adjustLayoutFitContent(opts LayoutAdjustmentOptions) error {
+func (pl *PageLayout) adjustLayoutFitContent(_ LayoutAdjustmentOptions) error {
 	// 基本的な実装はgopdfパッケージ側で提供
 	// ここでは何もしない（または簡易的なフォントサイズ調整のみ）
 	return nil

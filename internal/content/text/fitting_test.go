@@ -3,7 +3,7 @@ package text
 import (
 	"testing"
 
-	"github.com/ryomak/gopdf/layout"
+	"github.com/ryomak/gopdf/internal/content/layout"
 )
 
 func TestWrap(t *testing.T) {

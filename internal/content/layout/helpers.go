@@ -3,11 +3,10 @@ package layout
 
 import (
 	"github.com/ryomak/gopdf/internal/core"
-	"github.com/ryomak/gopdf/layout"
 )
 
 // MinY returns the minimum Y coordinate from a slice of text elements.
-func MinY(elements []layout.TextElement) float64 {
+func MinY(elements []TextElement) float64 {
 	if len(elements) == 0 {
 		return 0
 	}
@@ -21,7 +20,7 @@ func MinY(elements []layout.TextElement) float64 {
 }
 
 // MaxY returns the maximum Y coordinate (including height) from a slice of text elements.
-func MaxY(elements []layout.TextElement) float64 {
+func MaxY(elements []TextElement) float64 {
 	if len(elements) == 0 {
 		return 0
 	}
@@ -35,7 +34,7 @@ func MaxY(elements []layout.TextElement) float64 {
 }
 
 // MinX returns the minimum X coordinate from a slice of text elements.
-func MinX(elements []layout.TextElement) float64 {
+func MinX(elements []TextElement) float64 {
 	if len(elements) == 0 {
 		return 0
 	}
@@ -49,7 +48,7 @@ func MinX(elements []layout.TextElement) float64 {
 }
 
 // AvgFontSize returns the average font size from a slice of text elements.
-func AvgFontSize(elements []layout.TextElement) float64 {
+func AvgFontSize(elements []TextElement) float64 {
 	if len(elements) == 0 {
 		return 0
 	}
