@@ -1,0 +1,35 @@
+version: 1
+
+before:
+  hooks:
+    - go mod tidy
+
+# Skip builds for library projects
+builds:
+  - skip: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+  groups:
+    - title: 'Features'
+      regexp: '^feat:'
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: '^fix:'
+      order: 1
+    - title: 'Others'
+      order: 999
+
+release:
+  github:
+    owner: ryomak
+    name: gopdf
+  draft: false
+  prerelease: auto
+  name_template: "{{.ProjectName}}-v{{.Version}}"

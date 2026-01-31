@@ -1,0 +1,204 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.21', '1.22']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Download embedded font
+        run: |
+          cd internal/font/embedded
+          chmod +x download_font.sh
+          ./download_font.sh
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        if: matrix.go-version == '1.22'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Download embedded font
+        run: |
+          cd internal/font/embedded
+          chmod +x download_font.sh
+          ./download_font.sh
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+
+  auto-tag:
+    name: Create version tag
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 全履歴を取得（タグ情報が必要）
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          # 最新のタグを取得（存在しない場合はv0.0.0とする）
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest tag: $LATEST_TAG"
+
+      - name: Determine version bump
+        id: determine_bump
+        run: |
+          LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+
+          # 最新タグ以降のコミットメッセージを取得
+          if [ "$LATEST_TAG" = "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"%s")
+          else
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%s")
+          fi
+
+          echo "Commits since $LATEST_TAG:"
+          echo "$COMMITS"
+
+          # バージョンタイプを判定
+          BUMP_TYPE="none"
+
+          # BREAKING CHANGEまたは!付きコミットをチェック（MAJOR）
+          if echo "$COMMITS" | grep -qE "^[a-z]+(\([a-z]+\))?!:|BREAKING CHANGE:"; then
+            BUMP_TYPE="major"
+          # featコミットをチェック（MINOR）
+          elif echo "$COMMITS" | grep -qE "^feat(\([a-z]+\))?:"; then
+            BUMP_TYPE="minor"
+          # fix, perfコミットをチェック（PATCH）
+          elif echo "$COMMITS" | grep -qE "^(fix|perf)(\([a-z]+\))?:"; then
+            BUMP_TYPE="patch"
+          fi
+
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "Bump type: $BUMP_TYPE"
+
+      - name: Calculate new version
+        id: calculate_version
+        if: steps.determine_bump.outputs.bump_type != 'none'
+        run: |
+          LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+          BUMP_TYPE="${{ steps.determine_bump.outputs.bump_type }}"
+
+          # v接頭辞を除去
+          VERSION=${LATEST_TAG#v}
+
+          # バージョンを分解
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          # バージョンをインクリメント
+          case $BUMP_TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Create and push tag
+        if: steps.determine_bump.outputs.bump_type != 'none'
+        run: |
+          NEW_VERSION="${{ steps.calculate_version.outputs.new_version }}"
+
+          # タグを作成
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
+
+          # タグをpush
+          git push origin "$NEW_VERSION"
+
+          echo "Created and pushed tag: $NEW_VERSION"
+
+      - name: Set up Go for release
+        if: steps.determine_bump.outputs.bump_type != 'none'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run GoReleaser
+        if: steps.determine_bump.outputs.bump_type != 'none'
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: No version bump needed
+        if: steps.determine_bump.outputs.bump_type == 'none'
+        run: |
+          echo "No version bump needed. Commits do not contain feat, fix, perf, or breaking changes."
