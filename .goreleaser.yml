@@ -4,9 +4,27 @@ before:
   hooks:
     - go mod tidy
 
-# Skip builds for library projects
+# Build CLI binary
 builds:
-  - skip: true
+  - main: ./cmd/gopdf
+    binary: gopdf
+    ldflags:
+      - -s -w
+      - -X github.com/ryomak/gopdf/cmd/gopdf/cmd.Version={{.Version}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
 
 changelog:
   sort: asc

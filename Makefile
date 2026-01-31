@@ -1,4 +1,4 @@
-.PHONY: help test lint ci deps clean
+.PHONY: help test lint ci deps build clean
 
 # デフォルトターゲット
 .DEFAULT_GOAL := help
@@ -19,6 +19,10 @@ lint: ## Lintを実行
 ci: deps test lint ## CI相当の処理を実行（deps → test → lint）
 	@echo "✓ All CI checks passed!"
 
+build: ## CLIをビルド（Gitタグからバージョンを取得）
+	@VERSION=$$(git describe --tags --always --dirty 2>/dev/null || echo "dev"); \
+	go build -ldflags "-s -w -X github.com/ryomak/gopdf/cmd/gopdf/cmd.Version=$$VERSION" -o gopdf ./cmd/gopdf
+
 clean: ## ビルド成果物とキャッシュをクリーン
 	go clean
-	rm -f coverage.out
+	rm -f coverage.out gopdf
