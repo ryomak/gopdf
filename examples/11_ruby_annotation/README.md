@@ -12,41 +12,35 @@
 
 ## 実行方法
 
-### 前提条件: 日本語フォントのダウンロード
+### 基本（システムフォントを自動検出）
 
-日本語を表示するには、日本語対応のTTFフォントが必要です。
-
-#### Noto Sans JPフォントをダウンロード
-
-**重要要件**:
-- ✅ **TTF（TrueType Font）形式**のファイルが必要
-- ✅ **静的フォント（Static Font）**を使用（可変フォントは不可）
-
-**ダウンロード方法**:
-
-1. https://fonts.google.com/noto/specimen/Noto+Sans+JP にアクセス
-2. 右上の **"Get font"** → **"Download all"** をクリック
-3. ダウンロードしたZIPファイルを解凍
-4. **`static/NotoSansJP-Regular.ttf`** を探す
-   - ⚠️ **必ず `static/` フォルダ内のファイル**を使用してください
-5. `examples/11_ruby_annotation/` ディレクトリに `NotoSansJP-Regular.ttf` としてコピー
-
-**ファイルサイズの確認**:
-- ✅ 正しいファイル: 約 1.5MB ~ 4MB
-- ❌ 間違ったファイル: 9MB以上（可変フォント）
-
-確認コマンド:
-```bash
-ls -lh NotoSansJP-Regular.ttf
-file NotoSansJP-Regular.ttf  # "TrueType Font data" と表示されるべき
-```
-
-### サンプルを実行
+macOS/Linux/Windowsのシステムにインストールされた日本語フォントを自動で検出します。
 
 ```bash
 cd examples/11_ruby_annotation
 go run main.go
 ```
+
+対応するシステムフォント:
+- **macOS**: ヒラギノ角ゴシック
+- **Linux**: Noto Sans CJK, Takao Gothic, IPA Gothic
+- **Windows**: Yu Gothic, Meiryo, MS Gothic
+
+### 任意のフォントを指定する場合
+
+`-font` フラグでTTFフォントのパスを指定できます:
+
+```bash
+go run main.go -font /path/to/your/font.ttf
+```
+
+### システムフォントがない場合
+
+カレントディレクトリに `NotoSansJP-Regular.ttf` を配置すると、それを使用します:
+
+1. https://fonts.google.com/noto/specimen/Noto+Sans+JP からダウンロード
+2. `static/NotoSansJP-Regular.ttf` をこのディレクトリにコピー
+3. `go run main.go` を実行
 
 ## 出力ファイル
 

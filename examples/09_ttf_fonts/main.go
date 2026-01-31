@@ -4,6 +4,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"runtime"
@@ -12,6 +13,11 @@ import (
 )
 
 func main() {
+	// Parse command line arguments
+	fontPath := flag.String("font", "", "Path to TTF font file for English text")
+	jpFontPath := flag.String("jp-font", "", "Path to Japanese TTF font file")
+	flag.Parse()
+
 	fmt.Println("TTF Font and Japanese Text Example")
 	fmt.Println("===================================")
 	fmt.Println()
@@ -27,14 +33,21 @@ func main() {
 	page.DrawText("TTF Font Support Example", 50, 800)
 
 	// Load a TTF font
-	ttfFont, err := loadSystemFont()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading TTF font: %v\n", err)
-		fmt.Println("Note: This example requires a TrueType font to be available on your system.")
-		fmt.Println("      On macOS: /System/Library/Fonts/Helvetica.ttc")
-		fmt.Println("      On Linux: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-		fmt.Println("      On Windows: C:\\Windows\\Fonts\\arial.ttf")
-		os.Exit(1)
+	var ttfFont *gopdf.TTFFont
+	var err error
+	if *fontPath != "" {
+		ttfFont, err = gopdf.LoadTTF(*fontPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading font from %s: %v\n", *fontPath, err)
+			os.Exit(1)
+		}
+	} else {
+		ttfFont, err = loadSystemFont()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading TTF font: %v\n", err)
+			fmt.Println("Use -font flag to specify a font: go run main.go -font /path/to/font.ttf")
+			os.Exit(1)
+		}
 	}
 
 	fmt.Printf("Loaded TTF font: %s\n", ttfFont.Name())
@@ -51,8 +64,17 @@ func main() {
 	// Draw text with special characters
 	page.DrawText("Unicode: € £ ¥ © ® ™", 50, 720)
 
-	// Try to draw Japanese text if a suitable font is available
-	japaneseFont, err := loadJapaneseFont()
+	// Try to draw Japanese text
+	var japaneseFont *gopdf.TTFFont
+	if *jpFontPath != "" {
+		japaneseFont, err = gopdf.LoadTTF(*jpFontPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading Japanese font from %s: %v\n", *jpFontPath, err)
+		}
+	} else {
+		japaneseFont, err = gopdf.LoadSystemJapaneseFont()
+	}
+
 	if err == nil {
 		fmt.Printf("Loaded Japanese font: %s\n", japaneseFont.Name())
 
@@ -64,7 +86,7 @@ func main() {
 			page.DrawText("日本語のテキストです。", 50, 650)
 		}
 	} else {
-		fmt.Println("Japanese font not found (this is optional)")
+		fmt.Println("Japanese font not found (use -jp-font flag to specify)")
 		// Draw a note with the standard English font
 		page.SetFont(gopdf.FontHelvetica, 14)
 		page.DrawText("(Japanese font not available on this system)", 50, 680)
@@ -142,44 +164,4 @@ func loadSystemFont() (*gopdf.TTFFont, error) {
 	}
 
 	return nil, fmt.Errorf("no suitable system font found")
-}
-
-// loadJapaneseFont loads a font that supports Japanese characters
-func loadJapaneseFont() (*gopdf.TTFFont, error) {
-	var fontPaths []string
-
-	switch runtime.GOOS {
-	case "darwin":
-		// macOS Japanese fonts
-		fontPaths = []string{
-			"/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
-			"/System/Library/Fonts/Hiragino Sans GB.ttc",
-			"/Library/Fonts/Arial Unicode.ttf",
-		}
-	case "linux":
-		// Linux Japanese fonts
-		fontPaths = []string{
-			"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-			"/usr/share/fonts/truetype/takao-gothic/TakaoPGothic.ttf",
-			"/usr/share/fonts/opentype/ipafont-gothic/ipagp.ttf",
-		}
-	case "windows":
-		// Windows Japanese fonts
-		fontPaths = []string{
-			"C:\\Windows\\Fonts\\msgothic.ttc",
-			"C:\\Windows\\Fonts\\meiryo.ttc",
-		}
-	}
-
-	// Try each font path
-	for _, path := range fontPaths {
-		if _, err := os.Stat(path); err == nil {
-			font, err := gopdf.LoadTTF(path)
-			if err == nil {
-				return font, nil
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("no suitable Japanese font found")
 }

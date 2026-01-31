@@ -3,6 +3,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -10,29 +11,41 @@ import (
 )
 
 func main() {
-	// Check for Japanese font
-	ttfFontPath := "NotoSansJP-Regular.ttf"
-	useJapanese := false
+	// Parse command line arguments
+	fontPath := flag.String("font", "", "Path to TTF font file (optional, uses system font if not specified)")
+	flag.Parse()
 
+	// Load Japanese font
 	var jpFont *gopdf.TTFFont
-	if _, err := os.Stat(ttfFontPath); err == nil {
-		// Load TTF font
-		var err error
-		jpFont, err = gopdf.LoadTTF(ttfFontPath)
-		if err == nil {
-			useJapanese = true
-			fmt.Println("Using Japanese TTF font for ruby examples")
-		} else {
-			fmt.Printf("Warning: Failed to load TTF font: %v\n", err)
-		}
-	}
+	var err error
 
-	if !useJapanese {
-		fmt.Println("Warning: TTF font not found. Skipping Japanese examples")
-		fmt.Println("To display Japanese ruby, download NotoSansJP-Regular.ttf from:")
-		fmt.Println("https://fonts.google.com/noto/specimen/Noto+Sans+JP")
-		fmt.Println("(Use the static font from the static/ folder)")
-		return
+	if *fontPath != "" {
+		// Use specified font path
+		jpFont, err = gopdf.LoadTTF(*fontPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to load font from %s: %v\n", *fontPath, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Using font: %s\n", *fontPath)
+	} else {
+		// Try system font first
+		jpFont, err = gopdf.LoadSystemJapaneseFont()
+		if err != nil {
+			// Fall back to local file
+			if localFont, localErr := gopdf.LoadTTF("NotoSansJP-Regular.ttf"); localErr == nil {
+				jpFont = localFont
+				fmt.Println("Using local NotoSansJP-Regular.ttf")
+			} else {
+				fmt.Fprintf(os.Stderr, "Error: No Japanese font found\n")
+				fmt.Fprintf(os.Stderr, "Options:\n")
+				fmt.Fprintf(os.Stderr, "  1. Use -font flag: go run main.go -font /path/to/font.ttf\n")
+				fmt.Fprintf(os.Stderr, "  2. Place NotoSansJP-Regular.ttf in current directory\n")
+				fmt.Fprintf(os.Stderr, "  3. Install a Japanese font on your system\n")
+				os.Exit(1)
+			}
+		} else {
+			fmt.Printf("Using system font: %s\n", jpFont.Name())
+		}
 	}
 
 	// Example 1: Basic ruby annotation
