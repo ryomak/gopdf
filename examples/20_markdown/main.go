@@ -1,3 +1,5 @@
+// Example: 20_markdown
+// This example demonstrates converting Markdown to PDF with custom styling.
 package main
 
 import (

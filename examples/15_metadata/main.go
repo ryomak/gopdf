@@ -1,3 +1,5 @@
+// Example: 15_metadata
+// This example demonstrates how to set and read PDF metadata (title, author, etc).
 package main
 
 import (

@@ -1,3 +1,5 @@
+// Example: 18_presentation_sizes
+// This example demonstrates creating PDF presentations in 16:9 and 4:3 formats.
 package main
 
 import (

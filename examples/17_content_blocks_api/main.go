@@ -1,3 +1,5 @@
+// Example: 17_content_blocks_api
+// This example demonstrates how to use ContentBlock interface and PageLayout API.
 package main
 
 import (

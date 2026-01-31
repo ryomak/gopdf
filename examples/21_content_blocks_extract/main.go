@@ -1,5 +1,5 @@
-// Example: 18_content_blocks
-// This example demonstrates extracting unified content blocks (text + images)
+// Example: 21_content_blocks_extract
+// This example demonstrates extracting unified content blocks (text + images) from PDF.
 package main
 
 import (

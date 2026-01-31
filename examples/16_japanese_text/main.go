@@ -1,5 +1,5 @@
-// Example: 15_japanese_text_blocks
-// This example tests Japanese and English text extraction with TextBlocks.
+// Example: 16_japanese_text
+// This example demonstrates Japanese text rendering and extraction with TTF fonts.
 package main
 
 import (
