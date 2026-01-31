@@ -166,17 +166,14 @@ func demonstrateTranslation(inputPath string, outputPath string) error {
 	useJapanese := false
 
 	var targetFont gopdf.Font
-	var targetFontName string
 
 	if err == nil {
 		targetFont = jpFont
-		targetFontName = jpFont.Name()
 		useJapanese = true
-		fmt.Printf("  Using system Japanese font: %s\n", targetFontName)
+		fmt.Printf("  Using system Japanese font: %s\n", jpFont.Name())
 	} else {
 		// フォント読み込みに失敗した場合は標準フォントを使用（英語のみ）
 		targetFont = gopdf.FontHelvetica
-		targetFontName = "Helvetica"
 		fmt.Printf("  Warning: No Japanese font found: %v\n", err)
 		fmt.Println("  Using Helvetica (English only)")
 	}
@@ -245,11 +242,10 @@ func demonstrateTranslation(inputPath string, outputPath string) error {
 		return text, nil
 	})
 
-	// 翻訳オプション
+	// 翻訳オプション（TargetFontNameは省略可、自動取得される）
 	opts := gopdf.PDFTranslatorOptions{
-		Translator:     translator,
-		TargetFont:     targetFont,
-		TargetFontName: targetFontName,
+		Translator: translator,
+		TargetFont: targetFont,
 		FittingOptions: gopdf.FitOptions{
 			MaxFontSize: 24.0,
 			MinFontSize: 8.0,

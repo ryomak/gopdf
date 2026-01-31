@@ -26,12 +26,23 @@ const (
 type PDFTranslatorOptions struct {
 	Translator      Translator    // 翻訳インターフェース（translate.Translator）
 	TargetFont      Font          // ターゲット言語のフォント (StandardFont or *TTFFont)
-	TargetFontName  string        // フォント名（estimateTextWidth用）
+	TargetFontName  string        // フォント名（省略可、TargetFontから自動取得）
 	FittingOptions  FitOptions    // テキストフィッティングオプション（FitOptions）
 	KeepImages      bool          // 画像を保持（デフォルト: true）
 	KeepLayout      bool          // レイアウトを保持（デフォルト: true）
 	TranslateByLine bool          // 行単位で翻訳（デフォルト: false）- 非推奨、TranslateUnitを使用
 	TranslateUnit   TranslateUnit // 翻訳単位（デフォルト: TranslateUnitBlock）
+}
+
+// getTargetFontName はフォント名を取得（自動取得対応）
+func (opts PDFTranslatorOptions) getTargetFontName() string {
+	if opts.TargetFontName != "" {
+		return opts.TargetFontName
+	}
+	if opts.TargetFont != nil {
+		return opts.TargetFont.Name()
+	}
+	return ""
 }
 
 // getTranslateUnit は翻訳単位を取得（後方互換性のためTranslateByLineも考慮）
@@ -48,11 +59,12 @@ func (opts PDFTranslatorOptions) getTranslateUnit() TranslateUnit {
 }
 
 // DefaultPDFTranslatorOptions はデフォルトのオプション
-func DefaultPDFTranslatorOptions(targetFont Font, fontName string) PDFTranslatorOptions {
+// fontNameは省略可（空文字の場合、targetFontから自動取得）
+func DefaultPDFTranslatorOptions(targetFont Font) PDFTranslatorOptions {
 	return PDFTranslatorOptions{
 		Translator:     nil, // ユーザーが設定する必要がある
 		TargetFont:     targetFont,
-		TargetFontName: fontName,
+		TargetFontName: "", // targetFontから自動取得
 		FittingOptions: DefaultFitOptions(),
 		KeepImages:     true,
 		KeepLayout:     true,
@@ -222,7 +234,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 						return nil, fmt.Errorf("target font is required for non-ASCII text")
 					}
 					targetFont = opts.TargetFont
-					fontName = opts.TargetFontName
+					fontName = opts.getTargetFontName()
 				}
 
 				// テキストをフィッティング

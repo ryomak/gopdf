@@ -4,7 +4,7 @@ Pure GoでPDF生成・解析・翻訳を行う高機能ライブラリ
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/ryomak/gopdf.svg)](https://pkg.go.dev/github.com/ryomak/gopdf)
 [![Test](https://github.com/ryomak/gopdf/actions/workflows/test.yml/badge.svg)](https://github.com/ryomak/gopdf/actions/workflows/test.yml)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/ryomak/gopdf)](https://github.com/ryomak/gopdf)
+[![Go Version](https://img.shields.io/github/go-mod-go-version/ryomak/gopdf)](https://github.com/ryomak/gopdf)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## 概要
@@ -17,7 +17,7 @@ Pure GoでPDF生成・解析・翻訳を行う高機能ライブラリ
 - **シンプルなAPI**: 直感的で使いやすいAPI設計
 - **型安全**: Goの型システムを活用した安全な設計
 - **PDF翻訳**: レイアウトを保持したままテキストを翻訳
-- **日本語フォント内蔵**: Koruriフォントが埋め込み済み
+- **日本語対応**: システムフォントまたは任意のTTFフォントを使用可能
 
 ## 主な機能
 
@@ -26,6 +26,7 @@ Pure GoでPDF生成・解析・翻訳を行う高機能ライブラリ
 - 日本語・中国語・韓国語などの多言語テキスト
 - 図形描画（線、矩形、円）
 - JPEG/PNG画像埋め込み（透明度対応）
+- Markdown → PDF変換
 
 ### PDF解析
 - テキスト抽出（位置・フォント情報付き）
@@ -73,10 +74,16 @@ func main() {
 ### 日本語テキスト
 
 ```go
-// 内蔵の日本語フォント（Koruri）を使用
-jpFont, _ := gopdf.DefaultJapaneseFont()
+// 方法1: システムフォントを使用（macOS: Hiragino, Linux: Noto, Windows: Yu Gothic）
+jpFont, err := gopdf.LoadSystemJapaneseFont()
+if err != nil {
+    log.Fatal("Japanese font not found on system")
+}
 page.SetTTFFont(jpFont, 24)
 page.DrawText("こんにちは、世界！", 100, 750)
+
+// 方法2: 任意のTTFフォントを指定
+jpFont, err := gopdf.LoadTTF("/path/to/NotoSansJP-Regular.ttf")
 ```
 
 ### PDF翻訳
@@ -88,7 +95,7 @@ dict := map[string]string{
     "World": "世界",
 }
 
-jpFont, _ := gopdf.DefaultJapaneseFont()
+jpFont, _ := gopdf.LoadSystemJapaneseFont()
 
 opts := gopdf.PDFTranslatorOptions{
     Translator: gopdf.TranslateFunc(func(text string) (string, error) {
@@ -97,8 +104,7 @@ opts := gopdf.PDFTranslatorOptions{
         }
         return text, nil
     }),
-    TargetFont:    jpFont,
-    TargetFontName: "Koruri",
+    TargetFont:    jpFont,  // TargetFontNameは自動取得
     TranslateUnit: gopdf.TranslateUnitSentence, // 文単位で翻訳
     KeepLayout:    true,
     KeepImages:    true,
@@ -107,26 +113,39 @@ opts := gopdf.PDFTranslatorOptions{
 gopdf.TranslatePDF("input.pdf", "output.pdf", opts)
 ```
 
-## API
-
-### 主要な型
+### Markdown → PDF
 
 ```go
-// Font インターフェース - StandardFont と *TTFFont が実装
-type Font interface {
-    Name() string
+doc, err := gopdf.NewMarkdownDocumentFromFile("input.md", &gopdf.MarkdownOptions{
+    Mode:        gopdf.MarkdownModeDocument,
+    PageSize:    gopdf.PageSizeA4,
+    Orientation: gopdf.Portrait,
+})
+if err != nil {
+    log.Fatal(err)
 }
 
-// 標準フォント
+file, _ := os.Create("output.pdf")
+defer file.Close()
+doc.WriteTo(file)
+```
+
+## API
+
+### フォント
+
+```go
+// 標準フォント（14種類、埋め込み不要）
 gopdf.FontHelvetica
 gopdf.FontHelveticaBold
 gopdf.FontTimesRoman
 gopdf.FontCourier
-// ... 他14種類
+// ... 他
 
 // TTFフォント
-font, err := gopdf.LoadTTF("path/to/font.ttf")
-jpFont, err := gopdf.DefaultJapaneseFont() // 内蔵Koruri
+font, err := gopdf.LoadTTF("path/to/font.ttf")           // ファイルから
+font, err := gopdf.LoadTTFFromBytes(data)                // バイト列から
+font, err := gopdf.LoadSystemJapaneseFont()              // システムフォント
 ```
 
 ### 翻訳オプション
@@ -135,7 +154,7 @@ jpFont, err := gopdf.DefaultJapaneseFont() // 内蔵Koruri
 type PDFTranslatorOptions struct {
     Translator     Translator    // 翻訳関数
     TargetFont     Font          // 非ASCII用フォント
-    TargetFontName string        // フォント名
+    TargetFontName string        // フォント名（省略可、自動取得）
     TranslateUnit  TranslateUnit // 翻訳単位
     KeepLayout     bool          // レイアウト保持
     KeepImages     bool          // 画像保持
@@ -177,8 +196,18 @@ gopdf.TranslateUnitSentence // 文単位（. 。 ! ? で区切り）
 | `04_images` | JPEG画像埋め込み |
 | `05_png_images` | PNG画像（透明度対応） |
 | `06_read_pdf` | PDF読み込み・テキスト抽出 |
+| `07_structured_text` | テキスト抽出（位置情報付き） |
+| `08_extract_images` | 画像抽出 |
 | `09_ttf_fonts` | TTFフォント・日本語テキスト |
 | `10_pdf_translation` | PDF翻訳 |
+| `11_ruby_annotation` | ルビ（振り仮名） |
+| `12_ocr_text_layer` | OCRテキストレイヤー |
+| `13_encryption` | PDF暗号化 |
+| `14_decrypt_pdf` | PDF復号 |
+| `15_metadata` | メタデータ設定・取得 |
+| `16_presentation_sizes` | プレゼンサイズ（16:9, 4:3） |
+| `17_layout_adjustment` | レイアウト調整 |
+| `18_markdown` | Markdown → PDF変換 |
 
 ## 開発
 
@@ -193,10 +222,3 @@ make ci
 ## ライセンス
 
 MIT License
-
-内蔵フォント（Koruri）: Apache License 2.0
-
-## 関連プロジェクト
-
-- [pdfcpu](https://github.com/pdfcpu/pdfcpu) - Go製PDFプロセッサ
-- [gofpdf](https://github.com/jung-kurt/gofpdf) - PDF生成ライブラリ
