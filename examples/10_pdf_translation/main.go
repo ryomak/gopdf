@@ -161,9 +161,8 @@ func demonstrateLayoutExtraction(filename string) error {
 func demonstrateTranslation(inputPath string, outputPath string) error {
 	fmt.Println("Translating PDF...")
 
-	// デフォルト日本語フォント（Koruri）を使用
-	// gopdf v2では日本語フォントが埋め込まれているため、手動でフォントをダウンロードする必要はありません
-	jpFont, err := gopdf.DefaultJapaneseFont()
+	// システムにインストールされている日本語フォントを検索
+	jpFont, err := gopdf.LoadSystemJapaneseFont()
 	useJapanese := false
 
 	var targetFont gopdf.Font
@@ -171,14 +170,14 @@ func demonstrateTranslation(inputPath string, outputPath string) error {
 
 	if err == nil {
 		targetFont = jpFont
-		targetFontName = "Koruri"
+		targetFontName = jpFont.Name()
 		useJapanese = true
-		fmt.Println("  Using embedded Koruri font for Japanese text")
+		fmt.Printf("  Using system Japanese font: %s\n", targetFontName)
 	} else {
 		// フォント読み込みに失敗した場合は標準フォントを使用（英語のみ）
 		targetFont = gopdf.FontHelvetica
 		targetFontName = "Helvetica"
-		fmt.Printf("  Warning: Failed to load Japanese font: %v\n", err)
+		fmt.Printf("  Warning: No Japanese font found: %v\n", err)
 		fmt.Println("  Using Helvetica (English only)")
 	}
 

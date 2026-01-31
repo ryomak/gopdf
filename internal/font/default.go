@@ -1,44 +1,50 @@
 package font
 
 import (
-	"sync"
-
-	"github.com/ryomak/gopdf/internal/font/embedded"
+	"fmt"
+	"os"
+	"runtime"
 )
 
-var (
-	defaultJPFont     *TTFFont
-	defaultJPFontOnce sync.Once
-	defaultJPFontErr  error
-)
-
-// DefaultJapaneseFont は埋め込まれた日本語フォント（Koruri）を返す
-//
-// 初回呼び出し時にフォントを読み込み、以降はキャッシュされた結果を返します。
-// これにより、複数回呼び出してもパフォーマンスへの影響は最小限です。
-//
-// 使用フォント: Koruri (小瑠璃)
-// ライセンス: Apache License 2.0
-// 構成: M+ FONTS + Open Sans
-//
-// Example:
-//
-//	jpFont, err := font.DefaultJapaneseFont()
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
-//	page.SetTTFFont(jpFont, 16)
-//	page.DrawText("こんにちは、世界！", 50, 800)
-func DefaultJapaneseFont() (*TTFFont, error) {
-	defaultJPFontOnce.Do(func() {
-		defaultJPFont, defaultJPFontErr = LoadTTFFromBytes(embedded.KoruriRegular)
-	})
-	return defaultJPFont, defaultJPFontErr
+// LoadSystemJapaneseFont loads a Japanese font from system fonts.
+func LoadSystemJapaneseFont() (*TTFFont, error) {
+	fontPaths := getSystemJapaneseFontPaths()
+	for _, path := range fontPaths {
+		if _, err := os.Stat(path); err == nil {
+			ttfFont, err := LoadTTF(path)
+			if err == nil {
+				return ttfFont, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("no Japanese font found on system")
 }
 
-// GetDefaultJapaneseFontLicense はKoruriフォントのライセンステキストを返す
-//
-// ドキュメントやアプリケーションにライセンス情報を表示する場合に使用できます。
-func GetDefaultJapaneseFontLicense() string {
-	return embedded.License
+// getSystemJapaneseFontPaths returns OS-specific Japanese font paths
+func getSystemJapaneseFontPaths() []string {
+	switch runtime.GOOS {
+	case "darwin":
+		return []string{
+			"/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+			"/System/Library/Fonts/Hiragino Sans GB.ttc",
+			"/Library/Fonts/Arial Unicode.ttf",
+			os.Getenv("HOME") + "/Library/Fonts/NotoSansJP-Regular.ttf",
+		}
+	case "linux":
+		return []string{
+			"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+			"/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+			"/usr/share/fonts/truetype/takao-gothic/TakaoPGothic.ttf",
+			"/usr/share/fonts/opentype/ipafont-gothic/ipagp.ttf",
+			"/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
+		}
+	case "windows":
+		return []string{
+			"C:\\Windows\\Fonts\\YuGothM.ttc",
+			"C:\\Windows\\Fonts\\meiryo.ttc",
+			"C:\\Windows\\Fonts\\msgothic.ttc",
+		}
+	default:
+		return nil
+	}
 }

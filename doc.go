@@ -53,9 +53,16 @@
 //
 // # Japanese Support
 //
-// For Japanese text, use the built-in Japanese font:
+// For Japanese text, load a system font or specify a font path:
 //
-//	jpFont := gopdf.DefaultJapaneseFont()
+//	// Option 1: Load from system fonts (macOS: Hiragino, Linux: Noto, Windows: Yu Gothic)
+//	jpFont, err := gopdf.LoadSystemJapaneseFont()
+//	if err != nil {
+//	    log.Fatal("No Japanese font found on system")
+//	}
 //	page.SetTTFFont(jpFont, 12)
 //	page.DrawText("日本語テキスト", 100, 700)
+//
+//	// Option 2: Load from specific path
+//	jpFont, err := gopdf.LoadTTF("/path/to/NotoSansJP-Regular.ttf")
 package gopdf
