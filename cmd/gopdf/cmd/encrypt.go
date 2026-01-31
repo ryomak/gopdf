@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/ryomak/gopdf"
 	"github.com/spf13/cobra"
@@ -46,8 +47,12 @@ func init() {
 func runEncrypt(cmd *cobra.Command, args []string) error {
 	inputPath := args[0]
 	outputPath := args[1]
+	log := NewLogger()
+
+	log.Header(iconLock, "Encrypt PDF")
 
 	if encryptKeyLength != 40 && encryptKeyLength != 128 {
+		log.Error("Key length must be 40 or 128")
 		return fmt.Errorf("key length must be 40 or 128")
 	}
 
@@ -55,21 +60,28 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 		encryptOwnerPassword = encryptUserPassword
 	}
 
+	log.Step("Opening %s", filepath.Base(inputPath))
 	reader, err := gopdf.Open(inputPath)
 	if err != nil {
+		log.Error("Failed to open PDF: %v", err)
 		return fmt.Errorf("failed to open input PDF: %w", err)
 	}
 	defer reader.Close()
 
+	log.Info("Found %d pages", reader.PageCount())
+	log.Step("Reconstructing PDF...")
+
 	doc := gopdf.New()
 
 	for i := 0; i < reader.PageCount(); i++ {
+		log.Verbose("Processing page %d/%d", i+1, reader.PageCount())
+
 		layout, err := reader.ExtractPageLayout(i)
 		if err != nil {
+			log.Error("Failed to extract page %d", i+1)
 			return fmt.Errorf("failed to extract layout from page %d: %w", i+1, err)
 		}
 
-		pageSize := gopdf.PageSize{Width: layout.Width, Height: layout.Height}
 		_, err = gopdf.RenderLayout(doc, layout, gopdf.PDFTranslatorOptions{
 			TargetFont: gopdf.FontHelvetica,
 			KeepImages: true,
@@ -82,25 +94,32 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 			},
 		})
 		if err != nil {
-			_ = pageSize
+			log.Error("Failed to render page %d", i+1)
 			return fmt.Errorf("failed to render page %d: %w", i+1, err)
 		}
 	}
 
+	log.Step("Applying encryption...")
+
 	permissions := gopdf.DefaultPermissions()
+	var restrictions []string
+
 	if encryptNoPrint {
 		permissions.Print = false
 		permissions.PrintHighQuality = false
+		restrictions = append(restrictions, "print")
 	}
 	if encryptNoCopy {
 		permissions.Copy = false
 		permissions.ExtractContent = false
+		restrictions = append(restrictions, "copy")
 	}
 	if encryptNoModify {
 		permissions.Modify = false
 		permissions.Annotate = false
 		permissions.FillForms = false
 		permissions.Assemble = false
+		restrictions = append(restrictions, "modify")
 	}
 
 	err = doc.SetEncryption(gopdf.EncryptionOptions{
@@ -110,27 +129,45 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 		KeyLength:     encryptKeyLength,
 	})
 	if err != nil {
+		log.Error("Failed to set encryption: %v", err)
 		return fmt.Errorf("failed to set encryption: %w", err)
 	}
 
+	log.Step("Writing encrypted PDF...")
+
 	output, err := os.Create(outputPath)
 	if err != nil {
+		log.Error("Failed to create output file")
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer output.Close()
 
 	if err := doc.WriteTo(output); err != nil {
+		log.Error("Failed to write PDF")
 		return fmt.Errorf("failed to write encrypted PDF: %w", err)
 	}
 
-	if !quiet {
-		fmt.Printf("Encrypted PDF created: %s\n", outputPath)
-		fmt.Printf("  Key length: %d-bit\n", encryptKeyLength)
-		fmt.Printf("  User password: %s\n", encryptUserPassword)
-		if encryptOwnerPassword != encryptUserPassword {
-			fmt.Printf("  Owner password: %s\n", encryptOwnerPassword)
-		}
+	log.Divider()
+	log.Success("Encrypted PDF created: %s", outputPath)
+	log.Section("🔐 Encryption Details")
+	log.Table("Algorithm", fmt.Sprintf("RC4 %d-bit", encryptKeyLength))
+	log.Table("User Password", maskPassword(encryptUserPassword))
+	if encryptOwnerPassword != encryptUserPassword {
+		log.Table("Owner Password", maskPassword(encryptOwnerPassword))
 	}
+	if len(restrictions) > 0 {
+		log.Table("Restrictions", fmt.Sprintf("%v", restrictions))
+	} else {
+		log.Table("Permissions", "All allowed")
+	}
+	log.Println()
 
 	return nil
+}
+
+func maskPassword(pwd string) string {
+	if len(pwd) <= 2 {
+		return "***"
+	}
+	return pwd[:1] + "***" + pwd[len(pwd)-1:]
 }

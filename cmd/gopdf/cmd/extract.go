@@ -77,23 +77,33 @@ type PageTextJSON struct {
 
 func runExtractText(cmd *cobra.Command, args []string) error {
 	filePath := args[0]
+	log := NewLogger()
+
+	log.Header(iconText, "Extract Text")
+	log.Step("Opening %s", filepath.Base(filePath))
 
 	reader, err := gopdf.Open(filePath)
 	if err != nil {
+		log.Error("Failed to open PDF: %v", err)
 		return fmt.Errorf("failed to open PDF: %w", err)
 	}
 	defer reader.Close()
 
 	if reader.IsEncrypted() && extractPassword != "" {
+		log.Step("Authenticating...")
 		if err := reader.AuthenticateWithPassword(extractPassword); err != nil {
+			log.Error("Authentication failed")
 			return fmt.Errorf("failed to authenticate: %w", err)
 		}
+		log.Success("Authenticated")
 	}
 
 	var output *os.File
 	if extractOutput != "" {
+		log.Step("Creating output file: %s", extractOutput)
 		output, err = os.Create(extractOutput)
 		if err != nil {
+			log.Error("Failed to create output file")
 			return fmt.Errorf("failed to create output file: %w", err)
 		}
 		defer output.Close()
@@ -106,22 +116,39 @@ func runExtractText(cmd *cobra.Command, args []string) error {
 
 	if extractPage > 0 {
 		if extractPage > reader.PageCount() {
+			log.Error("Page %d does not exist (total: %d)", extractPage, reader.PageCount())
 			return fmt.Errorf("page %d does not exist (total pages: %d)", extractPage, reader.PageCount())
 		}
 		startPage = extractPage - 1
 		endPage = extractPage
+		log.Info("Extracting page %d", extractPage)
+	} else {
+		log.Info("Extracting all %d pages", reader.PageCount())
 	}
+
+	log.Step("Processing...")
 
 	switch extractFormat {
 	case "plain":
-		return extractTextPlain(reader, output, startPage, endPage)
+		err = extractTextPlain(reader, output, startPage, endPage)
 	case "blocks":
-		return extractTextBlocks(reader, output, startPage, endPage)
+		err = extractTextBlocks(reader, output, startPage, endPage)
 	case "json":
-		return extractTextJSON(reader, output, startPage, endPage)
+		err = extractTextJSON(reader, output, startPage, endPage)
 	default:
+		log.Error("Unknown format: %s", extractFormat)
 		return fmt.Errorf("unknown format: %s (use plain, blocks, or json)", extractFormat)
 	}
+
+	if err != nil {
+		return err
+	}
+
+	if extractOutput != "" {
+		log.Success("Text extracted to %s", extractOutput)
+	}
+
+	return nil
 }
 
 func extractTextPlain(reader *gopdf.PDFReader, output *os.File, startPage, endPage int) error {
@@ -202,20 +229,30 @@ func extractTextJSON(reader *gopdf.PDFReader, output *os.File, startPage, endPag
 
 func runExtractImages(cmd *cobra.Command, args []string) error {
 	filePath := args[0]
+	log := NewLogger()
+
+	log.Header(iconImage, "Extract Images")
+	log.Step("Opening %s", filepath.Base(filePath))
 
 	reader, err := gopdf.Open(filePath)
 	if err != nil {
+		log.Error("Failed to open PDF: %v", err)
 		return fmt.Errorf("failed to open PDF: %w", err)
 	}
 	defer reader.Close()
 
 	if reader.IsEncrypted() && extractPassword != "" {
+		log.Step("Authenticating...")
 		if err := reader.AuthenticateWithPassword(extractPassword); err != nil {
+			log.Error("Authentication failed")
 			return fmt.Errorf("failed to authenticate: %w", err)
 		}
+		log.Success("Authenticated")
 	}
 
+	log.Step("Creating output directory: %s", extractOutput)
 	if err := os.MkdirAll(extractOutput, 0755); err != nil {
+		log.Error("Failed to create directory")
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -224,11 +261,14 @@ func runExtractImages(cmd *cobra.Command, args []string) error {
 
 	if extractPage > 0 {
 		if extractPage > reader.PageCount() {
+			log.Error("Page %d does not exist", extractPage)
 			return fmt.Errorf("page %d does not exist (total pages: %d)", extractPage, reader.PageCount())
 		}
 		startPage = extractPage - 1
 		endPage = extractPage
 	}
+
+	log.Step("Scanning for images...")
 
 	totalImages := 0
 
@@ -245,21 +285,23 @@ func runExtractImages(cmd *cobra.Command, args []string) error {
 			}
 
 			fileName := fmt.Sprintf("page%d_image%d.%s", i+1, j+1, ext)
-			filePath := filepath.Join(extractOutput, fileName)
+			outputPath := filepath.Join(extractOutput, fileName)
 
-			if err := os.WriteFile(filePath, img.Data, 0644); err != nil {
+			if err := os.WriteFile(outputPath, img.Data, 0644); err != nil {
+				log.Error("Failed to write %s", fileName)
 				return fmt.Errorf("failed to write image %s: %w", fileName, err)
 			}
 
-			if !quiet {
-				fmt.Printf("Extracted: %s (%dx%d)\n", fileName, img.Width, img.Height)
-			}
+			log.Detail(fileName, fmt.Sprintf("%d×%d px", img.Width, img.Height))
 			totalImages++
 		}
 	}
 
-	if !quiet {
-		fmt.Printf("\nTotal images extracted: %d\n", totalImages)
+	log.Divider()
+	if totalImages > 0 {
+		log.Success("Extracted %d images to %s", totalImages, extractOutput)
+	} else {
+		log.Warning("No images found in PDF")
 	}
 
 	return nil

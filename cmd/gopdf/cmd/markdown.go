@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/ryomak/gopdf"
@@ -48,21 +49,30 @@ func init() {
 func runMarkdown(cmd *cobra.Command, args []string) error {
 	inputPath := args[0]
 	outputPath := args[1]
+	log := NewLogger()
+
+	log.Header(iconText, "Markdown to PDF")
+	log.Step("Reading %s", filepath.Base(inputPath))
 
 	var mode gopdf.MarkdownMode
 	switch strings.ToLower(markdownMode) {
 	case "document", "doc":
 		mode = gopdf.MarkdownModeDocument
+		log.Info("Mode: Document")
 	case "slide", "slides", "presentation":
 		mode = gopdf.MarkdownModeSlide
+		log.Info("Mode: Presentation Slides")
 	default:
+		log.Error("Unknown mode: %s", markdownMode)
 		return fmt.Errorf("unknown mode: %s (use document or slide)", markdownMode)
 	}
 
 	pageSize, err := parsePageSize(markdownPageSize)
 	if err != nil {
+		log.Error("Unknown page size: %s", markdownPageSize)
 		return err
 	}
+	log.Info("Page size: %s", markdownPageSize)
 
 	var orientation gopdf.Orientation
 	switch strings.ToLower(markdownOrientation) {
@@ -70,7 +80,9 @@ func runMarkdown(cmd *cobra.Command, args []string) error {
 		orientation = gopdf.Portrait
 	case "landscape", "l":
 		orientation = gopdf.Landscape
+		log.Info("Orientation: Landscape")
 	default:
+		log.Error("Unknown orientation: %s", markdownOrientation)
 		return fmt.Errorf("unknown orientation: %s (use portrait or landscape)", markdownOrientation)
 	}
 
@@ -80,12 +92,16 @@ func runMarkdown(cmd *cobra.Command, args []string) error {
 		Orientation: orientation,
 	}
 
+	log.Step("Converting Markdown to PDF...")
+
 	doc, err := gopdf.NewMarkdownDocumentFromFile(inputPath, opts)
 	if err != nil {
+		log.Error("Conversion failed: %v", err)
 		return fmt.Errorf("failed to convert markdown: %w", err)
 	}
 
 	if markdownUserPwd != "" {
+		log.Step("Applying encryption...")
 		ownerPwd := markdownOwnerPwd
 		if ownerPwd == "" {
 			ownerPwd = markdownUserPwd
@@ -97,29 +113,38 @@ func runMarkdown(cmd *cobra.Command, args []string) error {
 			KeyLength:     128,
 		})
 		if err != nil {
+			log.Error("Failed to set encryption")
 			return fmt.Errorf("failed to set encryption: %w", err)
 		}
+		log.Success("Encryption applied")
 	}
+
+	log.Step("Writing PDF...")
 
 	output, err := os.Create(outputPath)
 	if err != nil {
+		log.Error("Failed to create output file")
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer output.Close()
 
 	if err := doc.WriteTo(output); err != nil {
+		log.Error("Failed to write PDF")
 		return fmt.Errorf("failed to write PDF: %w", err)
 	}
 
-	if !quiet {
-		fmt.Printf("PDF created: %s\n", outputPath)
-		fmt.Printf("  Mode: %s\n", markdownMode)
-		fmt.Printf("  Page size: %s\n", markdownPageSize)
-		fmt.Printf("  Orientation: %s\n", markdownOrientation)
-		if markdownUserPwd != "" {
-			fmt.Println("  Encrypted: yes")
-		}
+	log.Divider()
+	log.Success("PDF created: %s", outputPath)
+	log.Section("📋 Details")
+	log.Table("Input", filepath.Base(inputPath))
+	log.Table("Output", filepath.Base(outputPath))
+	log.Table("Mode", markdownMode)
+	log.Table("Page Size", markdownPageSize)
+	log.Table("Orientation", markdownOrientation)
+	if markdownUserPwd != "" {
+		log.Table("Encrypted", "Yes")
 	}
+	log.Println()
 
 	return nil
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/ryomak/gopdf"
@@ -56,31 +57,38 @@ func init() {
 func runTranslate(cmd *cobra.Command, args []string) error {
 	inputPath := args[0]
 	outputPath := args[1]
+	log := NewLogger()
 
 	if translateDryRun {
-		return runDryRun(inputPath)
+		return runDryRun(inputPath, log)
 	}
 
+	log.Header("🌐", "Translate PDF")
+
 	if translateCommand == "" {
+		log.Error("Translation command is required")
 		return fmt.Errorf("--command is required (e.g., --command \"trans -b :ja\")")
 	}
+
+	log.Step("Loading font...")
 
 	var targetFont gopdf.Font
 	if translateFont != "" {
 		font, err := gopdf.LoadTTF(translateFont)
 		if err != nil {
+			log.Error("Failed to load font: %v", err)
 			return fmt.Errorf("failed to load font: %w", err)
 		}
 		targetFont = font
+		log.Info("Font: %s", filepath.Base(translateFont))
 	} else {
 		font, err := gopdf.LoadSystemJapaneseFont()
 		if err != nil {
 			targetFont = gopdf.FontHelvetica
-			if !quiet {
-				fmt.Println("Warning: No Japanese font specified, using Helvetica")
-			}
+			log.Warning("No Japanese font found, using Helvetica")
 		} else {
 			targetFont = font
+			log.Info("Font: System Japanese font")
 		}
 	}
 
@@ -88,13 +96,19 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 	switch strings.ToLower(translateUnit) {
 	case "block":
 		unit = gopdf.TranslateUnitBlock
+		log.Info("Unit: Block")
 	case "line":
 		unit = gopdf.TranslateUnitLine
+		log.Info("Unit: Line")
 	case "sentence":
 		unit = gopdf.TranslateUnitSentence
+		log.Info("Unit: Sentence")
 	default:
+		log.Error("Unknown translation unit: %s", translateUnit)
 		return fmt.Errorf("unknown translation unit: %s", translateUnit)
 	}
+
+	log.Info("Command: %s", translateCommand)
 
 	translator := gopdf.TranslateFunc(func(text string) (string, error) {
 		return executeTranslateCommand(text, translateCommand)
@@ -117,18 +131,18 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 		TranslateUnit: unit,
 	}
 
-	if !quiet {
-		fmt.Printf("Translating %s...\n", inputPath)
-	}
+	log.Step("Opening %s", filepath.Base(inputPath))
+	log.Step("Translating PDF (this may take a while)...")
 
 	err := gopdf.TranslatePDF(inputPath, outputPath, opts)
 	if err != nil {
+		log.Error("Translation failed: %v", err)
 		return fmt.Errorf("translation failed: %w", err)
 	}
 
-	if !quiet {
-		fmt.Printf("Translated PDF saved: %s\n", outputPath)
-	}
+	log.Divider()
+	log.Success("Translated PDF saved: %s", outputPath)
+	log.Println()
 
 	return nil
 }
@@ -152,31 +166,38 @@ func executeTranslateCommand(text string, command string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-func runDryRun(inputPath string) error {
+func runDryRun(inputPath string, log *Logger) error {
+	log.Header("🔍", "Dry Run - Extract Text")
+	log.Step("Opening %s", filepath.Base(inputPath))
+
 	reader, err := gopdf.Open(inputPath)
 	if err != nil {
+		log.Error("Failed to open PDF: %v", err)
 		return fmt.Errorf("failed to open PDF: %w", err)
 	}
 	defer reader.Close()
 
-	fmt.Printf("=== Extractable Text from %s ===\n\n", inputPath)
+	log.Info("Found %d pages", reader.PageCount())
+	log.Divider()
 
 	for i := 0; i < reader.PageCount(); i++ {
-		fmt.Printf("--- Page %d ---\n", i+1)
+		log.Section(fmt.Sprintf("📄 Page %d", i+1))
 
 		blocks, err := reader.ExtractPageTextBlocks(i)
 		if err != nil {
+			log.Error("Failed to extract text from page %d", i+1)
 			return fmt.Errorf("failed to extract text from page %d: %w", i+1, err)
 		}
 
 		for j, block := range blocks {
-			fmt.Printf("\nBlock %d:\n", j+1)
-			fmt.Printf("  Font: %s (%.1fpt)\n", block.Font, block.FontSize)
-			fmt.Printf("  Text: %s\n", block.Text)
+			log.Print("\n")
+			log.DetailHighlight(fmt.Sprintf("Block %d", j+1), fmt.Sprintf("%s (%.1fpt)", block.Font, block.FontSize))
+			log.Print("  %s\n", block.Text)
 		}
-		fmt.Println()
 	}
+
+	log.Divider()
+	log.Success("Dry run complete - no files were modified")
 
 	return nil
 }
-

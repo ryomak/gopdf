@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/ryomak/gopdf"
 	"github.com/spf13/cobra"
@@ -61,18 +62,32 @@ func init() {
 
 func runInfo(cmd *cobra.Command, args []string) error {
 	filePath := args[0]
+	log := NewLogger()
+
+	log.Header(iconFile, "PDF Information")
+	log.Step("Opening %s", filepath.Base(filePath))
 
 	reader, err := gopdf.Open(filePath)
 	if err != nil {
+		log.Error("Failed to open PDF: %v", err)
 		return fmt.Errorf("failed to open PDF: %w", err)
 	}
 	defer reader.Close()
 
-	if reader.IsEncrypted() && infoPassword != "" {
-		if err := reader.AuthenticateWithPassword(infoPassword); err != nil {
-			return fmt.Errorf("failed to authenticate: %w", err)
+	if reader.IsEncrypted() {
+		if infoPassword != "" {
+			log.Step("Authenticating with password...")
+			if err := reader.AuthenticateWithPassword(infoPassword); err != nil {
+				log.Error("Authentication failed")
+				return fmt.Errorf("failed to authenticate: %w", err)
+			}
+			log.Success("Authentication successful")
+		} else {
+			log.Warning("PDF is encrypted (use --password to authenticate)")
 		}
 	}
+
+	log.Step("Analyzing PDF structure...")
 
 	info := PDFInfo{
 		FileName:  filePath,
@@ -109,11 +124,14 @@ func runInfo(cmd *cobra.Command, args []string) error {
 		info.Metadata.ModDate = meta.ModDate.Format(dateFormat)
 	}
 
+	log.Success("Analysis complete")
+
 	if infoJSON {
+		log.Println()
 		return outputJSON(info)
 	}
 
-	return outputText(info)
+	return outputText(info, log)
 }
 
 func outputJSON(info PDFInfo) error {
@@ -122,45 +140,56 @@ func outputJSON(info PDFInfo) error {
 	return encoder.Encode(info)
 }
 
-func outputText(info PDFInfo) error {
-	fmt.Printf("File: %s\n", info.FileName)
-	fmt.Printf("Pages: %d\n", info.PageCount)
-	fmt.Printf("Encrypted: %v\n", info.Encrypted)
-	fmt.Println()
-
-	fmt.Println("Page Sizes:")
-	for _, page := range info.Pages {
-		fmt.Printf("  Page %d: %.2f x %.2f pt\n", page.Number, page.Width, page.Height)
+func outputText(info PDFInfo, log *Logger) error {
+	log.Section("📊 Summary")
+	log.Table("File", filepath.Base(info.FileName))
+	log.Table("Pages", info.PageCount)
+	if info.Encrypted {
+		log.Table("Encrypted", fmt.Sprintf("%s Yes", iconLock))
+	} else {
+		log.Table("Encrypted", "No")
 	}
 
-	if info.Metadata != nil {
-		fmt.Println()
-		fmt.Println("Metadata:")
+	log.Section("📐 Page Sizes")
+	for _, page := range info.Pages {
+		log.Table(fmt.Sprintf("Page %d", page.Number),
+			fmt.Sprintf("%.0f × %.0f pt", page.Width, page.Height))
+	}
+
+	if info.Metadata != nil && hasMetadata(info.Metadata) {
+		log.Section("📝 Metadata")
 		if info.Metadata.Title != "" {
-			fmt.Printf("  Title: %s\n", info.Metadata.Title)
+			log.Table("Title", info.Metadata.Title)
 		}
 		if info.Metadata.Author != "" {
-			fmt.Printf("  Author: %s\n", info.Metadata.Author)
+			log.Table("Author", info.Metadata.Author)
 		}
 		if info.Metadata.Subject != "" {
-			fmt.Printf("  Subject: %s\n", info.Metadata.Subject)
+			log.Table("Subject", info.Metadata.Subject)
 		}
 		if info.Metadata.Keywords != "" {
-			fmt.Printf("  Keywords: %s\n", info.Metadata.Keywords)
+			log.Table("Keywords", info.Metadata.Keywords)
 		}
 		if info.Metadata.Creator != "" {
-			fmt.Printf("  Creator: %s\n", info.Metadata.Creator)
+			log.Table("Creator", info.Metadata.Creator)
 		}
 		if info.Metadata.Producer != "" {
-			fmt.Printf("  Producer: %s\n", info.Metadata.Producer)
+			log.Table("Producer", info.Metadata.Producer)
 		}
 		if info.Metadata.CreationDate != "" {
-			fmt.Printf("  Created: %s\n", info.Metadata.CreationDate)
+			log.Table("Created", info.Metadata.CreationDate)
 		}
 		if info.Metadata.ModDate != "" {
-			fmt.Printf("  Modified: %s\n", info.Metadata.ModDate)
+			log.Table("Modified", info.Metadata.ModDate)
 		}
 	}
 
+	log.Println()
 	return nil
+}
+
+func hasMetadata(m *Metadata) bool {
+	return m.Title != "" || m.Author != "" || m.Subject != "" ||
+		m.Keywords != "" || m.Creator != "" || m.Producer != "" ||
+		m.CreationDate != "" || m.ModDate != ""
 }

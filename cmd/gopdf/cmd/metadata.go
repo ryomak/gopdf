@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/ryomak/gopdf"
 	"github.com/spf13/cobra"
@@ -41,22 +42,33 @@ func init() {
 
 func runMetadataGet(cmd *cobra.Command, args []string) error {
 	filePath := args[0]
+	log := NewLogger()
+
+	log.Header(iconText, "PDF Metadata")
+	log.Step("Opening %s", filepath.Base(filePath))
 
 	reader, err := gopdf.Open(filePath)
 	if err != nil {
+		log.Error("Failed to open PDF: %v", err)
 		return fmt.Errorf("failed to open PDF: %w", err)
 	}
 	defer reader.Close()
 
 	if reader.IsEncrypted() && metadataPassword != "" {
+		log.Step("Authenticating...")
 		if err := reader.AuthenticateWithPassword(metadataPassword); err != nil {
+			log.Error("Authentication failed")
 			return fmt.Errorf("failed to authenticate: %w", err)
 		}
+		log.Success("Authenticated")
 	}
+
+	log.Step("Reading metadata...")
 
 	meta := reader.Info()
 
 	if metadataJSON {
+		log.Println()
 		output := map[string]interface{}{
 			"title":    meta.Title,
 			"author":   meta.Author,
@@ -80,32 +92,33 @@ func runMetadataGet(cmd *cobra.Command, args []string) error {
 		return encoder.Encode(output)
 	}
 
-	fmt.Println("PDF Metadata:")
-	printIfNotEmpty("  Title", meta.Title)
-	printIfNotEmpty("  Author", meta.Author)
-	printIfNotEmpty("  Subject", meta.Subject)
-	printIfNotEmpty("  Keywords", meta.Keywords)
-	printIfNotEmpty("  Creator", meta.Creator)
-	printIfNotEmpty("  Producer", meta.Producer)
+	log.Section("📝 Standard Metadata")
+	printMetadataField(log, "Title", meta.Title)
+	printMetadataField(log, "Author", meta.Author)
+	printMetadataField(log, "Subject", meta.Subject)
+	printMetadataField(log, "Keywords", meta.Keywords)
+	printMetadataField(log, "Creator", meta.Creator)
+	printMetadataField(log, "Producer", meta.Producer)
 	if !meta.CreationDate.IsZero() {
-		fmt.Printf("  Created: %s\n", meta.CreationDate.Format(dateFormat))
+		log.Table("Created", meta.CreationDate.Format(dateFormat))
 	}
 	if !meta.ModDate.IsZero() {
-		fmt.Printf("  Modified: %s\n", meta.ModDate.Format(dateFormat))
+		log.Table("Modified", meta.ModDate.Format(dateFormat))
 	}
 
 	if len(meta.Custom) > 0 {
-		fmt.Println("\nCustom Fields:")
+		log.Section("🔧 Custom Fields")
 		for k, v := range meta.Custom {
-			fmt.Printf("  %s: %s\n", k, v)
+			log.Table(k, v)
 		}
 	}
 
+	log.Println()
 	return nil
 }
 
-func printIfNotEmpty(label, value string) {
+func printMetadataField(log *Logger, label, value string) {
 	if value != "" {
-		fmt.Printf("%s: %s\n", label, value)
+		log.Table(label, value)
 	}
 }
