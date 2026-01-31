@@ -123,6 +123,12 @@ func (r *documentRenderer) renderHeading(heading *ast.Heading) error {
 		fontSize = r.style.BodySize
 	}
 
+	// Add space before heading (except at the top of a page)
+	pageTopY := r.currentPage.Height() - r.style.MarginTop
+	if r.currentY < pageTopY {
+		r.currentY -= r.style.HeadingSpaceBefore
+	}
+
 	// Check for page break
 	r.checkPageBreak(fontSize + r.style.ParagraphSpacing)
 

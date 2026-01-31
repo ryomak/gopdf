@@ -12,10 +12,16 @@ import (
 )
 
 var (
-	extractPage     int
-	extractOutput   string
-	extractFormat   string
-	extractPassword string
+	// extract text flags
+	extractTextPage     int
+	extractTextOutput   string
+	extractTextFormat   string
+	extractTextPassword string
+
+	// extract images flags
+	extractImagesPage     int
+	extractImagesOutput   string
+	extractImagesPassword string
 )
 
 var extractCmd = &cobra.Command{
@@ -50,14 +56,14 @@ func init() {
 	extractCmd.AddCommand(extractTextCmd)
 	extractCmd.AddCommand(extractImagesCmd)
 
-	extractTextCmd.Flags().IntVarP(&extractPage, "page", "p", 0, "page number to extract (1-based, 0 for all)")
-	extractTextCmd.Flags().StringVarP(&extractOutput, "output", "o", "", "output file (default: stdout)")
-	extractTextCmd.Flags().StringVarP(&extractFormat, "format", "f", "plain", "output format (plain|blocks|json)")
-	extractTextCmd.Flags().StringVar(&extractPassword, "password", "", "password for encrypted PDF")
+	extractTextCmd.Flags().IntVarP(&extractTextPage, "page", "p", 0, "page number to extract (1-based, 0 for all)")
+	extractTextCmd.Flags().StringVarP(&extractTextOutput, "output", "o", "", "output file (default: stdout)")
+	extractTextCmd.Flags().StringVarP(&extractTextFormat, "format", "f", "plain", "output format (plain|blocks|json)")
+	extractTextCmd.Flags().StringVar(&extractTextPassword, "password", "", "password for encrypted PDF")
 
-	extractImagesCmd.Flags().IntVarP(&extractPage, "page", "p", 0, "page number to extract (1-based, 0 for all)")
-	extractImagesCmd.Flags().StringVarP(&extractOutput, "output", "o", "./extracted_images", "output directory")
-	extractImagesCmd.Flags().StringVar(&extractPassword, "password", "", "password for encrypted PDF")
+	extractImagesCmd.Flags().IntVarP(&extractImagesPage, "page", "p", 0, "page number to extract (1-based, 0 for all)")
+	extractImagesCmd.Flags().StringVarP(&extractImagesOutput, "output", "o", "./extracted_images", "output directory")
+	extractImagesCmd.Flags().StringVar(&extractImagesPassword, "password", "", "password for encrypted PDF")
 }
 
 type TextBlockJSON struct {
@@ -89,9 +95,9 @@ func runExtractText(cmd *cobra.Command, args []string) error {
 	}
 	defer reader.Close()
 
-	if reader.IsEncrypted() && extractPassword != "" {
+	if reader.IsEncrypted() && extractTextPassword != "" {
 		log.Step("Authenticating...")
-		if err := reader.AuthenticateWithPassword(extractPassword); err != nil {
+		if err := reader.AuthenticateWithPassword(extractTextPassword); err != nil {
 			log.Error("Authentication failed")
 			return fmt.Errorf("failed to authenticate: %w", err)
 		}
@@ -99,9 +105,9 @@ func runExtractText(cmd *cobra.Command, args []string) error {
 	}
 
 	var output *os.File
-	if extractOutput != "" {
-		log.Step("Creating output file: %s", extractOutput)
-		output, err = os.Create(extractOutput)
+	if extractTextOutput != "" {
+		log.Step("Creating output file: %s", extractTextOutput)
+		output, err = os.Create(extractTextOutput)
 		if err != nil {
 			log.Error("Failed to create output file")
 			return fmt.Errorf("failed to create output file: %w", err)
@@ -114,21 +120,21 @@ func runExtractText(cmd *cobra.Command, args []string) error {
 	startPage := 0
 	endPage := reader.PageCount()
 
-	if extractPage > 0 {
-		if extractPage > reader.PageCount() {
-			log.Error("Page %d does not exist (total: %d)", extractPage, reader.PageCount())
-			return fmt.Errorf("page %d does not exist (total pages: %d)", extractPage, reader.PageCount())
+	if extractTextPage > 0 {
+		if extractTextPage > reader.PageCount() {
+			log.Error("Page %d does not exist (total: %d)", extractTextPage, reader.PageCount())
+			return fmt.Errorf("page %d does not exist (total pages: %d)", extractTextPage, reader.PageCount())
 		}
-		startPage = extractPage - 1
-		endPage = extractPage
-		log.Info("Extracting page %d", extractPage)
+		startPage = extractTextPage - 1
+		endPage = extractTextPage
+		log.Info("Extracting page %d", extractTextPage)
 	} else {
 		log.Info("Extracting all %d pages", reader.PageCount())
 	}
 
 	log.Step("Processing...")
 
-	switch extractFormat {
+	switch extractTextFormat {
 	case "plain":
 		err = extractTextPlain(reader, output, startPage, endPage)
 	case "blocks":
@@ -136,16 +142,16 @@ func runExtractText(cmd *cobra.Command, args []string) error {
 	case "json":
 		err = extractTextJSON(reader, output, startPage, endPage)
 	default:
-		log.Error("Unknown format: %s", extractFormat)
-		return fmt.Errorf("unknown format: %s (use plain, blocks, or json)", extractFormat)
+		log.Error("Unknown format: %s", extractTextFormat)
+		return fmt.Errorf("unknown format: %s (use plain, blocks, or json)", extractTextFormat)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	if extractOutput != "" {
-		log.Success("Text extracted to %s", extractOutput)
+	if extractTextOutput != "" {
+		log.Success("Text extracted to %s", extractTextOutput)
 	}
 
 	return nil
@@ -241,17 +247,17 @@ func runExtractImages(cmd *cobra.Command, args []string) error {
 	}
 	defer reader.Close()
 
-	if reader.IsEncrypted() && extractPassword != "" {
+	if reader.IsEncrypted() && extractImagesPassword != "" {
 		log.Step("Authenticating...")
-		if err := reader.AuthenticateWithPassword(extractPassword); err != nil {
+		if err := reader.AuthenticateWithPassword(extractImagesPassword); err != nil {
 			log.Error("Authentication failed")
 			return fmt.Errorf("failed to authenticate: %w", err)
 		}
 		log.Success("Authenticated")
 	}
 
-	log.Step("Creating output directory: %s", extractOutput)
-	if err := os.MkdirAll(extractOutput, 0755); err != nil {
+	log.Step("Creating output directory: %s", extractImagesOutput)
+	if err := os.MkdirAll(extractImagesOutput, 0755); err != nil {
 		log.Error("Failed to create directory")
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
@@ -259,13 +265,13 @@ func runExtractImages(cmd *cobra.Command, args []string) error {
 	startPage := 0
 	endPage := reader.PageCount()
 
-	if extractPage > 0 {
-		if extractPage > reader.PageCount() {
-			log.Error("Page %d does not exist", extractPage)
-			return fmt.Errorf("page %d does not exist (total pages: %d)", extractPage, reader.PageCount())
+	if extractImagesPage > 0 {
+		if extractImagesPage > reader.PageCount() {
+			log.Error("Page %d does not exist", extractImagesPage)
+			return fmt.Errorf("page %d does not exist (total pages: %d)", extractImagesPage, reader.PageCount())
 		}
-		startPage = extractPage - 1
-		endPage = extractPage
+		startPage = extractImagesPage - 1
+		endPage = extractImagesPage
 	}
 
 	log.Step("Scanning for images...")
@@ -285,7 +291,7 @@ func runExtractImages(cmd *cobra.Command, args []string) error {
 			}
 
 			fileName := fmt.Sprintf("page%d_image%d.%s", i+1, j+1, ext)
-			outputPath := filepath.Join(extractOutput, fileName)
+			outputPath := filepath.Join(extractImagesOutput, fileName)
 
 			if err := os.WriteFile(outputPath, img.Data, 0644); err != nil {
 				log.Error("Failed to write %s", fileName)
@@ -299,7 +305,7 @@ func runExtractImages(cmd *cobra.Command, args []string) error {
 
 	log.Divider()
 	if totalImages > 0 {
-		log.Success("Extracted %d images to %s", totalImages, extractOutput)
+		log.Success("Extracted %d images to %s", totalImages, extractImagesOutput)
 	} else {
 		log.Warning("No images found in PDF")
 	}
