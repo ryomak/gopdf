@@ -166,21 +166,53 @@ func (r *Reader) findStartXref() (int64, error) {
 }
 
 // parseXrefAndTrailer はxrefテーブルとtrailerを解析する
+// incremental updateに対応するため、/Prevチェーンを辿る
 func (r *Reader) parseXrefAndTrailer(offset int64) error {
+	// visited: 無限ループ防止用
+	visited := make(map[int64]bool)
+	isFirst := true
+
+	for offset > 0 {
+		if visited[offset] {
+			break // 循環参照を防止
+		}
+		visited[offset] = true
+
+		trailer, prevOffset, err := r.parseSingleXrefAndTrailer(offset, isFirst)
+		if err != nil {
+			return err
+		}
+
+		// 最初のtrailerのみを保存（最新の情報を使用）
+		if isFirst {
+			r.trailer = trailer
+			isFirst = false
+		}
+
+		offset = prevOffset
+	}
+
+	return nil
+}
+
+// parseSingleXrefAndTrailer は単一のxrefテーブルとtrailerを解析する
+// isFirst: 最初のxrefの場合true（新しいエントリは古いエントリを上書き）
+// 戻り値: trailer辞書, /Prevのオフセット（なければ0）, エラー
+func (r *Reader) parseSingleXrefAndTrailer(offset int64, isFirst bool) (core.Dictionary, int64, error) {
 	// xrefオフセット位置にシーク
 	if _, err := r.r.Seek(offset, io.SeekStart); err != nil {
-		return fmt.Errorf("failed to seek to xref: %w", err)
+		return nil, 0, fmt.Errorf("failed to seek to xref: %w", err)
 	}
 
 	// "xref" キーワードを確認
 	reader := bufio.NewReader(r.r)
 	line, err := reader.ReadString('\n')
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	if !strings.HasPrefix(strings.TrimSpace(line), "xref") {
-		return fmt.Errorf("expected 'xref' keyword, got %q", line)
+		return nil, 0, fmt.Errorf("expected 'xref' keyword, got %q", line)
 	}
 
 	// xrefサブセクションを読む
@@ -188,7 +220,7 @@ func (r *Reader) parseXrefAndTrailer(offset int64) error {
 		// 次の行を読む
 		line, err := reader.ReadString('\n')
 		if err != nil {
-			return err
+			return nil, 0, err
 		}
 
 		line = strings.TrimSpace(line)
@@ -201,49 +233,55 @@ func (r *Reader) parseXrefAndTrailer(offset int64) error {
 		// サブセクションヘッダーをパース: "startNum count"
 		parts := strings.Fields(line)
 		if len(parts) != 2 {
-			return fmt.Errorf("invalid xref subsection header: %q", line)
+			return nil, 0, fmt.Errorf("invalid xref subsection header: %q", line)
 		}
 
 		startNum, err := strconv.Atoi(parts[0])
 		if err != nil {
-			return fmt.Errorf("invalid xref start number: %w", err)
+			return nil, 0, fmt.Errorf("invalid xref start number: %w", err)
 		}
 
 		count, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return fmt.Errorf("invalid xref count: %w", err)
+			return nil, 0, fmt.Errorf("invalid xref count: %w", err)
 		}
 
 		// エントリを読む
 		for i := 0; i < count; i++ {
 			entryLine, err := reader.ReadString('\n')
 			if err != nil {
-				return err
+				return nil, 0, err
 			}
 
 			// エントリをパース: "offset generation n/f"
 			entryParts := strings.Fields(entryLine)
 			if len(entryParts) != 3 {
-				return fmt.Errorf("invalid xref entry: %q", entryLine)
+				return nil, 0, fmt.Errorf("invalid xref entry: %q", entryLine)
 			}
 
-			offset, err := strconv.ParseInt(entryParts[0], 10, 64)
+			entryOffset, err := strconv.ParseInt(entryParts[0], 10, 64)
 			if err != nil {
-				return fmt.Errorf("invalid xref offset: %w", err)
+				return nil, 0, fmt.Errorf("invalid xref offset: %w", err)
 			}
 
 			generation, err := strconv.Atoi(entryParts[1])
 			if err != nil {
-				return fmt.Errorf("invalid xref generation: %w", err)
+				return nil, 0, fmt.Errorf("invalid xref generation: %w", err)
 			}
 
 			inUse := entryParts[2] == "n"
 
 			objNum := startNum + i
-			r.xref[objNum] = xrefEntry{
-				offset:     offset,
-				generation: generation,
-				inUse:      inUse,
+
+			// incremental update対応：
+			// 最初のxref（最新）のエントリを優先
+			// 既にエントリがある場合は上書きしない
+			if _, exists := r.xref[objNum]; !exists {
+				r.xref[objNum] = xrefEntry{
+					offset:     entryOffset,
+					generation: generation,
+					inUse:      inUse,
+				}
 			}
 		}
 	}
@@ -254,17 +292,26 @@ func (r *Reader) parseXrefAndTrailer(offset int64) error {
 
 	trailerObj, err := parser.ParseObject()
 	if err != nil {
-		return fmt.Errorf("failed to parse trailer: %w", err)
+		return nil, 0, fmt.Errorf("failed to parse trailer: %w", err)
 	}
 
 	trailer, err := utils.MustExtractAs[core.Dictionary](trailerObj, "trailer")
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 
-	r.trailer = trailer
+	// /Prevを取得（あれば）
+	var prevOffset int64
+	if prevObj, ok := trailer[core.Name("Prev")]; ok {
+		switch v := prevObj.(type) {
+		case core.Integer:
+			prevOffset = int64(v)
+		case core.Real:
+			prevOffset = int64(v)
+		}
+	}
 
-	return nil
+	return trailer, prevOffset, nil
 }
 
 // GetObject はオブジェクト番号からオブジェクトを取得する
