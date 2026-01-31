@@ -49,7 +49,7 @@
 //
 //	page.SetFont(gopdf.FontHelvetica, 12)     // Standard font
 //	ttf, _ := gopdf.LoadTTF("custom.ttf")
-//	page.SetTTFFont(ttf, 12)                  // TrueType font
+//	page.SetFont(ttf, 12)                  // TrueType font
 //
 // # Japanese Support
 //
@@ -60,7 +60,7 @@
 //	if err != nil {
 //	    log.Fatal("No Japanese font found on system")
 //	}
-//	page.SetTTFFont(jpFont, 12)
+//	page.SetFont(jpFont, 12)
 //	page.DrawText("日本語テキスト", 100, 700)
 //
 //	// Option 2: Load from specific path

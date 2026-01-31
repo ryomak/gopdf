@@ -53,7 +53,7 @@ func main() {
 	fmt.Printf("Loaded TTF font: %s\n", ttfFont.Name())
 
 	// Set the TTF font
-	if err := page.SetTTFFont(ttfFont, 18); err != nil {
+	if err := page.SetFont(ttfFont, 18); err != nil {
 		fmt.Fprintf(os.Stderr, "Error setting TTF font: %v\n", err)
 		os.Exit(1)
 	}
@@ -78,7 +78,7 @@ func main() {
 	if err == nil {
 		fmt.Printf("Loaded Japanese font: %s\n", japaneseFont.Name())
 
-		if err := page.SetTTFFont(japaneseFont, 18); err != nil {
+		if err := page.SetFont(japaneseFont, 18); err != nil {
 			fmt.Fprintf(os.Stderr, "Error setting Japanese font: %v\n", err)
 		} else {
 			// Draw Japanese text
@@ -93,13 +93,13 @@ func main() {
 	}
 
 	// Add more text at different sizes
-	page.SetTTFFont(ttfFont, 12)
+	page.SetFont(ttfFont, 12)
 	page.DrawText("TTF fonts support Unicode characters", 50, 600)
 
-	page.SetTTFFont(ttfFont, 16)
+	page.SetFont(ttfFont, 16)
 	page.DrawText("Different sizes are supported", 50, 570)
 
-	page.SetTTFFont(ttfFont, 24)
+	page.SetFont(ttfFont, 24)
 	page.DrawText("Larger text", 50, 530)
 
 	// Text width calculation

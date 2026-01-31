@@ -122,7 +122,7 @@ jpFont, err := gopdf.LoadSystemJapaneseFont()
 if err != nil {
     log.Fatal("Japanese font not found on system")
 }
-page.SetTTFFont(jpFont, 24)
+page.SetFont(jpFont, 24)
 page.DrawText("こんにちは、世界！", 100, 750)
 
 // 方法2: 任意のTTFフォントを指定
@@ -242,13 +242,9 @@ opts := gopdf.NewFitOptions(
 ### フォント設定
 
 ```go
-// 統一APIでフォント設定（StandardFont / TTFFont 両対応）
-page.SetCurrentFont(gopdf.FontHelvetica, 12)      // StandardFont
-page.SetCurrentFont(ttfFont, 12)                   // TTFFont
-
-// 従来のAPI（引き続き使用可能）
-page.SetFont(gopdf.FontHelvetica, 12)
-page.SetTTFFont(ttfFont, 12)
+// 統一API（StandardFont / TTFFont 両対応）
+page.SetFont(gopdf.FontHelvetica, 12)  // StandardFont
+page.SetFont(ttfFont, 12)               // TTFFont
 ```
 
 ## アーキテクチャ

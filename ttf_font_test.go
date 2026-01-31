@@ -139,7 +139,7 @@ func TestPage_SetTTFFont(t *testing.T) {
 		t.Fatalf("LoadTTF failed: %v", err)
 	}
 
-	err = page.SetTTFFont(font, 12.0)
+	err = page.SetFont(font, 12.0)
 	if err != nil {
 		t.Fatalf("SetTTFFont failed: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestPage_DrawText(t *testing.T) {
 		t.Fatalf("LoadTTF failed: %v", err)
 	}
 
-	err = page.SetTTFFont(font, 12.0)
+	err = page.SetFont(font, 12.0)
 	if err != nil {
 		t.Fatalf("SetTTFFont failed: %v", err)
 	}
@@ -212,7 +212,7 @@ func TestTTFFont_PDFGeneration(t *testing.T) {
 		t.Fatalf("LoadTTF failed: %v", err)
 	}
 
-	err = page.SetTTFFont(font, 18.0)
+	err = page.SetFont(font, 18.0)
 	if err != nil {
 		t.Fatalf("SetTTFFont failed: %v", err)
 	}
@@ -273,7 +273,7 @@ func TestTTFFont_UnicodeText(t *testing.T) {
 		t.Fatalf("LoadTTF failed: %v", err)
 	}
 
-	err = page.SetTTFFont(font, 14.0)
+	err = page.SetFont(font, 14.0)
 	if err != nil {
 		t.Fatalf("SetTTFFont failed: %v", err)
 	}

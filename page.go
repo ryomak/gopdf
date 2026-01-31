@@ -32,28 +32,27 @@ func (p *Page) Height() float64 {
 	return p.height
 }
 
-// SetCurrentFont sets the current font and size for subsequent text operations.
-// This is a unified method that works with both StandardFont and *TTFFont.
-func (p *Page) SetCurrentFont(f Font, size float64) error {
-	switch font := f.(type) {
+// SetFont sets the current font and size for subsequent text operations.
+// Works with both StandardFont and *TTFFont.
+func (p *Page) SetFont(f Font, size float64) error {
+	switch fnt := f.(type) {
 	case StandardFont:
-		return p.SetFont(font, size)
+		return p.setStandardFont(fnt, size)
 	case *TTFFont:
-		return p.SetTTFFont(font, size)
+		return p.setTTFFont(fnt, size)
 	default:
 		return fmt.Errorf("unsupported font type: %T", f)
 	}
 }
 
-// SetFont sets the current font and size for subsequent text operations.
-func (p *Page) SetFont(f StandardFont, size float64) error {
-	// 公開APIの型を内部実装の型に変換
+// setStandardFont sets a standard font (internal).
+func (p *Page) setStandardFont(f StandardFont, size float64) error {
 	internalFont := font.StandardFont(f)
 
 	p.currentFont = &internalFont
+	p.currentTTFFont = nil
 	p.fontSize = size
 
-	// フォントをページのフォントリストに追加
 	if p.fonts == nil {
 		p.fonts = make(map[string]font.StandardFont)
 	}
@@ -86,7 +85,7 @@ func (p *Page) DrawText(text string, x, y float64) error {
 		return nil
 	}
 
-	return fmt.Errorf("no font set; call SetFont or SetTTFFont before DrawText")
+	return fmt.Errorf("no font set; call SetFont before DrawText")
 }
 
 // SetLineWidth sets the line width for subsequent drawing operations.
@@ -183,30 +182,26 @@ func (p *Page) DrawImage(img *Image, x, y, width, height float64) error {
 	return nil
 }
 
-// SetTTFFont sets the current TTF font and size for subsequent text operations.
-func (p *Page) SetTTFFont(f *TTFFont, size float64) error {
+// setTTFFont sets a TTF font (internal).
+func (p *Page) setTTFFont(f *TTFFont, size float64) error {
 	if f == nil {
 		return fmt.Errorf("TTF font cannot be nil")
 	}
 
 	p.currentTTFFont = f
-	p.currentFont = nil // Clear standard font
+	p.currentFont = nil
 	p.fontSize = size
 
-	// Add font to the page's TTF font list
 	if p.ttfFonts == nil {
 		p.ttfFonts = make(map[string]*TTFFont)
 	}
 
-	// Check if this font is already registered
 	for _, existingFont := range p.ttfFonts {
 		if existingFont == f {
-			// Font already registered, no need to add again
 			return nil
 		}
 	}
 
-	// Generate new key for this font
 	fontKey := p.getTTFFontKey(f)
 	p.ttfFonts[fontKey] = f
 
@@ -260,28 +255,23 @@ func (p *Page) textToGlyphIndices(text string, ttfFont *TTFFont) (string, error)
 // DrawRuby draws ruby (furigana) text above base text
 // Returns the width of the drawn text (maximum of base and ruby width)
 func (p *Page) DrawRuby(rubyText RubyText, x, y float64, style RubyStyle) (float64, error) {
-	// 現在のフォントとサイズを取得
-	if p.currentFont == nil && p.currentTTFFont == nil {
-		return 0, fmt.Errorf("no font set; call SetFont or SetTTFFont before DrawRuby")
+	currentFont := p.getCurrentFont()
+	if currentFont == nil {
+		return 0, fmt.Errorf("no font set; call SetFont before DrawRuby")
 	}
 
 	baseFontSize := p.fontSize
 	rubyFontSize := baseFontSize * style.SizeRatio
 
-	// フォント名を取得（幅計算用）
 	fontName := p.getCurrentFontName()
-
-	// 親文字とルビの幅を計算
 	baseWidth := estimateTextWidth(rubyText.Base, baseFontSize, fontName)
 	rubyWidth := estimateTextWidth(rubyText.Ruby, rubyFontSize, fontName)
 
-	// 最大幅を取得
 	maxWidth := baseWidth
 	if rubyWidth > maxWidth {
 		maxWidth = rubyWidth
 	}
 
-	// ルビのX座標を計算（アラインメントに応じて）
 	var rubyX float64
 	switch style.Alignment {
 	case RubyAlignCenter:
@@ -291,39 +281,26 @@ func (p *Page) DrawRuby(rubyText RubyText, x, y float64, style RubyStyle) (float
 	case RubyAlignRight:
 		rubyX = x + baseWidth - rubyWidth
 	default:
-		rubyX = x + (baseWidth-rubyWidth)/2 // デフォルトは中央揃え
+		rubyX = x + (baseWidth-rubyWidth)/2
 	}
 
-	// ルビのY座標を計算（親文字の上に配置）
 	rubyY := y + baseFontSize + style.Offset
 
-	// ルビテキストを描画
+	// Draw ruby text
 	originalFontSize := p.fontSize
-	if p.currentTTFFont != nil {
-		if err := p.SetTTFFont(p.currentTTFFont, rubyFontSize); err != nil {
-			return 0, err
-		}
-	} else {
-		if err := p.SetFont(StandardFont(p.currentFont.Name()), rubyFontSize); err != nil {
-			return 0, err
-		}
+	if err := p.SetFont(currentFont, rubyFontSize); err != nil {
+		return 0, err
 	}
 	if err := p.DrawText(rubyText.Ruby, rubyX, rubyY); err != nil {
 		return 0, err
 	}
 
-	// フォントサイズを元に戻す
-	if p.currentTTFFont != nil {
-		if err := p.SetTTFFont(p.currentTTFFont, originalFontSize); err != nil {
-			return 0, err
-		}
-	} else {
-		if err := p.SetFont(StandardFont(p.currentFont.Name()), originalFontSize); err != nil {
-			return 0, err
-		}
+	// Restore font size
+	if err := p.SetFont(currentFont, originalFontSize); err != nil {
+		return 0, err
 	}
 
-	// 親文字を描画
+	// Draw base text
 	if err := p.DrawText(rubyText.Base, x, y); err != nil {
 		return 0, err
 	}
@@ -334,9 +311,8 @@ func (p *Page) DrawRuby(rubyText RubyText, x, y float64, style RubyStyle) (float
 // DrawRubyWithActualText draws ruby text with ActualText support for proper copy behavior
 // ActualText allows controlling what text is copied when users copy the PDF content
 func (p *Page) DrawRubyWithActualText(rubyText RubyText, x, y float64, style RubyStyle) (float64, error) {
-	// 現在のフォントとサイズを取得
-	if p.currentFont == nil && p.currentTTFFont == nil {
-		return 0, fmt.Errorf("no font set; call SetFont or SetTTFFont before DrawRubyWithActualText")
+	if p.getCurrentFont() == nil {
+		return 0, fmt.Errorf("no font set; call SetFont before DrawRubyWithActualText")
 	}
 
 	// ActualTextの内容を決定
@@ -392,6 +368,17 @@ func (p *Page) DrawRubyTexts(texts []RubyText, x, y float64, style RubyStyle, us
 	}
 
 	return totalWidth, nil
+}
+
+// getCurrentFont returns the current font (StandardFont or *TTFFont).
+func (p *Page) getCurrentFont() Font {
+	if p.currentTTFFont != nil {
+		return p.currentTTFFont
+	}
+	if p.currentFont != nil {
+		return StandardFont(p.currentFont.Name())
+	}
+	return nil
 }
 
 // getCurrentFontName returns the current font name for width estimation

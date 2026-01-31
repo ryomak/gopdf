@@ -71,7 +71,7 @@ func (f *TTFFont) TextWidth(text string, fontSize float64) (float64, error) {
 //	    // Fall back to a bundled font or skip Japanese text
 //	    log.Printf("Japanese font not found: %v", err)
 //	}
-//	page.SetTTFFont(jpFont, 16)
+//	page.SetFont(jpFont, 16)
 func LoadSystemJapaneseFont() (*TTFFont, error) {
 	fontPaths := getSystemJapaneseFontPaths()
 	for _, path := range fontPaths {

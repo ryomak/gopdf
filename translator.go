@@ -320,7 +320,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 				fitted, err := text.Fit(textBlock.Text, textBlock.Rect, fontName, opts.FittingOptions, text.DefaultWidthEstimator)
 				if err != nil {
 					// フィッティングできない場合は元のサイズを使用
-					if err := page.SetCurrentFont(targetFont, textBlock.FontSize); err != nil {
+					if err := page.SetFont(targetFont, textBlock.FontSize); err != nil {
 						continue
 					}
 					// 適切な描画メソッドを使用
@@ -329,7 +329,7 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 				}
 
 				// 複数行を描画
-				if err := page.SetCurrentFont(targetFont, fitted.FontSize); err != nil {
+				if err := page.SetFont(targetFont, fitted.FontSize); err != nil {
 					continue
 				}
 				// 上から下に描画（Y座標が大きい方から小さい方へ）
