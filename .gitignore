@@ -31,6 +31,9 @@ Thumbs.db
 *.swo
 *~
 
+# Claude Code
+CLAUDE.md
+
 # Examples output
 examples/**/output.*
 examples/**/*.pdf
