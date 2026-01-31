@@ -1,4 +1,4 @@
-// Example: 20_markdown
+// Example: 18_markdown
 // This example demonstrates converting Markdown to PDF with custom styling.
 package main
 

@@ -1,4 +1,4 @@
-// Example: 19_layout_adjustment
+// Example: 17_layout_adjustment
 // This example demonstrates layout manipulation: move, resize, overlap detection, and auto-adjust.
 package main
 
