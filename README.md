@@ -209,6 +209,48 @@ gopdf.TranslateUnitLine     // 行単位
 gopdf.TranslateUnitSentence // 文単位（. 。 ! ? で区切り）
 ```
 
+#### Functional Options パターン（v0.20.0+）
+
+構造体の代わりに、`WithTranslatorXXX` 関数を使ってオプションを設定できます：
+
+```go
+jpFont, _ := gopdf.LoadSystemJapaneseFont()
+
+opts := gopdf.NewTranslatorOptions(
+    gopdf.WithTranslatorFunc(myTranslator),
+    gopdf.WithTranslatorTargetFont(jpFont),
+    gopdf.WithTranslatorUnit(gopdf.TranslateUnitSentence),
+    gopdf.WithTranslatorKeepLayout(true),
+    gopdf.WithTranslatorKeepImages(true),
+)
+
+gopdf.TranslatePDF("input.pdf", "output.pdf", opts)
+```
+
+### テキストフィッティングオプション
+
+```go
+// Functional Options パターン
+opts := gopdf.NewFitOptions(
+    gopdf.WithFitMaxFontSize(24),
+    gopdf.WithFitMinFontSize(8),
+    gopdf.WithFitLineSpacing(1.2),
+    gopdf.WithFitAlignment(gopdf.AlignCenter),
+)
+```
+
+### フォント設定
+
+```go
+// 統一APIでフォント設定（StandardFont / TTFFont 両対応）
+page.SetCurrentFont(gopdf.FontHelvetica, 12)      // StandardFont
+page.SetCurrentFont(ttfFont, 12)                   // TTFFont
+
+// 従来のAPI（引き続き使用可能）
+page.SetFont(gopdf.FontHelvetica, 12)
+page.SetTTFFont(ttfFont, 12)
+```
+
 ## アーキテクチャ
 
 ```
