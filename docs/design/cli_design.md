@@ -245,26 +245,22 @@ cmd/
     └── version.go        # versionコマンド
 ```
 
-## 実装優先順位
+## 実装状況
 
-### Phase 1（必須）
-1. `info` - PDF情報表示
-2. `extract text` - テキスト抽出
-3. `extract images` - 画像抽出
-4. `version` - バージョン表示
-
-### Phase 2（高優先度）
-5. `encrypt` - 暗号化
-6. `decrypt` - 復号
-7. `metadata` - メタデータ操作
-
-### Phase 3（中優先度）
-8. `markdown` - Markdown変換
-9. `merge` - PDF結合
-10. `split` - PDF分割
-
-### Phase 4（低優先度）
-11. `translate` - PDF翻訳（翻訳APIの統合が必要）
+| コマンド | 状態 | 備考 |
+|---------|------|------|
+| `info` | ✅ 実装済み | |
+| `extract text` | ✅ 実装済み | |
+| `extract images` | ✅ 実装済み | |
+| `version` | ✅ 実装済み | |
+| `encrypt` | ✅ 実装済み | PDFを再構築して暗号化 |
+| `decrypt` | ✅ 実装済み | PDFを再構築して復号 |
+| `metadata get` | ✅ 実装済み | |
+| `metadata set` | 🔲 未実装 | |
+| `markdown` | ✅ 実装済み | document/slideモード対応 |
+| `merge` | 🔲 未実装 | |
+| `split` | 🔲 未実装 | |
+| `translate` | ✅ 実装済み | 外部翻訳コマンド経由 |
 
 ## エラーハンドリング
 
