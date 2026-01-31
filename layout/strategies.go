@@ -33,15 +33,21 @@ func (pl *PageLayout) adjustLayoutFlowDown(opts LayoutAdjustmentOptions) error {
 	getBlockInfo := func(block ContentBlock) (blockInfo, bool) {
 		switch block.Type() {
 		case ContentBlockTypeText:
-			tb := block.(TextBlock)
+			tb, ok := block.(TextBlock)
+			if !ok {
+				return blockInfo{}, false
+			}
 			key := tb.Text + fmt.Sprintf("_%f_%f", tb.Rect.X, tb.Rect.Width)
-			info, ok := blockIndexMap[key]
-			return info, ok
+			info, found := blockIndexMap[key]
+			return info, found
 		case ContentBlockTypeImage:
-			ib := block.(ImageBlock)
+			ib, ok := block.(ImageBlock)
+			if !ok {
+				return blockInfo{}, false
+			}
 			key := fmt.Sprintf("img_%f_%f_%f", ib.X, ib.PlacedWidth, ib.PlacedHeight)
-			info, ok := blockIndexMap[key]
-			return info, ok
+			info, found := blockIndexMap[key]
+			return info, found
 		}
 		return blockInfo{}, false
 	}

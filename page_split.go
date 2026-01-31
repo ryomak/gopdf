@@ -38,12 +38,7 @@ func SplitContentBlocksIntoPages(
 
 	// ブロックをTextBlocksとImagesに分類
 	for _, block := range blocks {
-		switch block.Type() {
-		case ContentBlockTypeText:
-			pageLayout.TextBlocks = append(pageLayout.TextBlocks, block.(TextBlock))
-		case ContentBlockTypeImage:
-			pageLayout.Images = append(pageLayout.Images, block.(ImageBlock))
-		}
+		block.AddToLayout(pageLayout)
 	}
 
 	// 既存の SplitIntoPages を使用

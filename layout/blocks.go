@@ -32,6 +32,18 @@ func (tb TextBlock) Position() (x, y float64) {
 	return tb.Rect.X, tb.Rect.Y
 }
 
+// WithY は新しいY座標でTextBlockのコピーを返す（ContentBlockインターフェース実装）
+func (tb TextBlock) WithY(y float64) ContentBlock {
+	newTB := tb
+	newTB.Rect.Y = y
+	return newTB
+}
+
+// AddToLayout はTextBlockをPageLayoutのTextBlocksに追加する（ContentBlockインターフェース実装）
+func (tb TextBlock) AddToLayout(pl *PageLayout) {
+	pl.TextBlocks = append(pl.TextBlocks, tb)
+}
+
 // Matrix は変換行列（CTM: Current Transformation Matrix）
 type Matrix struct {
 	A, B, C, D, E, F float64 // [a b c d e f]
@@ -65,4 +77,16 @@ func (ib ImageBlock) Type() ContentBlockType {
 // Position はブロックの配置位置を返す（ContentBlockインターフェース実装）
 func (ib ImageBlock) Position() (x, y float64) {
 	return ib.X, ib.Y
+}
+
+// WithY は新しいY座標でImageBlockのコピーを返す（ContentBlockインターフェース実装）
+func (ib ImageBlock) WithY(y float64) ContentBlock {
+	newIB := ib
+	newIB.Y = y
+	return newIB
+}
+
+// AddToLayout はImageBlockをPageLayoutのImagesに追加する（ContentBlockインターフェース実装）
+func (ib ImageBlock) AddToLayout(pl *PageLayout) {
+	pl.Images = append(pl.Images, ib)
 }

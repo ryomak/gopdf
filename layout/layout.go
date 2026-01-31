@@ -12,6 +12,12 @@ type ContentBlock interface {
 
 	// Position はブロックの配置位置を返す（左下座標）
 	Position() (x, y float64)
+
+	// WithY は新しいY座標でブロックのコピーを返す
+	WithY(y float64) ContentBlock
+
+	// AddToLayout はブロックをPageLayoutの適切なスライスに追加する
+	AddToLayout(pl *PageLayout)
 }
 
 // ContentBlockType はコンテンツブロックの種類

@@ -136,16 +136,8 @@ func (pl *PageLayout) SplitIntoPages(maxHeight, minSpacing, pageMargin float64) 
 
 		// ブロックを新しいY座標で追加
 		newY := currentY - bounds.Height
-		switch block.Type() {
-		case ContentBlockTypeText:
-			tb := block.(TextBlock)
-			tb.Rect.Y = newY
-			currentPage.TextBlocks = append(currentPage.TextBlocks, tb)
-		case ContentBlockTypeImage:
-			ib := block.(ImageBlock)
-			ib.Y = newY
-			currentPage.Images = append(currentPage.Images, ib)
-		}
+		newBlock := block.WithY(newY)
+		newBlock.AddToLayout(currentPage)
 
 		currentY = newY - minSpacing
 	}
