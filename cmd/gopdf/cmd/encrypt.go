@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/ryomak/gopdf"
@@ -61,46 +60,8 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Step("Opening %s", filepath.Base(inputPath))
-	reader, err := gopdf.Open(inputPath)
-	if err != nil {
-		log.Error("Failed to open PDF: %v", err)
-		return fmt.Errorf("failed to open input PDF: %w", err)
-	}
-	defer reader.Close()
 
-	log.Info("Found %d pages", reader.PageCount())
-	log.Step("Reconstructing PDF...")
-
-	doc := gopdf.New()
-
-	for i := 0; i < reader.PageCount(); i++ {
-		log.Verbose("Processing page %d/%d", i+1, reader.PageCount())
-
-		layout, err := reader.ExtractPageLayout(i)
-		if err != nil {
-			log.Error("Failed to extract page %d", i+1)
-			return fmt.Errorf("failed to extract layout from page %d: %w", i+1, err)
-		}
-
-		_, err = gopdf.RenderLayout(doc, layout, gopdf.PDFTranslatorOptions{
-			TargetFont: gopdf.FontHelvetica,
-			KeepImages: true,
-			KeepLayout: true,
-			FittingOptions: gopdf.FitOptions{
-				MaxFontSize: 72,
-				MinFontSize: 6,
-				AllowShrink: true,
-				AllowGrow:   false,
-			},
-		})
-		if err != nil {
-			log.Error("Failed to render page %d", i+1)
-			return fmt.Errorf("failed to render page %d: %w", i+1, err)
-		}
-	}
-
-	log.Step("Applying encryption...")
-
+	// Build permissions
 	permissions := gopdf.DefaultPermissions()
 	var restrictions []string
 
@@ -122,29 +83,18 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 		restrictions = append(restrictions, "modify")
 	}
 
-	err = doc.SetEncryption(gopdf.EncryptionOptions{
+	log.Step("Encrypting PDF (preserving original content)...")
+
+	// Use the new EncryptExistingPDF function that preserves the original PDF
+	err := gopdf.EncryptExistingPDF(inputPath, outputPath, gopdf.EncryptionOptions{
 		UserPassword:  encryptUserPassword,
 		OwnerPassword: encryptOwnerPassword,
 		Permissions:   permissions,
 		KeyLength:     encryptKeyLength,
 	})
 	if err != nil {
-		log.Error("Failed to set encryption: %v", err)
-		return fmt.Errorf("failed to set encryption: %w", err)
-	}
-
-	log.Step("Writing encrypted PDF...")
-
-	output, err := os.Create(outputPath)
-	if err != nil {
-		log.Error("Failed to create output file")
-		return fmt.Errorf("failed to create output file: %w", err)
-	}
-	defer output.Close()
-
-	if err := doc.WriteTo(output); err != nil {
-		log.Error("Failed to write PDF")
-		return fmt.Errorf("failed to write encrypted PDF: %w", err)
+		log.Error("Failed to encrypt PDF: %v", err)
+		return fmt.Errorf("failed to encrypt PDF: %w", err)
 	}
 
 	log.Divider()

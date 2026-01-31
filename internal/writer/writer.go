@@ -128,6 +128,9 @@ func (w *Writer) WriteTrailer(trailer core.Dictionary) error {
 		trailer[core.Name("ID")] = w.encryption.CreateFileIDArray()
 	}
 
+	// Sizeを現在のオブジェクト数に更新
+	trailer[core.Name("Size")] = core.Integer(w.nextObjNum)
+
 	// xrefテーブルの開始位置を記録
 	xrefOffset := w.bytesWritten
 

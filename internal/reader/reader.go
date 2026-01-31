@@ -812,3 +812,60 @@ func (r *Reader) decryptObject(obj core.Object, objectNumber, generationNumber i
 		return obj
 	}
 }
+
+// GetAllObjectNumbers returns all object numbers in the xref table
+func (r *Reader) GetAllObjectNumbers() []int {
+	nums := make([]int, 0, len(r.xref))
+	for num, entry := range r.xref {
+		if entry.inUse {
+			nums = append(nums, num)
+		}
+	}
+	return nums
+}
+
+// GetObjectGeneration returns the generation number for an object
+func (r *Reader) GetObjectGeneration(objNum int) int {
+	if entry, ok := r.xref[objNum]; ok {
+		return entry.generation
+	}
+	return 0
+}
+
+// GetTrailer returns the trailer dictionary
+func (r *Reader) GetTrailer() core.Dictionary {
+	return r.trailer
+}
+
+// GetRawObjectWithGeneration returns an object without decryption, along with its generation number
+// This is used for re-encrypting PDFs
+func (r *Reader) GetRawObjectWithGeneration(objNum int) (core.Object, int, error) {
+	// xrefからエントリを取得
+	entry, ok := r.xref[objNum]
+	if !ok {
+		return nil, 0, fmt.Errorf("object %d not found in xref", objNum)
+	}
+
+	if !entry.inUse {
+		return nil, 0, fmt.Errorf("object %d is not in use", objNum)
+	}
+
+	// オフセット位置にシーク
+	if _, err := r.r.Seek(entry.offset, io.SeekStart); err != nil {
+		return nil, 0, fmt.Errorf("failed to seek to object: %w", err)
+	}
+
+	// 間接オブジェクトをパース
+	parser := NewParser(r.r)
+	num, gen, obj, err := parser.ParseIndirectObject()
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to parse object %d: %w", objNum, err)
+	}
+
+	// オブジェクト番号の確認
+	if num != objNum {
+		return nil, 0, fmt.Errorf("object number mismatch: expected %d, got %d", objNum, num)
+	}
+
+	return obj, gen, nil
+}
