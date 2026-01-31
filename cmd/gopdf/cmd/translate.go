@@ -12,6 +12,7 @@ import (
 
 var (
 	translateFont       string
+	translateBoldFont   string
 	translateCommand    string
 	translateUnit       string
 	translateKeepImages bool
@@ -48,6 +49,7 @@ func init() {
 	rootCmd.AddCommand(translateCmd)
 
 	translateCmd.Flags().StringVarP(&translateFont, "font", "f", "", "TTF font file for output (required for CJK)")
+	translateCmd.Flags().StringVar(&translateBoldFont, "bold-font", "", "TTF font file for bold text (optional)")
 	translateCmd.Flags().StringVarP(&translateCommand, "command", "c", "", "translation command (receives text on stdin)")
 	translateCmd.Flags().StringVarP(&translateUnit, "unit", "u", "block", "translation unit (block|line|sentence)")
 	translateCmd.Flags().BoolVar(&translateKeepImages, "keep-images", true, "preserve images in output")
@@ -92,6 +94,18 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Boldフォントの読み込み（オプション）
+	var targetBoldFont gopdf.Font
+	if translateBoldFont != "" {
+		font, err := gopdf.LoadTTF(translateBoldFont)
+		if err != nil {
+			log.Error("Failed to load bold font: %v", err)
+			return fmt.Errorf("failed to load bold font: %w", err)
+		}
+		targetBoldFont = font
+		log.Info("Bold Font: %s", filepath.Base(translateBoldFont))
+	}
+
 	var unit gopdf.TranslateUnit
 	switch strings.ToLower(translateUnit) {
 	case "block":
@@ -115,8 +129,9 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 	})
 
 	opts := gopdf.PDFTranslatorOptions{
-		Translator: translator,
-		TargetFont: targetFont,
+		Translator:     translator,
+		TargetFont:     targetFont,
+		TargetBoldFont: targetBoldFont,
 		FittingOptions: gopdf.FitOptions{
 			MaxFontSize: 72,
 			MinFontSize: 6,

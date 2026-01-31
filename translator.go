@@ -26,6 +26,7 @@ const (
 type PDFTranslatorOptions struct {
 	Translator      Translator    // 翻訳インターフェース（translate.Translator）
 	TargetFont      Font          // ターゲット言語のフォント (StandardFont or *TTFFont)
+	TargetBoldFont  Font          // ターゲット言語の太字フォント（省略可）
 	TargetFontName  string        // フォント名（省略可、TargetFontから自動取得）
 	FittingOptions  FitOptions    // テキストフィッティングオプション（FitOptions）
 	KeepImages      bool          // 画像を保持（デフォルト: true）
@@ -233,8 +234,14 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 					if opts.TargetFont == nil {
 						return nil, fmt.Errorf("target font is required for non-ASCII text")
 					}
-					targetFont = opts.TargetFont
-					fontName = opts.getTargetFontName()
+					// Boldの場合はTargetBoldFontを使用（設定されていれば）
+					if textBlock.IsBold && opts.TargetBoldFont != nil {
+						targetFont = opts.TargetBoldFont
+						fontName = opts.TargetBoldFont.Name()
+					} else {
+						targetFont = opts.TargetFont
+						fontName = opts.getTargetFontName()
+					}
 				}
 
 				// テキストをフィッティング

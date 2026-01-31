@@ -128,46 +128,149 @@ func Wrap(text string, maxWidth float64, fontName string, fontSize float64, esti
 			continue
 		}
 
-		// 単語で分割
-		words := strings.Fields(paragraph)
-		var currentLine strings.Builder
-
-		for _, word := range words {
-			// 現在の行に単語を追加してみる
-			testLine := currentLine.String()
-			if testLine != "" {
-				testLine += " "
-			}
-			testLine += word
-
-			// テキスト幅を計算
-			width := estimateWidth(testLine, fontSize, fontName)
-
-			if width <= maxWidth {
-				// 収まる場合
-				if currentLine.Len() > 0 {
-					currentLine.WriteString(" ")
-				}
-				currentLine.WriteString(word)
-			} else {
-				// 収まらない場合
-				if currentLine.Len() > 0 {
-					// 現在の行を確定
-					lines = append(lines, currentLine.String())
-					currentLine.Reset()
-				}
-				// 単語が1つでmaxWidthを超える場合は強制的に追加
-				currentLine.WriteString(word)
-			}
-		}
-
-		// 残りの行を追加
-		if currentLine.Len() > 0 {
-			lines = append(lines, currentLine.String())
+		// 日本語を含むかチェック
+		if containsJapanese(paragraph) {
+			// 日本語テキストは文字単位で改行（禁則処理付き）
+			lines = append(lines, wrapJapanese(paragraph, maxWidth, fontName, fontSize, estimateWidth)...)
+		} else {
+			// 英語テキストは単語単位で改行
+			lines = append(lines, wrapEnglish(paragraph, maxWidth, fontName, fontSize, estimateWidth)...)
 		}
 	}
 
 	return lines
+}
+
+// wrapEnglish は英語テキストを単語単位で改行
+func wrapEnglish(paragraph string, maxWidth float64, fontName string, fontSize float64, estimateWidth WidthEstimator) []string {
+	var lines []string
+	words := strings.Fields(paragraph)
+	var currentLine strings.Builder
+
+	for _, word := range words {
+		// 現在の行に単語を追加してみる
+		testLine := currentLine.String()
+		if testLine != "" {
+			testLine += " "
+		}
+		testLine += word
+
+		// テキスト幅を計算
+		width := estimateWidth(testLine, fontSize, fontName)
+
+		if width <= maxWidth {
+			// 収まる場合
+			if currentLine.Len() > 0 {
+				currentLine.WriteString(" ")
+			}
+			currentLine.WriteString(word)
+		} else {
+			// 収まらない場合
+			if currentLine.Len() > 0 {
+				// 現在の行を確定
+				lines = append(lines, currentLine.String())
+				currentLine.Reset()
+			}
+			// 単語が1つでmaxWidthを超える場合は強制的に追加
+			currentLine.WriteString(word)
+		}
+	}
+
+	// 残りの行を追加
+	if currentLine.Len() > 0 {
+		lines = append(lines, currentLine.String())
+	}
+
+	return lines
+}
+
+// wrapJapanese は日本語テキストを文字単位で改行（禁則処理付き）
+func wrapJapanese(paragraph string, maxWidth float64, fontName string, fontSize float64, estimateWidth WidthEstimator) []string {
+	var lines []string
+	runes := []rune(paragraph)
+	var currentLine strings.Builder
+
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+
+		// 現在の行に文字を追加してみる
+		testLine := currentLine.String() + string(r)
+		width := estimateWidth(testLine, fontSize, fontName)
+
+		if width <= maxWidth {
+			// 収まる場合
+			currentLine.WriteRune(r)
+		} else {
+			// 収まらない場合、改行が必要
+			if currentLine.Len() > 0 {
+				// 禁則処理: 行頭禁則文字の場合は前の行に含める
+				if isLineStartProhibited(r) {
+					currentLine.WriteRune(r)
+					lines = append(lines, currentLine.String())
+					currentLine.Reset()
+					continue
+				}
+
+				// 禁則処理: 次の文字が行頭禁則の場合、現在の文字も次の行に送る
+				if i+1 < len(runes) && isLineStartProhibited(runes[i+1]) {
+					// 現在の行の最後の文字を取得
+					currentStr := currentLine.String()
+					currentRunes := []rune(currentStr)
+					if len(currentRunes) > 0 {
+						// 最後の文字を次の行に送る
+						lines = append(lines, string(currentRunes[:len(currentRunes)-1]))
+						currentLine.Reset()
+						currentLine.WriteRune(currentRunes[len(currentRunes)-1])
+						currentLine.WriteRune(r)
+						continue
+					}
+				}
+
+				lines = append(lines, currentLine.String())
+				currentLine.Reset()
+			}
+			currentLine.WriteRune(r)
+		}
+	}
+
+	// 残りの行を追加
+	if currentLine.Len() > 0 {
+		lines = append(lines, currentLine.String())
+	}
+
+	return lines
+}
+
+// containsJapanese は文字列に日本語（ひらがな、カタカナ、漢字）が含まれるかチェック
+func containsJapanese(s string) bool {
+	for _, r := range s {
+		if isJapanese(r) {
+			return true
+		}
+	}
+	return false
+}
+
+// isJapanese は文字が日本語かどうかチェック
+func isJapanese(r rune) bool {
+	// ひらがな: U+3040-U+309F
+	// カタカナ: U+30A0-U+30FF
+	// 漢字（CJK統合漢字）: U+4E00-U+9FFF
+	// 全角記号: U+3000-U+303F
+	return (r >= 0x3040 && r <= 0x309F) || // ひらがな
+		(r >= 0x30A0 && r <= 0x30FF) || // カタカナ
+		(r >= 0x4E00 && r <= 0x9FFF) || // 漢字
+		(r >= 0x3000 && r <= 0x303F) // 全角記号
+}
+
+// isLineStartProhibited は行頭禁則文字かどうかチェック
+func isLineStartProhibited(r rune) bool {
+	// 行頭に置いてはいけない文字
+	prohibited := "、。，．・：；？！゛゜´｀¨＾￣＿ヽヾゝゞ〃仝々〆〇ー―‐／＼～∥｜…‥'" +
+		"）〕］｝〉》」』】°′″℃％‰" +
+		"ぁぃぅぇぉっゃゅょゎゕゖ" + // 小書きひらがな
+		"ァィゥェォッャュョヮヵヶ" // 小書きカタカナ
+	return strings.ContainsRune(prohibited, r)
 }
 
 // EstimateLines はテキストが何行になるか推定
