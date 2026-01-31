@@ -436,16 +436,8 @@ Phase 12（暗号化機能）は一部実装済み、Phase 14（Markdown変換�
 - 画像座標計算の安定化（image_extractor.goのTODO）
 
 ### コード内のTODO
-- [ ] `markdown_renderer.go:169` - 長い段落のword wrapping実装
-- [ ] `markdown.go:118` - スライドレンダラー実装
-- [ ] `serializer.go:126` - 特殊文字のエスケープ処理
 - [ ] `image_extractor.go:199` - 正しい座標計算の再有効化
 - [ ] `parser.go:192` - 改行文字のunread処理
-
-### リファクタリング（package_restructure_design.md）
-- [ ] Phase 2: ルートパッケージ整理（layout.go, translator.go, text_fitting.goの移行）
-- [ ] Phase 3: 追加パッケージ作成（document/, reader/, font/, image/）
-- [ ] Phase 4: 内部パッケージ整理（internal/reader → internal/parser）
 
 ### 今後の検討事項
 - [ ] デフォルト日本語フォントの選定とライセンス確認（Phase 13）
