@@ -153,6 +153,30 @@ func TestMultiplePages(t *testing.T) {
 	// Kids配列内の参照をカウントするか、/Count 3 で確認済みなので、ここでは省略
 }
 
+// TestDocumentPageCount はDocument.PageCountメソッドをテストする
+func TestDocumentPageCount(t *testing.T) {
+	tests := []struct {
+		name  string
+		pages int
+	}{
+		{"zero pages", 0},
+		{"one page", 1},
+		{"three pages", 3},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doc := New()
+			for i := 0; i < tt.pages; i++ {
+				doc.AddPage(PageSizeA4, Portrait)
+			}
+			if got := doc.PageCount(); got != tt.pages {
+				t.Errorf("PageCount() = %d, want %d", got, tt.pages)
+			}
+		})
+	}
+}
+
 // TestPagesObjNumWithSMask はSMask付き画像がある場合にpagesObjNumが正しく計算されることを確認する
 func TestPagesObjNumWithSMask(t *testing.T) {
 	doc := New()

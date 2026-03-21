@@ -3,6 +3,7 @@ package writer
 import (
 	"testing"
 
+	"github.com/ryomak/gopdf/internal/core"
 	"github.com/ryomak/gopdf/internal/security"
 )
 

@@ -2,11 +2,26 @@ package writer
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/ryomak/gopdf/internal/core"
 )
+
+// errWriter is a writer that always returns an error after writing n bytes
+type errWriter struct {
+	n   int // number of writes to allow before erroring
+	cur int
+}
+
+func (e *errWriter) Write(p []byte) (int, error) {
+	e.cur++
+	if e.cur > e.n {
+		return 0, errors.New("write error")
+	}
+	return len(p), nil
+}
 
 // TestSerializeNull はNull型のシリアライズをテストする
 func TestSerializeNull(t *testing.T) {
@@ -794,5 +809,184 @@ func TestSerializeDictionaryWithNestedDict(t *testing.T) {
 	got := buf.String()
 	if !strings.Contains(got, "<</F1 3 0 R>>") {
 		t.Errorf("nested dictionary not serialized properly: %q", got)
+	}
+}
+
+// TestSerializeArrayErrors は配列シリアライズ時のエラーパスをテストする
+func TestSerializeArrayErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		allowWrites int
+		arr         core.Array
+	}{
+		{
+			"error on opening bracket",
+			0,
+			core.Array{core.Integer(1)},
+		},
+		{
+			"error on separator",
+			2, // "[" succeeds, first element succeeds, separator fails
+			core.Array{core.Integer(1), core.Integer(2)},
+		},
+		{
+			"error on element serialization",
+			1, // "[" succeeds, element fails
+			core.Array{core.Integer(1)},
+		},
+		{
+			"error on closing bracket",
+			2, // "[" succeeds, element succeeds, "]" fails
+			core.Array{core.Integer(1)},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ew := &errWriter{n: tt.allowWrites}
+			s := NewSerializer(ew)
+			err := s.Serialize(tt.arr)
+			if err == nil {
+				t.Error("expected error, got nil")
+			}
+		})
+	}
+}
+
+// TestSerializeDictionaryErrors は辞書シリアライズ時のエラーパスをテストする
+func TestSerializeDictionaryErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		allowWrites int
+		dict        core.Dictionary
+	}{
+		{
+			"error on opening",
+			0,
+			core.Dictionary{core.Name("A"): core.Integer(1)},
+		},
+		{
+			"error on key",
+			1, // "<<" succeeds, key fails
+			core.Dictionary{core.Name("A"): core.Integer(1)},
+		},
+		{
+			"error on space after key",
+			2, // "<<" succeeds, key succeeds, space fails
+			core.Dictionary{core.Name("A"): core.Integer(1)},
+		},
+		{
+			"error on value",
+			3, // "<<" succeeds, key succeeds, space succeeds, value fails
+			core.Dictionary{core.Name("A"): core.Integer(1)},
+		},
+		{
+			"error on closing",
+			4, // all succeed except ">>"
+			core.Dictionary{core.Name("A"): core.Integer(1)},
+		},
+		{
+			"error on separator between entries",
+			5, // first key-value succeeds, separator fails
+			core.Dictionary{
+				core.Name("A"): core.Integer(1),
+				core.Name("B"): core.Integer(2),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ew := &errWriter{n: tt.allowWrites}
+			s := NewSerializer(ew)
+			err := s.Serialize(tt.dict)
+			if err == nil {
+				t.Error("expected error, got nil")
+			}
+		})
+	}
+}
+
+// TestSerializeStreamErrors はストリームシリアライズ時のエラーパスをテストする
+func TestSerializeStreamErrors(t *testing.T) {
+	stream := &core.Stream{
+		Dict: core.Dictionary{
+			core.Name("Length"): core.Integer(5),
+		},
+		Data: []byte("hello"),
+	}
+
+	tests := []struct {
+		name        string
+		allowWrites int
+	}{
+		{"error on dict", 0},
+		{"error on stream keyword", 4},  // dict writes succeed, "\nstream\n" fails
+		{"error on data write", 5},      // dict + stream keyword succeed, data fails
+		{"error on endstream", 6},       // dict + stream keyword + data succeed, endstream fails
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ew := &errWriter{n: tt.allowWrites}
+			s := NewSerializer(ew)
+			err := s.Serialize(stream)
+			if err == nil {
+				t.Error("expected error, got nil")
+			}
+		})
+	}
+}
+
+// TestSerializeIndirectObjectErrors はSerializeIndirectObject時のエラーパスをテストする
+func TestSerializeIndirectObjectErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		allowWrites int
+		obj         *core.IndirectObject
+	}{
+		{
+			"error on header",
+			0,
+			&core.IndirectObject{ObjectNumber: 1, Object: core.Integer(42)},
+		},
+		{
+			"error on content",
+			1, // header succeeds, content fails
+			&core.IndirectObject{ObjectNumber: 1, Object: core.Integer(42)},
+		},
+		{
+			"error on endobj",
+			2, // header + content succeed, endobj fails
+			&core.IndirectObject{ObjectNumber: 1, Object: core.Integer(42)},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ew := &errWriter{n: tt.allowWrites}
+			s := NewSerializer(ew)
+			err := s.SerializeIndirectObject(tt.obj)
+			if err == nil {
+				t.Error("expected error, got nil")
+			}
+		})
+	}
+}
+
+// TestSerializeRealString はreal型のStringをテストする
+func TestSerializeRealString(t *testing.T) {
+	var buf bytes.Buffer
+	s := NewSerializer(&buf)
+
+	err := s.Serialize(core.String("normal text 123"))
+	if err != nil {
+		t.Fatalf("Serialize(String) failed: %v", err)
+	}
+
+	got := buf.String()
+	want := "(normal text 123)"
+	if got != want {
+		t.Errorf("Serialize(String) = %q, want %q", got, want)
 	}
 }
