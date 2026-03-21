@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ryomak/gopdf/internal/core"
+	"github.com/ryomak/gopdf/internal/page"
 )
 
 // Metadata represents PDF document metadata (Info dictionary)
@@ -64,14 +65,6 @@ func formatPDFDate(t time.Time) string {
 		offsetSign, offsetHours, offsetMinutes)
 }
 
-// escapeString escapes special characters in PDF strings.
-// Escapes: (, ), \
-func escapeString(s string) string {
-	s = strings.ReplaceAll(s, "\\", "\\\\")
-	s = strings.ReplaceAll(s, "(", "\\(")
-	s = strings.ReplaceAll(s, ")", "\\)")
-	return s
-}
 
 // isASCII checks if a string contains only ASCII characters
 func isASCII(s string) bool {
@@ -93,7 +86,7 @@ func encodeTextString(s string) core.Object {
 
 	// If all ASCII, use simple string with escaping
 	if isASCII(s) {
-		return core.String("(" + escapeString(s) + ")")
+		return core.String("(" + page.EscapeString(s) + ")")
 	}
 
 	// For non-ASCII, use UTF-16BE with BOM

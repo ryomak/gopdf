@@ -90,54 +90,6 @@ func TestTextToHexString(t *testing.T) {
 	}
 }
 
-func TestReplaceAll(t *testing.T) {
-	tests := []struct {
-		name     string
-		s        string
-		old      string
-		new      string
-		expected string
-	}{
-		{
-			name:     "simple replace",
-			s:        "hello world",
-			old:      "world",
-			new:      "gopher",
-			expected: "hello gopher",
-		},
-		{
-			name:     "multiple replacements",
-			s:        "a-b-c-d",
-			old:      "-",
-			new:      "_",
-			expected: "a_b_c_d",
-		},
-		{
-			name:     "no match",
-			s:        "hello",
-			old:      "x",
-			new:      "y",
-			expected: "hello",
-		},
-		{
-			name:     "empty string",
-			s:        "",
-			old:      "a",
-			new:      "b",
-			expected: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := ReplaceAll(tt.s, tt.old, tt.new)
-			if got != tt.expected {
-				t.Errorf("ReplaceAll(%q, %q, %q) = %q, want %q", tt.s, tt.old, tt.new, got, tt.expected)
-			}
-		})
-	}
-}
-
 // mockGlyphIndexer implements GlyphIndexer for testing
 type mockGlyphIndexer struct {
 	mapping map[rune]int

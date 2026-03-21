@@ -2,16 +2,16 @@ package page
 
 import (
 	"fmt"
+	"strings"
 )
 
 // EscapeString escapes special characters in PDF strings.
 // It escapes backslashes and parentheses.
 func EscapeString(s string) string {
-	result := s
-	result = ReplaceAll(result, "\\", "\\\\")
-	result = ReplaceAll(result, "(", "\\(")
-	result = ReplaceAll(result, ")", "\\)")
-	return result
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "(", "\\(")
+	s = strings.ReplaceAll(s, ")", "\\)")
+	return s
 }
 
 // TextToHexString converts UTF-8 text to hex string for PDF.
@@ -67,16 +67,3 @@ func TextToGlyphIndices(text string, indexer GlyphIndexer, recorder GlyphRecorde
 	return result, nil
 }
 
-// ReplaceAll is a helper function to replace all occurrences of old with new.
-func ReplaceAll(s, old, new string) string {
-	result := ""
-	for i := 0; i < len(s); i++ {
-		if i <= len(s)-len(old) && s[i:i+len(old)] == old {
-			result += new
-			i += len(old) - 1
-		} else {
-			result += string(s[i])
-		}
-	}
-	return result
-}

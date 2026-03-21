@@ -31,7 +31,6 @@ type PDFTranslatorOptions struct {
 	FittingOptions  FitOptions    // テキストフィッティングオプション（FitOptions）
 	KeepImages      bool          // 画像を保持（デフォルト: true）
 	KeepLayout      bool          // レイアウトを保持（デフォルト: true）
-	TranslateByLine bool          // 行単位で翻訳（デフォルト: false）- 非推奨、TranslateUnitを使用
 	TranslateUnit   TranslateUnit // 翻訳単位（デフォルト: TranslateUnitBlock）
 }
 
@@ -46,15 +45,9 @@ func (opts PDFTranslatorOptions) getTargetFontName() string {
 	return ""
 }
 
-// getTranslateUnit は翻訳単位を取得（後方互換性のためTranslateByLineも考慮）
+// getTranslateUnit は翻訳単位を取得
 func (opts PDFTranslatorOptions) getTranslateUnit() TranslateUnit {
-	if opts.TranslateUnit != TranslateUnitBlock {
-		return opts.TranslateUnit
-	}
-	if opts.TranslateByLine {
-		return TranslateUnitLine
-	}
-	return TranslateUnitBlock
+	return opts.TranslateUnit
 }
 
 // DefaultPDFTranslatorOptions はデフォルトのオプション
