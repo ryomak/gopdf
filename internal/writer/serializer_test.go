@@ -762,7 +762,7 @@ func TestSerializeDictionaryMultipleKeys(t *testing.T) {
 		t.Fatalf("missing keys in output: %q", got)
 	}
 
-	if !(mediaBoxIdx < parentIdx && parentIdx < typeIdx) {
+	if mediaBoxIdx >= parentIdx || parentIdx >= typeIdx {
 		t.Errorf("keys not sorted: MediaBox@%d, Parent@%d, Type@%d", mediaBoxIdx, parentIdx, typeIdx)
 	}
 }

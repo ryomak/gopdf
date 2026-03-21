@@ -507,7 +507,7 @@ func TestReader_DecodeStream_FlateDecode(t *testing.T) {
 		t.Fatalf("Failed to create zlib writer: %v", err)
 	}
 	_, _ = w.Write([]byte("Hello, World!"))
-	w.Close()
+	_ = w.Close()
 
 	stream := &core.Stream{
 		Dict: core.Dictionary{
@@ -567,7 +567,7 @@ func TestReader_DecodeStream_FilterArray(t *testing.T) {
 		t.Fatalf("Failed to create zlib writer: %v", err)
 	}
 	_, _ = w.Write([]byte("Test Data"))
-	w.Close()
+	_ = w.Close()
 
 	stream := &core.Stream{
 		Dict: core.Dictionary{
@@ -1530,7 +1530,7 @@ func TestReader_decodeStream_FilterNameOnly(t *testing.T) {
 		t.Fatalf("Failed to create zlib writer: %v", err)
 	}
 	_, _ = w.Write([]byte("Test"))
-	w.Close()
+	_ = w.Close()
 
 	// 不正なzlibデータでエラーを発生させる
 	stream := &core.Stream{
