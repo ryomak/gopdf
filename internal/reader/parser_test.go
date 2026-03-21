@@ -1,6 +1,7 @@
 package reader
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -324,6 +325,296 @@ func TestParser_ParseEmptyArray(t *testing.T) {
 
 	if len(arr) != 0 {
 		t.Errorf("Array should be empty, got %d elements", len(arr))
+	}
+}
+
+// TestParser_ParseStream はストリームのパースをテストする
+func TestParser_ParseStream(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		dict         core.Dictionary
+		expectedData string
+		wantErr      bool
+	}{
+		{
+			name:  "Simple stream with LF",
+			input: "stream\nHello, World!\nendstream",
+			dict: core.Dictionary{
+				core.Name("Length"): core.Integer(14),
+			},
+			expectedData: "Hello, World!\n",
+		},
+		{
+			name:  "Stream with CRLF",
+			input: "stream\r\nTest Data\nendstream",
+			dict: core.Dictionary{
+				core.Name("Length"): core.Integer(10),
+			},
+			expectedData: "Test Data\n",
+		},
+		{
+			name:  "Empty stream",
+			input: "stream\n\nendstream",
+			dict: core.Dictionary{
+				core.Name("Length"): core.Integer(0),
+			},
+			expectedData: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := NewParser(strings.NewReader(tt.input))
+			stream, err := parser.ParseStream(tt.dict)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if string(stream.Data) != tt.expectedData {
+				t.Errorf("Data = %q, want %q", string(stream.Data), tt.expectedData)
+			}
+		})
+	}
+}
+
+// TestParser_ParseStream_MissingLength はLengthなしストリームのエラーテスト
+func TestParser_ParseStream_MissingLength(t *testing.T) {
+	input := "stream\ndata\nendstream"
+	dict := core.Dictionary{} // no Length
+	parser := NewParser(strings.NewReader(input))
+	_, err := parser.ParseStream(dict)
+	if err == nil {
+		t.Error("Expected error for missing Length, got nil")
+	}
+}
+
+// TestParser_ParseStream_InvalidLength は不正なLength型のエラーテスト
+func TestParser_ParseStream_InvalidLength(t *testing.T) {
+	input := "stream\ndata\nendstream"
+	dict := core.Dictionary{
+		core.Name("Length"): core.String("notanumber"),
+	}
+	parser := NewParser(strings.NewReader(input))
+	_, err := parser.ParseStream(dict)
+	if err == nil {
+		t.Error("Expected error for invalid Length type, got nil")
+	}
+}
+
+// TestParser_ParseStream_ReferenceLength は参照Lengthのエラーテスト
+func TestParser_ParseStream_ReferenceLength(t *testing.T) {
+	input := "stream\ndata\nendstream"
+	dict := core.Dictionary{
+		core.Name("Length"): &core.Reference{ObjectNumber: 10, GenerationNumber: 0},
+	}
+	parser := NewParser(strings.NewReader(input))
+	_, err := parser.ParseStream(dict)
+	if err == nil {
+		t.Error("Expected error for reference Length, got nil")
+	}
+}
+
+// TestParser_ParseStream_NotStreamKeyword は不正なキーワードのエラーテスト
+func TestParser_ParseStream_NotStreamKeyword(t *testing.T) {
+	input := "notstream\ndata\nendstream"
+	dict := core.Dictionary{
+		core.Name("Length"): core.Integer(4),
+	}
+	parser := NewParser(strings.NewReader(input))
+	_, err := parser.ParseStream(dict)
+	if err == nil {
+		t.Error("Expected error for wrong keyword, got nil")
+	}
+}
+
+// TestParser_ParseIndirectObject_Stream は間接オブジェクト内のストリームパースをテストする
+func TestParser_ParseIndirectObject_Stream(t *testing.T) {
+	streamContent := "BT /F1 12 Tf (Hello) Tj ET"
+	input := fmt.Sprintf("4 0 obj\n<< /Length %d >>\nstream\n%s\nendstream\nendobj", len(streamContent)+1, streamContent)
+
+	parser := NewParser(strings.NewReader(input))
+	objNum, genNum, obj, err := parser.ParseIndirectObject()
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if objNum != 4 {
+		t.Errorf("ObjectNumber = %d, want 4", objNum)
+	}
+	if genNum != 0 {
+		t.Errorf("GenerationNumber = %d, want 0", genNum)
+	}
+
+	stream, ok := obj.(*core.Stream)
+	if !ok {
+		t.Fatalf("Expected Stream, got %T", obj)
+	}
+
+	// ストリームデータの確認（末尾改行を含む）
+	if len(stream.Data) == 0 {
+		t.Error("Stream data is empty")
+	}
+}
+
+// TestParser_ParseIndirectObject_VariousTypes は様々な型の間接オブジェクトテスト
+func TestParser_ParseIndirectObject_VariousTypes(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		objNum    int
+		genNum    int
+		checkType func(t *testing.T, obj core.Object)
+	}{
+		{
+			name:   "Integer object",
+			input:  "10 0 obj\n42\nendobj",
+			objNum: 10,
+			genNum: 0,
+			checkType: func(t *testing.T, obj core.Object) {
+				t.Helper()
+				v, ok := obj.(core.Integer)
+				if !ok {
+					t.Fatalf("Expected Integer, got %T", obj)
+				}
+				if int(v) != 42 {
+					t.Errorf("Value = %d, want 42", v)
+				}
+			},
+		},
+		{
+			name:   "String object",
+			input:  "5 0 obj\n(Hello PDF)\nendobj",
+			objNum: 5,
+			genNum: 0,
+			checkType: func(t *testing.T, obj core.Object) {
+				t.Helper()
+				v, ok := obj.(core.String)
+				if !ok {
+					t.Fatalf("Expected String, got %T", obj)
+				}
+				if string(v) != "Hello PDF" {
+					t.Errorf("Value = %q, want %q", string(v), "Hello PDF")
+				}
+			},
+		},
+		{
+			name:   "Array object",
+			input:  "7 0 obj\n[1 2 3]\nendobj",
+			objNum: 7,
+			genNum: 0,
+			checkType: func(t *testing.T, obj core.Object) {
+				t.Helper()
+				arr, ok := obj.(core.Array)
+				if !ok {
+					t.Fatalf("Expected Array, got %T", obj)
+				}
+				if len(arr) != 3 {
+					t.Errorf("Array length = %d, want 3", len(arr))
+				}
+			},
+		},
+		{
+			name:   "Boolean object",
+			input:  "8 0 obj\ntrue\nendobj",
+			objNum: 8,
+			genNum: 0,
+			checkType: func(t *testing.T, obj core.Object) {
+				t.Helper()
+				v, ok := obj.(core.Boolean)
+				if !ok {
+					t.Fatalf("Expected Boolean, got %T", obj)
+				}
+				if bool(v) != true {
+					t.Errorf("Value = %v, want true", v)
+				}
+			},
+		},
+		{
+			name:   "Name object",
+			input:  "9 0 obj\n/Helvetica\nendobj",
+			objNum: 9,
+			genNum: 0,
+			checkType: func(t *testing.T, obj core.Object) {
+				t.Helper()
+				v, ok := obj.(core.Name)
+				if !ok {
+					t.Fatalf("Expected Name, got %T", obj)
+				}
+				if string(v) != "Helvetica" {
+					t.Errorf("Value = %q, want %q", string(v), "Helvetica")
+				}
+			},
+		},
+		{
+			name:   "Non-zero generation number",
+			input:  "3 2 obj\n(test)\nendobj",
+			objNum: 3,
+			genNum: 2,
+			checkType: func(t *testing.T, obj core.Object) {
+				t.Helper()
+				_, ok := obj.(core.String)
+				if !ok {
+					t.Fatalf("Expected String, got %T", obj)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := NewParser(strings.NewReader(tt.input))
+			objNum, genNum, obj, err := parser.ParseIndirectObject()
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if objNum != tt.objNum {
+				t.Errorf("ObjectNumber = %d, want %d", objNum, tt.objNum)
+			}
+			if genNum != tt.genNum {
+				t.Errorf("GenerationNumber = %d, want %d", genNum, tt.genNum)
+			}
+			tt.checkType(t, obj)
+		})
+	}
+}
+
+// TestParser_ParseDictionary_ErrorCases は辞書パースのエラーケーステスト
+func TestParser_ParseDictionary_ErrorCases(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "Non-name key",
+			input: "<< 42 /Value >>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := NewParser(strings.NewReader(tt.input))
+			_, err := parser.ParseObject()
+			if err == nil {
+				t.Error("Expected error, got nil")
+			}
+		})
+	}
+}
+
+// TestParser_ParseObject_UnexpectedToken は予期しないトークンのエラーテスト
+func TestParser_ParseObject_UnexpectedToken(t *testing.T) {
+	// ">>" は辞書の終了で、オブジェクトの開始としては不正
+	input := ">>"
+	parser := NewParser(strings.NewReader(input))
+	_, err := parser.ParseObject()
+	if err == nil {
+		t.Error("Expected error for unexpected token, got nil")
 	}
 }
 
