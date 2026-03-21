@@ -827,7 +827,71 @@ func TestTranslatePDF(t *testing.T) {
 - **テストファイル**: 実際の翻訳前に小さなPDFでテスト
 - **バックアップ**: 元のPDFは必ず保持
 
-## 9. 参考資料
+## 9. リファクタリング（2026-03-21）
+
+### 9.1. 構造改善
+
+翻訳パイプラインのリファクタリングを実施。
+
+#### 重複排除
+`TranslatePDF` と `TranslatePDFToWriter` の共通処理を `translatePages` に抽出。
+
+```
+TranslatePDF        ──→ translatePages ──→ file output
+TranslatePDFToWriter ──→ translatePages ──→ writer output
+```
+
+#### RenderLayout の責務分離
+
+大きな `RenderLayout` 関数を以下の小さな関数に分割:
+
+| 関数名 | 責務 |
+|--------|------|
+| `renderImageBlock` | 画像ブロックの描画 |
+| `renderTextBlock` | テキストブロックの描画 |
+| `selectFont` | フォント選択のディスパッチ |
+| `selectASCIIFont` | ASCII用フォント選択 |
+| `selectNonASCIIFont` | 非ASCII用フォント選択 |
+| `drawFittedLines` | フィッティング済みテキスト描画 |
+| `calculateLineX` | アラインメントに応じたX座標計算 |
+| `translateLayoutBlocks` | レイアウト内ブロック翻訳 |
+
+### 9.2. 無料翻訳機能
+
+外部APIを利用した組み込み翻訳機能を追加。
+
+#### MyMemory API
+
+- **エンドポイント**: `https://api.mymemory.translated.net/get`
+- **認証**: 不要（匿名5000文字/日、メール設定で50000文字/日）
+- **実装**: `translate.MyMemoryTranslator`
+
+```go
+translator := gopdf.NewMyMemoryTranslator("en", "ja")
+translator.Email = "user@example.com"  // 日次制限緩和（省略可）
+```
+
+#### LibreTranslate API
+
+- **エンドポイント**: セルフホスト（例: `http://localhost:5000`）
+- **認証**: セルフホスト時は不要
+- **実装**: `translate.LibreTranslateTranslator`
+
+```go
+translator := gopdf.NewLibreTranslateTranslator("http://localhost:5000", "en", "ja")
+```
+
+#### CLI対応
+
+```bash
+# MyMemory（無料・APIキー不要）
+gopdf translate input.pdf output.pdf --font font.ttf --mymemory ja
+
+# LibreTranslate（セルフホスト）
+gopdf translate input.pdf output.pdf --font font.ttf --libretranslate http://localhost:5000 --target-lang ja
+```
+
+## 10. 参考資料
 
 - [PDF 1.7 仕様書](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf)
   - Section 8: Graphics
