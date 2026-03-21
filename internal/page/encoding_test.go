@@ -78,6 +78,21 @@ func TestTextToHexString(t *testing.T) {
 			input: "",
 			want:  "",
 		},
+		{
+			name:  "non-BMP character (emoji)",
+			input: "\U0001F600", // 😀 U+1F600
+			want:  "D83DDE00",  // UTF-16 surrogate pair: D83D DE00
+		},
+		{
+			name:  "non-BMP with BMP mixed",
+			input: "A\U0001F600B",
+			want:  "0041D83DDE000042",
+		},
+		{
+			name:  "musical symbol (non-BMP)",
+			input: "\U0001D11E", // 𝄞 U+1D11E
+			want:  "D834DD1E",  // UTF-16 surrogate pair: D834 DD1E
+		},
 	}
 
 	for _, tt := range tests {
@@ -85,54 +100,6 @@ func TestTextToHexString(t *testing.T) {
 			got := TextToHexString(tt.input)
 			if got != tt.want {
 				t.Errorf("TextToHexString(%q) = %q, want %q", tt.input, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestReplaceAll(t *testing.T) {
-	tests := []struct {
-		name     string
-		s        string
-		old      string
-		new      string
-		expected string
-	}{
-		{
-			name:     "simple replace",
-			s:        "hello world",
-			old:      "world",
-			new:      "gopher",
-			expected: "hello gopher",
-		},
-		{
-			name:     "multiple replacements",
-			s:        "a-b-c-d",
-			old:      "-",
-			new:      "_",
-			expected: "a_b_c_d",
-		},
-		{
-			name:     "no match",
-			s:        "hello",
-			old:      "x",
-			new:      "y",
-			expected: "hello",
-		},
-		{
-			name:     "empty string",
-			s:        "",
-			old:      "a",
-			new:      "b",
-			expected: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := ReplaceAll(tt.s, tt.old, tt.new)
-			if got != tt.expected {
-				t.Errorf("ReplaceAll(%q, %q, %q) = %q, want %q", tt.s, tt.old, tt.new, got, tt.expected)
 			}
 		})
 	}

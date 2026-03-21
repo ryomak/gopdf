@@ -326,6 +326,291 @@ func TestLexer_ComplexDictionary(t *testing.T) {
 	}
 }
 
+// TestLexer_ReadBytes はReadBytesをテストする
+func TestLexer_ReadBytes(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		n        int
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "Read all bytes",
+			input:    "Hello",
+			n:        5,
+			expected: "Hello",
+		},
+		{
+			name:     "Read partial bytes",
+			input:    "Hello, World!",
+			n:        5,
+			expected: "Hello",
+		},
+		{
+			name:     "Read zero bytes",
+			input:    "Hello",
+			n:        0,
+			expected: "",
+		},
+		{
+			name:    "Read more than available",
+			input:   "Hi",
+			n:       10,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lexer := NewLexer(strings.NewReader(tt.input))
+			result, err := lexer.ReadBytes(tt.n)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if string(result) != tt.expected {
+				t.Errorf("Result = %q, want %q", string(result), tt.expected)
+			}
+		})
+	}
+}
+
+// TestLexer_ReadBytes_WithPeekedBuffer はpeekedバッファありのReadBytesをテストする
+func TestLexer_ReadBytes_WithPeekedBuffer(t *testing.T) {
+	lexer := NewLexer(strings.NewReader("ABCDEF"))
+
+	// peekByteで先読みバッファにデータを入れる
+	b, err := lexer.peekByte()
+	if err != nil {
+		t.Fatalf("peekByte error: %v", err)
+	}
+	if b != 'A' {
+		t.Fatalf("peeked = %c, want A", b)
+	}
+
+	// ReadBytesで先読みバッファ含めて読む
+	result, err := lexer.ReadBytes(4)
+	if err != nil {
+		t.Fatalf("ReadBytes error: %v", err)
+	}
+	if string(result) != "ABCD" {
+		t.Errorf("Result = %q, want %q", string(result), "ABCD")
+	}
+}
+
+// TestLexer_ReadBytes_PeekedExact はpeekedバッファだけで足りる場合のテスト
+func TestLexer_ReadBytes_PeekedExact(t *testing.T) {
+	lexer := NewLexer(strings.NewReader("XY"))
+
+	// 2バイト先読み
+	_, _ = lexer.peekByte()
+	_, _ = lexer.readByte()
+	_, _ = lexer.peekByte()
+
+	// peekedから1バイト読む
+	result, err := lexer.ReadBytes(1)
+	if err != nil {
+		t.Fatalf("ReadBytes error: %v", err)
+	}
+	if string(result) != "Y" {
+		t.Errorf("Result = %q, want %q", string(result), "Y")
+	}
+}
+
+// TestLexer_LiteralString_NestedParens はネストした括弧のテスト
+func TestLexer_LiteralString_NestedParens(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Simple nested parens",
+			input:    "(Hello (World))",
+			expected: "Hello (World)",
+		},
+		{
+			name:     "Double nested parens",
+			input:    "(a (b (c)))",
+			expected: "a (b (c))",
+		},
+		{
+			name:     "Escaped parens",
+			input:    `(Hello \(World\))`,
+			expected: "Hello (World)",
+		},
+		{
+			name:     "Escaped backslash",
+			input:    `(Path\\Name)`,
+			expected: "Path\\Name",
+		},
+		{
+			name:     "Tab escape",
+			input:    `(Col1\tCol2)`,
+			expected: "Col1\tCol2",
+		},
+		{
+			name:     "Carriage return escape",
+			input:    `(Line\r)`,
+			expected: "Line\r",
+		},
+		{
+			name:     "Unknown escape passes through",
+			input:    `(Test\x)`,
+			expected: "Testx",
+		},
+		{
+			name:     "Empty string",
+			input:    "()",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lexer := NewLexer(strings.NewReader(tt.input))
+			token, err := lexer.NextToken()
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if token.Type != TokenString {
+				t.Fatalf("Type = %v, want TokenString", token.Type)
+			}
+			if token.Value != tt.expected {
+				t.Errorf("Value = %q, want %q", token.Value, tt.expected)
+			}
+		})
+	}
+}
+
+// TestLexer_Name_SpecialChars は名前の特殊文字テスト
+func TestLexer_Name_SpecialChars(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Simple name",
+			input:    "/Type",
+			expected: "Type",
+		},
+		{
+			name:     "Name with hyphen",
+			input:    "/Helvetica-Bold",
+			expected: "Helvetica-Bold",
+		},
+		{
+			name:     "Name with hex escape",
+			input:    "/A#20B",
+			expected: "A B",
+		},
+		{
+			name:     "Name at EOF",
+			input:    "/LastName",
+			expected: "LastName",
+		},
+		{
+			name:     "Name before delimiter",
+			input:    "/Key>>",
+			expected: "Key",
+		},
+		{
+			name:     "Name with dots",
+			input:    "/Adobe.PPKLite",
+			expected: "Adobe.PPKLite",
+		},
+		{
+			name:     "Name with underscore",
+			input:    "/My_Name",
+			expected: "My_Name",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lexer := NewLexer(strings.NewReader(tt.input))
+			token, err := lexer.NextToken()
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if token.Type != TokenName {
+				t.Fatalf("Type = %v, want TokenName", token.Type)
+			}
+			if token.Value != tt.expected {
+				t.Errorf("Value = %q, want %q", token.Value, tt.expected)
+			}
+		})
+	}
+}
+
+// TestLexer_StreamKeyword はstreamキーワードのトークン化テスト
+func TestLexer_StreamKeyword(t *testing.T) {
+	input := "stream"
+	lexer := NewLexer(strings.NewReader(input))
+	token, err := lexer.NextToken()
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if token.Type != TokenKeyword {
+		t.Fatalf("Type = %v, want TokenKeyword", token.Type)
+	}
+	if token.Value != "stream" {
+		t.Errorf("Value = %v, want stream", token.Value)
+	}
+}
+
+// TestLexer_Number_EdgeCases は数値の境界ケーステスト
+func TestLexer_Number_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		tokenType TokenType
+		value     interface{}
+	}{
+		{
+			name:      "Plus sign prefix",
+			input:     "+5",
+			tokenType: TokenInteger,
+			value:     5,
+		},
+		{
+			name:      "Leading dot real",
+			input:     ".5",
+			tokenType: TokenReal,
+			value:     0.5,
+		},
+		{
+			name:      "Zero",
+			input:     "0",
+			tokenType: TokenInteger,
+			value:     0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lexer := NewLexer(strings.NewReader(tt.input))
+			token, err := lexer.NextToken()
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if token.Type != tt.tokenType {
+				t.Errorf("Type = %v, want %v", token.Type, tt.tokenType)
+			}
+			if token.Value != tt.value {
+				t.Errorf("Value = %v, want %v", token.Value, tt.value)
+			}
+		})
+	}
+}
+
 // TestDecodeHexString はHex文字列のデコードをテストする
 func TestDecodeHexString(t *testing.T) {
 	tests := []struct {

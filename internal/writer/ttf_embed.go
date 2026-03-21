@@ -34,7 +34,7 @@ func (e *TTFFontEmbedder) EmbedTTFFont(ttfFont *font.TTFFont, usedGlyphs map[uin
 	}
 
 	// 3. Create CIDFont (DescendantFont)
-	cidFontRef, err := e.createCIDFont(ttfFont, fontDescriptorRef)
+	cidFontRef, err := e.createCIDFont(ttfFont, fontDescriptorRef, usedGlyphs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CIDFont: %w", err)
 	}
@@ -122,7 +122,7 @@ func (e *TTFFontEmbedder) createCIDSystemInfo() core.Dictionary {
 }
 
 // createCIDFont creates a CIDFont (Type 0 descendant font) dictionary
-func (e *TTFFontEmbedder) createCIDFont(ttfFont *font.TTFFont, fontDescriptorRef *core.Reference) (*core.Reference, error) {
+func (e *TTFFontEmbedder) createCIDFont(ttfFont *font.TTFFont, fontDescriptorRef *core.Reference, usedGlyphs map[uint16]rune) (*core.Reference, error) {
 	cidFont := core.Dictionary{
 		core.Name("Type"):           core.Name("Font"),
 		core.Name("Subtype"):        core.Name("CIDFontType2"),
@@ -133,8 +133,12 @@ func (e *TTFFontEmbedder) createCIDFont(ttfFont *font.TTFFont, fontDescriptorRef
 		core.Name("DW"): core.Integer(1000),
 		// CIDToGIDMap is Identity (CID = GID for TrueType-based fonts)
 		core.Name("CIDToGIDMap"): core.Name("Identity"),
-		// W array for character widths - simplified for now
-		// In production, this should contain actual glyph widths
+	}
+
+	// Build /W array with actual glyph widths from font metrics
+	wArray := e.buildWidthArray(ttfFont, usedGlyphs)
+	if len(wArray) > 0 {
+		cidFont[core.Name("W")] = wArray
 	}
 
 	objNum, err := e.writer.AddObject(cidFont)
@@ -146,6 +150,37 @@ func (e *TTFFontEmbedder) createCIDFont(ttfFont *font.TTFFont, fontDescriptorRef
 		ObjectNumber:     objNum,
 		GenerationNumber: 0,
 	}, nil
+}
+
+// buildWidthArray builds the /W array for CIDFont from actual glyph metrics.
+// Format: [ cid [w1 w2 ...] cid [w1 w2 ...] ... ]
+// Each entry maps a starting CID to a list of widths for consecutive CIDs.
+func (e *TTFFontEmbedder) buildWidthArray(ttfFont *font.TTFFont, usedGlyphs map[uint16]rune) core.Array {
+	if len(usedGlyphs) == 0 {
+		return nil
+	}
+
+	// Collect glyph IDs and sort them
+	gids := make([]uint16, 0, len(usedGlyphs))
+	for gid := range usedGlyphs {
+		gids = append(gids, gid)
+	}
+	sort.Slice(gids, func(i, j int) bool { return gids[i] < gids[j] })
+
+	// Build W array using individual CID entries: [ cid [width] cid [width] ... ]
+	var wArray core.Array
+	for _, gid := range gids {
+		r := usedGlyphs[gid]
+		// Get glyph width at 1000 units per em (PDF standard)
+		width, err := ttfFont.GlyphWidth(r, 1000)
+		if err != nil {
+			continue
+		}
+		widthInt := core.Integer(int(width + 0.5)) // Round to nearest integer
+		wArray = append(wArray, core.Integer(int(gid)), core.Array{widthInt})
+	}
+
+	return wArray
 }
 
 // createToUnicodeCMap creates a ToUnicode CMap stream

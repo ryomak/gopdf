@@ -156,7 +156,14 @@ func (d *Document) embedTTFFonts(ctx *pdfBuildContext) error {
 
 // calculatePagesObjNum computes the object number for the Pages object.
 func (d *Document) calculatePagesObjNum(ctx *pdfBuildContext) {
-	ctx.pagesObjNum = 1 + len(ctx.allFonts) + len(ctx.allTTFFonts)*5 + len(ctx.allImages) + len(d.pages)*2
+	// Count SMask objects: each image with an alpha channel creates an additional object
+	smaskCount := 0
+	for _, img := range ctx.imageOrder {
+		if img.SMask != nil {
+			smaskCount++
+		}
+	}
+	ctx.pagesObjNum = 1 + len(ctx.allFonts) + len(ctx.allTTFFonts)*5 + len(ctx.allImages) + smaskCount + len(d.pages)*2
 }
 
 // writeStandardFonts writes standard font objects.

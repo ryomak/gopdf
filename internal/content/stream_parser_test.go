@@ -227,3 +227,154 @@ func TestStreamParser_EmptyStream(t *testing.T) {
 		t.Errorf("Expected 0 operations, got %d", len(operations))
 	}
 }
+
+// TestStreamParser_Dictionary は辞書パースをテストする
+func TestStreamParser_Dictionary(t *testing.T) {
+	tests := []struct {
+		name          string
+		stream        string
+		expectedCount int
+		check         func(*testing.T, []Operation)
+	}{
+		{
+			name:          "dictionary as operand",
+			stream:        "<< /Type /Example /Value 42 >> someop",
+			expectedCount: 1,
+			check: func(t *testing.T, ops []Operation) {
+				if ops[0].Operator != "someop" {
+					t.Errorf("Operator = %s, want someop", ops[0].Operator)
+				}
+				if len(ops[0].Operands) != 1 {
+					t.Fatalf("Expected 1 operand, got %d", len(ops[0].Operands))
+				}
+				dict, ok := ops[0].Operands[0].(core.Dictionary)
+				if !ok {
+					t.Fatalf("Expected Dictionary, got %T", ops[0].Operands[0])
+				}
+				if len(dict) != 2 {
+					t.Errorf("Dictionary length = %d, want 2", len(dict))
+				}
+			},
+		},
+		{
+			name:          "empty dictionary",
+			stream:        "<< >> someop",
+			expectedCount: 1,
+			check: func(t *testing.T, ops []Operation) {
+				dict, ok := ops[0].Operands[0].(core.Dictionary)
+				if !ok {
+					t.Fatalf("Expected Dictionary, got %T", ops[0].Operands[0])
+				}
+				if len(dict) != 0 {
+					t.Errorf("Dictionary length = %d, want 0", len(dict))
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := NewStreamParser([]byte(tt.stream))
+			ops, err := parser.ParseOperations()
+			if err != nil {
+				t.Fatalf("ParseOperations failed: %v", err)
+			}
+			if len(ops) != tt.expectedCount {
+				t.Fatalf("Operation count = %d, want %d", len(ops), tt.expectedCount)
+			}
+			if tt.check != nil {
+				tt.check(t, ops)
+			}
+		})
+	}
+}
+
+// TestStreamParser_BooleanAndNull はBoolean/Nullトークンのパースをテストする
+func TestStreamParser_BooleanAndNull(t *testing.T) {
+	stream := "true false null someop"
+
+	parser := NewStreamParser([]byte(stream))
+	ops, err := parser.ParseOperations()
+	if err != nil {
+		t.Fatalf("ParseOperations failed: %v", err)
+	}
+
+	if len(ops) != 1 {
+		t.Fatalf("Expected 1 operation, got %d", len(ops))
+	}
+
+	op := ops[0]
+	if len(op.Operands) != 3 {
+		t.Fatalf("Expected 3 operands, got %d", len(op.Operands))
+	}
+
+	// true
+	b1, ok := op.Operands[0].(core.Boolean)
+	if !ok {
+		t.Fatalf("Expected Boolean, got %T", op.Operands[0])
+	}
+	if !bool(b1) {
+		t.Errorf("Expected true, got false")
+	}
+
+	// false
+	b2, ok := op.Operands[1].(core.Boolean)
+	if !ok {
+		t.Fatalf("Expected Boolean, got %T", op.Operands[1])
+	}
+	if bool(b2) {
+		t.Errorf("Expected false, got true")
+	}
+
+	// null
+	if op.Operands[2] != nil {
+		t.Errorf("Expected nil for null, got %v", op.Operands[2])
+	}
+}
+
+// TestStreamParser_NestedArray はネストされた配列をテストする
+func TestStreamParser_NestedArray(t *testing.T) {
+	stream := "[[1 2] [3 4]] someop"
+
+	parser := NewStreamParser([]byte(stream))
+	ops, err := parser.ParseOperations()
+	if err != nil {
+		t.Fatalf("ParseOperations failed: %v", err)
+	}
+
+	if len(ops) != 1 {
+		t.Fatalf("Expected 1 operation, got %d", len(ops))
+	}
+
+	arr, ok := ops[0].Operands[0].(core.Array)
+	if !ok {
+		t.Fatalf("Expected Array, got %T", ops[0].Operands[0])
+	}
+
+	if len(arr) != 2 {
+		t.Errorf("Outer array length = %d, want 2", len(arr))
+	}
+}
+
+// TestStreamParser_IntegerOperand は整数オペランドのパースをテストする
+func TestStreamParser_IntegerOperand(t *testing.T) {
+	stream := "42 op"
+
+	parser := NewStreamParser([]byte(stream))
+	ops, err := parser.ParseOperations()
+	if err != nil {
+		t.Fatalf("ParseOperations failed: %v", err)
+	}
+
+	if len(ops) != 1 {
+		t.Fatalf("Expected 1 operation, got %d", len(ops))
+	}
+
+	val, ok := ops[0].Operands[0].(core.Integer)
+	if !ok {
+		t.Fatalf("Expected Integer, got %T", ops[0].Operands[0])
+	}
+	if int(val) != 42 {
+		t.Errorf("Integer = %d, want 42", val)
+	}
+}

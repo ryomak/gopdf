@@ -120,6 +120,104 @@ func TestCombineBlockText(t *testing.T) {
 	}
 }
 
+func TestCreateTextBlock(t *testing.T) {
+	tests := []struct {
+		name       string
+		elements   []TextElement
+		wantText   string
+		wantFont   string
+		wantBold   bool
+		wantItalic bool
+		wantRect   Rectangle
+	}{
+		{
+			name: "single element",
+			elements: []TextElement{
+				{Text: "Hello", X: 10, Y: 100, Width: 30, Height: 12, Font: "Helvetica", Size: 12},
+			},
+			wantText: "Hello",
+			wantFont: "Helvetica",
+			wantRect: Rectangle{X: 10, Y: 100, Width: 30, Height: 12},
+		},
+		{
+			name: "multiple elements close together no space",
+			elements: []TextElement{
+				{Text: "He", X: 10, Y: 100, Width: 12, Height: 12, Font: "Helvetica", Size: 12},
+				{Text: "llo", X: 22, Y: 100, Width: 18, Height: 12, Font: "Helvetica", Size: 12},
+			},
+			wantText: "Hello",
+			wantFont: "Helvetica",
+			wantRect: Rectangle{X: 10, Y: 100, Width: 30, Height: 12},
+		},
+		{
+			name: "multiple elements with space gap",
+			elements: []TextElement{
+				{Text: "Hello", X: 10, Y: 100, Width: 30, Height: 12, Font: "Helvetica", Size: 12},
+				{Text: "World", X: 50, Y: 100, Width: 30, Height: 12, Font: "Helvetica", Size: 12},
+			},
+			wantText: "Hello World",
+			wantFont: "Helvetica",
+			wantRect: Rectangle{X: 10, Y: 100, Width: 70, Height: 12},
+		},
+		{
+			name: "bold font detected",
+			elements: []TextElement{
+				{Text: "Bold", X: 10, Y: 100, Width: 30, Height: 14, Font: "Helvetica-Bold", Size: 14},
+			},
+			wantText:   "Bold",
+			wantFont:   "Helvetica-Bold",
+			wantBold:   true,
+			wantItalic: false,
+			wantRect:   Rectangle{X: 10, Y: 100, Width: 30, Height: 14},
+		},
+		{
+			name: "italic font detected",
+			elements: []TextElement{
+				{Text: "Italic", X: 10, Y: 100, Width: 30, Height: 12, Font: "Times-Italic", Size: 12},
+			},
+			wantText:   "Italic",
+			wantFont:   "Times-Italic",
+			wantBold:   false,
+			wantItalic: true,
+			wantRect:   Rectangle{X: 10, Y: 100, Width: 30, Height: 12},
+		},
+		{
+			name: "bounding box spans multiple elements at different positions",
+			elements: []TextElement{
+				{Text: "A", X: 10, Y: 200, Width: 10, Height: 12, Font: "Helvetica", Size: 12},
+				{Text: "B", X: 50, Y: 180, Width: 10, Height: 14, Font: "Helvetica", Size: 12},
+			},
+			wantText: "A B",
+			wantFont: "Helvetica",
+			wantRect: Rectangle{X: 10, Y: 180, Width: 50, Height: 32},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CreateTextBlock(tt.elements)
+			if got.Text != tt.wantText {
+				t.Errorf("Text = %q, want %q", got.Text, tt.wantText)
+			}
+			if got.Font != tt.wantFont {
+				t.Errorf("Font = %q, want %q", got.Font, tt.wantFont)
+			}
+			if got.IsBold != tt.wantBold {
+				t.Errorf("IsBold = %v, want %v", got.IsBold, tt.wantBold)
+			}
+			if got.IsItalic != tt.wantItalic {
+				t.Errorf("IsItalic = %v, want %v", got.IsItalic, tt.wantItalic)
+			}
+			if got.Rect != tt.wantRect {
+				t.Errorf("Rect = %+v, want %+v", got.Rect, tt.wantRect)
+			}
+			if len(got.Elements) != len(tt.elements) {
+				t.Errorf("Elements count = %d, want %d", len(got.Elements), len(tt.elements))
+			}
+		})
+	}
+}
+
 func TestCreateTextBlockFromLines(t *testing.T) {
 	tests := []struct {
 		name         string

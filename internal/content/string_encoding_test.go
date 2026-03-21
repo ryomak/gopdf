@@ -152,6 +152,14 @@ func TestDecodeUTF16LE(t *testing.T) {
 	}
 }
 
+func TestDecodeUTF16LE_OddLength(t *testing.T) {
+	data := []byte{0x41, 0x00, 0x42}
+	result := decodeUTF16LE(data)
+	if result != "" {
+		t.Errorf("Expected empty string for odd length, got %q", result)
+	}
+}
+
 func TestDecodePDFDocEncoding_AllRanges(t *testing.T) {
 	// 各範囲のテスト
 	tests := []struct {

@@ -37,9 +37,19 @@ const (
 
 // translate パッケージの再エクスポート
 type (
-	Translator    = translate.Translator
-	TranslateFunc = translate.Func
+	Translator                = translate.Translator
+	TranslateFunc             = translate.Func
+	MyMemoryTranslator        = translate.MyMemoryTranslator
+	LibreTranslateTranslator  = translate.LibreTranslateTranslator
 )
+
+// NewMyMemoryTranslator は無料のMyMemory翻訳APIを使用するTranslatorを作成
+// sourceLang, targetLang は言語コード（例: "en", "ja"）
+var NewMyMemoryTranslator = translate.NewMyMemoryTranslator
+
+// NewLibreTranslateTranslator はLibreTranslate APIを使用するTranslatorを作成
+// baseURL はLibreTranslateのエンドポイント（例: "http://localhost:5000"）
+var NewLibreTranslateTranslator = translate.NewLibreTranslateTranslator
 
 // FitText は text.Fit のラッパー
 func FitText(s string, bounds Rectangle, fontName string, opts FitOptions) (*FittedText, error) {

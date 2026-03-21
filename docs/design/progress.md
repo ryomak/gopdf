@@ -223,6 +223,15 @@
 - 日本語フォント対応（TTF必須）
 - 翻訳サンプル・ドキュメント完備
 
+**Phase 9 リファクタリング（2026-03-21）:**
+- [x] TranslatePDF/TranslatePDFToWriter の共通処理を `translatePages` に抽出
+- [x] RenderLayout を小さな関数に分割（renderImageBlock, renderTextBlock, selectFont等）
+- [x] 無料翻訳API実装
+  - [x] MyMemory API（APIキー不要、5000文字/日）
+  - [x] LibreTranslate API（セルフホスト対応）
+- [x] CLIに `--mymemory`, `--libretranslate`, `--target-lang`, `--email` フラグ追加
+- [x] テスト追加（MyMemory, LibreTranslate のhttptest.NewServerを使ったテスト）
+
 ### Phase 10: ルビ（ふりがな）機能 ✅
 - [x] ルビデータ構造実装
   - [x] RubyText構造体（親文字、ルビ文字）
