@@ -14,19 +14,20 @@ func EscapeString(s string) string {
 	return s
 }
 
-// TextToHexString converts UTF-8 text to hex string for PDF.
-// For Type0 fonts, we use UTF-16BE encoding.
+// TextToHexString converts UTF-8 text to a UTF-16BE hex string for PDF.
+// Characters outside the BMP (U+10000 and above) are encoded as surrogate pairs.
 func TextToHexString(text string) string {
 	result := ""
 
 	for _, r := range text {
-		// Convert rune to UTF-16BE (simplified: only BMP characters)
 		if r <= 0xFFFF {
 			result += fmt.Sprintf("%04X", r)
 		} else {
-			// For characters outside BMP, use surrogate pairs
-			// This is a simplified implementation
-			result += fmt.Sprintf("%04X", r)
+			// UTF-16 surrogate pair for non-BMP characters
+			r -= 0x10000
+			high := 0xD800 + (r>>10)&0x3FF
+			low := 0xDC00 + r&0x3FF
+			result += fmt.Sprintf("%04X%04X", high, low)
 		}
 	}
 

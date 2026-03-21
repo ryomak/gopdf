@@ -457,7 +457,11 @@ func (p *Page) AddTextLayer(layer TextLayer) error {
 
 		// テキストを描画
 		if p.currentTTFFont != nil {
-			hexString := page.TextToHexString(word.Text)
+			// Identity-H encoding requires glyph indices, not Unicode codepoints
+			hexString, err := p.textToGlyphIndices(word.Text, p.currentTTFFont)
+			if err != nil {
+				return fmt.Errorf("failed to convert text to glyph indices: %w", err)
+			}
 			fmt.Fprintf(&p.content, "<%s> Tj\n", hexString)
 		} else {
 			fmt.Fprintf(&p.content, "(%s) Tj\n", page.EscapeString(word.Text))

@@ -152,3 +152,53 @@ func TestMultiplePages(t *testing.T) {
 	// 注: /Type /Pageは/Type /Pagesにも含まれるため、単純にカウントすると4になる
 	// Kids配列内の参照をカウントするか、/Count 3 で確認済みなので、ここでは省略
 }
+
+// TestPagesObjNumWithSMask はSMask付き画像がある場合にpagesObjNumが正しく計算されることを確認する
+func TestPagesObjNumWithSMask(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(PageSizeA4, Portrait)
+
+	// SMask付きの画像を作成
+	img := &Image{
+		Width:            1,
+		Height:           1,
+		Data:             []byte{0xFF, 0x00, 0x00},
+		ColorSpace:       "DeviceRGB",
+		BitsPerComponent: 8,
+		Filter:           "FlateDecode",
+		SMask: &Image{
+			Width:            1,
+			Height:           1,
+			Data:             []byte{0xFF},
+			ColorSpace:       "DeviceGray",
+			BitsPerComponent: 8,
+			Filter:           "FlateDecode",
+		},
+	}
+
+	if err := page.DrawImage(img, 0, 0, 100, 100); err != nil {
+		t.Fatalf("DrawImage() failed: %v", err)
+	}
+
+	var buf bytes.Buffer
+	err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatalf("WriteTo() failed: %v", err)
+	}
+
+	output := buf.String()
+
+	// PDF should be valid with correct structure
+	if !strings.Contains(output, "/Type /Catalog") {
+		t.Error("Output should contain Catalog")
+	}
+	if !strings.Contains(output, "/Type /Pages") {
+		t.Error("Output should contain Pages")
+	}
+
+	// The Page's Parent reference should point to the Pages object
+	// If SMask objects are not counted, the Parent will be wrong
+	if !strings.Contains(output, "/Count 1") {
+		t.Error("Output should contain Pages with Count 1")
+	}
+}

@@ -78,6 +78,21 @@ func TestTextToHexString(t *testing.T) {
 			input: "",
 			want:  "",
 		},
+		{
+			name:  "non-BMP character (emoji)",
+			input: "\U0001F600", // 😀 U+1F600
+			want:  "D83DDE00",  // UTF-16 surrogate pair: D83D DE00
+		},
+		{
+			name:  "non-BMP with BMP mixed",
+			input: "A\U0001F600B",
+			want:  "0041D83DDE000042",
+		},
+		{
+			name:  "musical symbol (non-BMP)",
+			input: "\U0001D11E", // 𝄞 U+1D11E
+			want:  "D834DD1E",  // UTF-16 surrogate pair: D834 DD1E
+		},
 	}
 
 	for _, tt := range tests {
