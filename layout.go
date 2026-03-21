@@ -71,6 +71,9 @@ func (r *PDFReader) ExtractPageLayout(pageNum int) (*PageLayout, error) {
 		return nil, err
 	}
 
+	// グラフィックス操作を抽出（テキスト・画像以外の描画操作を保持）
+	graphicsOps := content.ExtractGraphicsOperations(operations)
+
 	// テキスト要素を抽出
 	textExtractor := content.NewTextExtractor(operations, r.r, page)
 	textElements, err := textExtractor.Extract()
@@ -128,12 +131,13 @@ func (r *PDFReader) ExtractPageLayout(pageNum int) (*PageLayout, error) {
 	}
 
 	return &PageLayout{
-		PageNum:    pageNum,
-		Width:      width,
-		Height:     height,
-		TextBlocks: textBlocks,
-		Images:     convertedImageBlocks,
-		PageCTM:    pageCTM,
+		PageNum:            pageNum,
+		Width:              width,
+		Height:             height,
+		TextBlocks:         textBlocks,
+		Images:             convertedImageBlocks,
+		PageCTM:            pageCTM,
+		GraphicsOperations: graphicsOps,
 	}, nil
 }
 

@@ -891,7 +891,76 @@ gopdf translate input.pdf output.pdf --font font.ttf --mymemory ja
 gopdf translate input.pdf output.pdf --font font.ttf --libretranslate http://localhost:5000 --target-lang ja
 ```
 
-## 10. 参考資料
+## 11. グラフィックス保持機能（2026-03-21）
+
+### 11.1. 問題
+
+翻訳後のPDFでテーブルの罫線や図形が消えていた。
+原因: `RenderLayout`が白紙ページを作成し、テキストと画像のみを再描画していたため、
+元のコンテンツストリームに含まれるグラフィックス操作（罫線、矩形、パス描画等）が全て失われていた。
+
+### 11.2. 解決方法
+
+元のコンテンツストリームからグラフィックス操作を抽出し、翻訳後のPDFに保持する。
+
+#### アーキテクチャ
+
+```
+元のコンテンツストリーム
+    ↓
+ExtractGraphicsOperations()
+    ↓ テキスト(BT...ET)と画像(Do)を除外
+    ↓ グラフィックス操作のみ抽出
+    ↓
+PageLayout.GraphicsOperations ([]byte)
+    ↓
+RenderLayout()
+    ↓ 1. グラフィックス操作を書き込み（罫線、背景色等）
+    ↓ 2. 画像を描画
+    ↓ 3. 翻訳テキストをオーバーレイ
+    ↓
+翻訳後のPDF（罫線保持）
+```
+
+#### 保持されるグラフィックス操作
+
+| カテゴリ | オペレーター | 説明 |
+|---------|-------------|------|
+| パス構築 | `m`, `l`, `c`, `v`, `y`, `h` | 移動、線、曲線 |
+| パス描画 | `S`, `s`, `f`, `F`, `f*`, `B`, `B*`, `b`, `b*`, `n` | ストローク、フィル |
+| 矩形 | `re` | 矩形パス |
+| 状態管理 | `q`, `Q` | 保存・復元 |
+| 変換 | `cm` | CTM変更 |
+| 線スタイル | `w`, `J`, `j`, `M`, `d` | 線幅、端点、結合 |
+| 色設定 | `RG`, `rg`, `K`, `k`, `G`, `g`, `SC`, `sc`, `cs`, `CS` | ストローク色、フィル色 |
+| 拡張状態 | `gs` | ExtGState |
+| クリッピング | `W`, `W*` | クリッピングパス |
+
+#### 除外される操作
+
+| オペレーター | 理由 |
+|-------------|------|
+| `BT` ... `ET` | テキストブロック（翻訳テキストとして再描画） |
+| `Do` | XObject描画（画像として別途処理） |
+
+### 11.3. テキストオーバーフロー修正
+
+テキストフィッティングが失敗した場合のフォールバック動作を改善:
+
+**修正前**: 元のフォントサイズでそのまま描画 → はみ出し発生
+**修正後**: 最小フォントサイズ（デフォルト6pt）で矩形上端から描画
+
+### 11.4. 変更ファイル
+
+| ファイル | 変更内容 |
+|---------|---------|
+| `internal/content/layout/types.go` | `PageLayout`に`GraphicsOperations`フィールド追加 |
+| `internal/content/graphics.go` | 新規: `ExtractGraphicsOperations`関数 |
+| `layout.go` | グラフィックス操作の抽出・保存 |
+| `page.go` | `WriteRawContent`メソッド追加 |
+| `translator.go` | `RenderLayout`でグラフィックス先行描画、オーバーフロー修正 |
+
+## 12. 参考資料
 
 - [PDF 1.7 仕様書](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf)
   - Section 8: Graphics

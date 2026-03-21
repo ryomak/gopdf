@@ -62,6 +62,12 @@ func (p *Page) setStandardFont(f StandardFont, size float64) error {
 	return nil
 }
 
+// WriteRawContent writes raw PDF content stream data directly to the page.
+// This is used to preserve graphics operations (lines, rectangles, etc.) from the original PDF.
+func (p *Page) WriteRawContent(data []byte) {
+	p.content.Write(data)
+}
+
 // DrawText draws text at the specified position.
 // The position (x, y) is in PDF units (points), where (0, 0) is the bottom-left corner.
 func (p *Page) DrawText(text string, x, y float64) error {

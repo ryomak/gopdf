@@ -215,6 +215,11 @@ func RenderLayout(doc *Document, layout *PageLayout, opts PDFTranslatorOptions) 
 	customSize := PageSize{Width: layout.Width, Height: layout.Height}
 	page := doc.AddPage(customSize, Portrait)
 
+	// まずグラフィックス操作（罫線、矩形、パス等）を描画
+	if len(layout.GraphicsOperations) > 0 {
+		page.WriteRawContent(layout.GraphicsOperations)
+	}
+
 	contentBlocks := layout.SortedContentBlocks()
 
 	for _, block := range contentBlocks {
@@ -270,11 +275,17 @@ func renderTextBlock(page *Page, block ContentBlock, _ *PageLayout, opts PDFTran
 
 	fitted, err := text.Fit(textBlock.Text, textBlock.Rect, fontName, opts.FittingOptions, text.DefaultWidthEstimator)
 	if err != nil {
-		// フィッティングできない場合は元のサイズで描画
-		if err := page.SetFont(targetFont, textBlock.FontSize); err != nil {
+		// フィッティングできない場合は最小フォントサイズでクリップ描画
+		minSize := opts.FittingOptions.MinFontSize
+		if minSize <= 0 {
+			minSize = 6.0
+		}
+		if err := page.SetFont(targetFont, minSize); err != nil {
 			return nil
 		}
-		_ = page.DrawText(textBlock.Text, textBlock.Rect.X, textBlock.Rect.Y)
+		// 矩形の上端から描画開始し、はみ出さないようにする
+		y := textBlock.Rect.Y + textBlock.Rect.Height - minSize
+		_ = page.DrawText(textBlock.Text, textBlock.Rect.X, y)
 		return nil
 	}
 

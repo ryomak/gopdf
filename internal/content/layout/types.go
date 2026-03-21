@@ -33,12 +33,13 @@ const (
 
 // PageLayout はページの完全なレイアウト情報
 type PageLayout struct {
-	PageNum    int          // ページ番号（0-indexed）
-	Width      float64      // ページ幅
-	Height     float64      // ページ高さ
-	TextBlocks []TextBlock  // テキストブロック
-	Images     []ImageBlock // 画像ブロック
-	PageCTM    *Matrix      // ページレベルのCTM（座標系変換情報）
+	PageNum            int          // ページ番号（0-indexed）
+	Width              float64      // ページ幅
+	Height             float64      // ページ高さ
+	TextBlocks         []TextBlock  // テキストブロック
+	Images             []ImageBlock // 画像ブロック
+	PageCTM            *Matrix      // ページレベルのCTM（座標系変換情報）
+	GraphicsOperations []byte       // 元のコンテンツストリームからのグラフィックス操作（テキスト以外）
 }
 
 // Rectangle は矩形領域
