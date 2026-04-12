@@ -18,8 +18,6 @@ func DrawTextInternal(
 	useBrackets bool,
 ) {
 	fmt.Fprintf(content, "BT\n")
-	// Set text color to black (RGB: 0, 0, 0)
-	fmt.Fprintf(content, "0 0 0 rg\n")
 	fmt.Fprintf(content, "/%s %.2f Tf\n", fontKey, fontSize)
 	fmt.Fprintf(content, "%.2f %.2f Td\n", x, y)
 

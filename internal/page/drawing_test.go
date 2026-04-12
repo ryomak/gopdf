@@ -24,7 +24,7 @@ func TestDrawTextInternal(t *testing.T) {
 			fontSize:    12.0,
 			encodedText: "Hello",
 			useBrackets: true,
-			wantOps:     []string{"BT", "0 0 0 rg", "/F1 12.00 Tf", "100.00 200.00 Td", "(Hello) Tj", "ET"},
+			wantOps:     []string{"BT", "/F1 12.00 Tf", "100.00 200.00 Td", "(Hello) Tj", "ET"},
 		},
 		{
 			name:        "TTF font with hex encoding",
